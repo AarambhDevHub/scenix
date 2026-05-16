@@ -21,5 +21,17 @@ fn facade_exports_foundation_api() {
     keyboard.on_key_down(KeyCode::Space);
     assert!(keyboard.is_pressed(KeyCode::Space));
 
+    #[cfg(feature = "scene")]
+    {
+        let mut scene = scenix::SceneGraph::new();
+        let root = scene.add(scenix::SceneNode::group("root"));
+        let child = scene
+            .add_child(root, scenix::SceneNode::new("child"))
+            .unwrap();
+        scene.update_world_transforms();
+        assert_eq!(scene.parent(child), Some(root));
+        assert!(scene.world_matrix(child).is_some());
+    }
+
     assert_eq!(Mat4::IDENTITY.to_cols_array()[0], 1.0);
 }

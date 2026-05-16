@@ -27,7 +27,7 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no_std crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene --no-default-features
 
       - name: Clippy
         run: cargo clippy --workspace --all-features -- -D warnings
@@ -45,6 +45,7 @@ jobs:
       #     cargo publish -p scenix-math --dry-run --no-verify
       #     cargo publish -p scenix-core --dry-run --no-verify
       #     cargo publish -p scenix-input --dry-run --no-verify
+      #     cargo publish -p scenix-scene --dry-run --no-verify
       #     cargo publish -p scenix --dry-run --no-verify
 
   publish:
@@ -104,6 +105,7 @@ jobs:
             scenix-math \
             scenix-core \
             scenix-input \
+            scenix-scene \
             scenix
           do
             publish_crate "$crate"
@@ -150,7 +152,8 @@ jobs:
             | [`scenix-math`](https://crates.io/crates/scenix-math) | `${{ steps.version.outputs.VERSION }}` | Custom no_std 3D math primitives |
             | [`scenix-core`](https://crates.io/crates/scenix-core) | `${{ steps.version.outputs.VERSION }}` | Shared IDs, colors, errors, and traits |
             | [`scenix-input`](https://crates.io/crates/scenix-input) | `${{ steps.version.outputs.VERSION }}` | Platform-agnostic input state types |
-            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate for scenix Foundation APIs |
+            | [`scenix-scene`](https://crates.io/crates/scenix-scene) | `${{ steps.version.outputs.VERSION }}` | GPU-free scene graph and traversal APIs |
+            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate for scenix Scene Graph APIs |
 
             ### Verification
 

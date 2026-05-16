@@ -35,7 +35,7 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no_std crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene --no-default-features
 
   lint:
     name: Lint and docs

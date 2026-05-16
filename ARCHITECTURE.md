@@ -803,41 +803,51 @@ impl Color {
 
 ```rust
 pub struct SceneGraph {
-    nodes:    SlotMap<NodeId, SceneNode>,
-    roots:    Vec<NodeId>,              // top-level nodes (no parent)
-    dirty:    BitSet,                   // tracks nodes needing world transform recompute
+    nodes:       SlotMap<PrivateSceneKey, NodeRecord>,
+    roots:       Vec<NodeId>,                  // top-level nodes (no parent)
+    id_to_key:   Vec<Option<PrivateSceneKey>>, // graph-local public handles
+    next_id:     u64,                          // never reused within a graph
+    dirty_roots: Vec<NodeId>,                  // dirty subtree entry points
+    fog:         Option<Fog>,
 }
 
 impl SceneGraph {
     pub fn new() -> Self;
+    pub fn with_capacity(capacity: usize) -> Self;
 
     // Node management
     pub fn add(&mut self, node: SceneNode) -> NodeId;
-    pub fn add_child(&mut self, parent: NodeId, node: SceneNode) -> NodeId;
-    pub fn remove(&mut self, id: NodeId);
+    pub fn add_child(&mut self, parent: NodeId, node: SceneNode) -> Result<NodeId, ValidationError>;
+    pub fn remove(&mut self, id: NodeId) -> Result<(), ValidationError>;
     pub fn get(&self, id: NodeId) -> Option<&SceneNode>;
     pub fn get_mut(&mut self, id: NodeId) -> Option<&mut SceneNode>;
 
-    // Transform queries — propagates dirty flag lazily
-    pub fn world_transform(&self, id: NodeId) -> Transform;
-    pub fn world_matrix(&self, id: NodeId) -> Mat4;
-    pub fn set_local_transform(&mut self, id: NodeId, t: Transform);
+    // Transform queries — updated by explicit dirty subtree propagation
+    pub fn update_world_transforms(&mut self);
+    pub fn world_transform(&self, id: NodeId) -> Option<Transform>;
+    pub fn world_matrix(&self, id: NodeId) -> Option<Mat4>;
+    pub fn set_local_transform(&mut self, id: NodeId, t: Transform) -> Result<(), ValidationError>;
 
     // Hierarchy
-    pub fn parent_of(&self, id: NodeId) -> Option<NodeId>;
-    pub fn children_of(&self, id: NodeId) -> &[NodeId];
-    pub fn reparent(&mut self, node: NodeId, new_parent: Option<NodeId>);
+    pub fn parent(&self, id: NodeId) -> Option<NodeId>;
+    pub fn children(&self, id: NodeId) -> Option<&[NodeId]>;
+    pub fn roots(&self) -> &[NodeId];
+    pub fn reparent(&mut self, node: NodeId, new_parent: Option<NodeId>) -> Result<(), ValidationError>;
 
     // Traversal
-    pub fn iter_depth_first(&self) -> impl Iterator<Item = (NodeId, &SceneNode)>;
-    pub fn iter_visible(&self) -> impl Iterator<Item = (NodeId, &SceneNode)>;
+    pub fn iter_depth_first(&self) -> DepthFirstIter<'_>;
+    pub fn iter_breadth_first(&self) -> BreadthFirstIter<'_>;
 
     // Querying
     pub fn find_by_name(&self, name: &str) -> Option<NodeId>;
-    pub fn all_lights(&self) -> impl Iterator<Item = (NodeId, LightId)>;
-    pub fn all_meshes(&self) -> impl Iterator<Item = (NodeId, MeshId, MaterialId)>;
 }
 ```
+
+`NodeId` remains the public `u64` handle from `scenix-core`. `scenix-scene`
+uses private SlotMap keys internally and keeps a graph-local handle table, so
+SlotMap key layout never becomes public API. Mutating hierarchy operations return
+`ValidationError::InvalidId` for missing IDs and `ValidationError::InvalidState`
+for cycle-creating reparents.
 
 #### `src/node.rs`
 
@@ -848,22 +858,21 @@ pub struct SceneNode {
     pub visible:   bool,
     pub layer:     u32,                    // bitmask for camera culling layers
     pub kind:      NodeKind,
-    children:      Vec<NodeId>,            // private — managed by SceneGraph
-    world_cache:   Option<Mat4>,           // lazily updated world transform
 }
 
 pub enum NodeKind {
     Empty,
+    Group,    // logical grouping, no render data
     Mesh   { mesh_id: MeshId, material_id: MaterialId },
     Light  { light_id: LightId },
     Camera { camera_id: CameraId },
-    Group,    // logical grouping, no render data
+    Sprite(Sprite),
 }
 
 // Builder pattern for ergonomic construction:
 let node = SceneNode::new("Sword")
     .transform(Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)))
-    .mesh(mesh_id, material_id)
+    .kind(NodeKind::Mesh { mesh_id, material_id })
     .visible(true)
     .layer(0b0001);
 ```

@@ -4,11 +4,12 @@ members = [
     "crates/scenix-math",
     "crates/scenix-core",
     "crates/scenix-input",
+    "crates/scenix-scene",
     "crates/scenix",
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/AarambhDevHub/scenix"
@@ -17,15 +18,17 @@ rust-version = "1.89"
 readme = "README.md"
 
 [workspace.dependencies]
-scenix-math = { path = "crates/scenix-math", version = "0.1.0", default-features = false }
-scenix-core = { path = "crates/scenix-core", version = "0.1.0", default-features = false }
-scenix-input = { path = "crates/scenix-input", version = "0.1.0", default-features = false }
+scenix-math = { path = "crates/scenix-math", version = "0.2.0", default-features = false }
+scenix-core = { path = "crates/scenix-core", version = "0.2.0", default-features = false }
+scenix-input = { path = "crates/scenix-input", version = "0.2.0", default-features = false }
+scenix-scene = { path = "crates/scenix-scene", version = "0.2.0", default-features = false }
 
 approx = { version = "0.5", default-features = false }
 bytemuck = { version = "1", default-features = false }
 libm = { version = "0.2" }
-serde = { version = "1", default-features = false, features = ["derive"] }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1" }
+slotmap = { version = "1", default-features = false }
 
 [profile.release]
 codegen-units = 1

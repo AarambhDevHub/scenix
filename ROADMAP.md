@@ -24,7 +24,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | Version | Name | Focus | Status |
 |---------|------|-------|--------|
 | `v0.1.0` | Foundation | Math, core traits, IDs, color, error types | ✅ |
-| `v0.2.0` | Scene Graph | Scene node tree, transforms, traversal, fog, LOD | 📋 |
+| `v0.2.0` | Scene Graph | Scene node tree, transforms, traversal, fog, LOD | ✅ |
 | `v0.3.0` | Geometry | Mesh, all primitives, morph targets, instanced/batched mesh | 📋 |
 | `v0.4.0` | Materials & Lights | Material trait, PBR, physical, toon, all light types | 📋 |
 | `v0.5.0` | Textures & Camera | Texture loading, sampler, atlas, camera types, controllers | 📋 |
@@ -100,7 +100,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 - [x] `LICENSE-MIT` and `LICENSE-APACHE`
 - [x] `.github/workflows/ci.yml` — test, clippy, fmt, docs, no_std
 - [x] `.github/workflows/publish.yml` — dep-ordered crates.io publish
-- [x] `crates/scenix-math/benches/math_bench.rs` — Mat4 multiply, Quat slerp, AABB intersection
+- [x] `benches/math_bench.rs` — Mat4 multiply, Quat slerp, AABB intersection
 
 ---
 
@@ -116,24 +116,24 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 ### Deliverables
 
 **`scenix-scene`**
-- [ ] `SceneGraph` — `SlotMap`-backed node storage, root node management
-- [ ] `SceneNode` — `name`, `transform`, `visible`, `layer`, `NodeKind`
-- [ ] `NodeKind` enum — `Empty`, `Group`, `Mesh`, `Light`, `Camera`, `Sprite`
-- [ ] `graph.add(node) -> NodeId`
-- [ ] `graph.add_child(parent, node) -> NodeId`
-- [ ] `graph.remove(id)` — removes node and all children
-- [ ] `graph.get(id) -> Option<&SceneNode>`, `graph.get_mut(id)`
-- [ ] `graph.parent(id)`, `graph.children(id)`
-- [ ] `graph.find_by_name(name) -> Option<NodeId>`
-- [ ] Dirty-flag transform propagation — `graph.update_world_transforms()`
-- [ ] `graph.world_matrix(id) -> Mat4`
-- [ ] `graph.iter_depth_first()`, `graph.iter_breadth_first()`
-- [ ] `Fog` — `Fog::Linear { near, far, color }`, `Fog::Exponential { density, color }`
-- [ ] `LodGroup` — `levels: Vec<(f32, MeshId)>`, `fn select(distance: f32) -> MeshId`
-- [ ] `Sprite` — `width`, `height`, `texture_id`, billboard facing mode
-- [ ] Tests: parent-child hierarchy, world transform correctness, remove cascades
-- [ ] Tests: depth-first traversal order, dirty-flag correctness
-- [ ] `benches/scene_graph_bench.rs` — 10K node traversal + transform propagation
+- [x] `SceneGraph` — `SlotMap`-backed node storage, root node management
+- [x] `SceneNode` — `name`, `transform`, `visible`, `layer`, `NodeKind`
+- [x] `NodeKind` enum — `Empty`, `Group`, `Mesh`, `Light`, `Camera`, `Sprite`
+- [x] `graph.add(node) -> NodeId`
+- [x] `graph.add_child(parent, node) -> Result<NodeId, ValidationError>`
+- [x] `graph.remove(id)` — removes node and all children
+- [x] `graph.get(id) -> Option<&SceneNode>`, `graph.get_mut(id)`
+- [x] `graph.parent(id)`, `graph.children(id)`
+- [x] `graph.find_by_name(name) -> Option<NodeId>`
+- [x] Dirty-flag transform propagation — `graph.update_world_transforms()`
+- [x] `graph.world_matrix(id) -> Option<Mat4>`
+- [x] `graph.iter_depth_first()`, `graph.iter_breadth_first()`
+- [x] `Fog` — `Fog::Linear { near, far, color }`, `Fog::Exponential { density, color }`
+- [x] `LodGroup` — sorted `(max_distance, MeshId)` levels, `fn select(distance: f32) -> Option<MeshId>`
+- [x] `Sprite` — `width`, `height`, `texture_id`, billboard facing mode
+- [x] Tests: parent-child hierarchy, world transform correctness, remove cascades
+- [x] Tests: depth-first traversal order, dirty-flag correctness
+- [x] `benches/scene_graph_bench.rs` — 10K node traversal + transform propagation
 
 ---
 

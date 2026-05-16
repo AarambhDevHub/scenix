@@ -1,0 +1,37 @@
+[package]
+name = "scenix-scene"
+description = "GPU-free scene graph, nodes, transforms, fog, sprites, and LOD helpers for scenix."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-math/std", "scenix-core/std", "slotmap/std"]
+serde = ["dep:serde", "scenix-math/serde", "scenix-core/serde"]
+
+[dependencies]
+scenix-core = { workspace = true }
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+slotmap = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[bench]]
+name = "scene_graph_bench"
+path = "../../benches/scene_graph_bench.rs"
+harness = false
+
+[[test]]
+name = "scene_graph"
+path = "../../tests/scene_graph.rs"
+
+[[test]]
+name = "scene_serde"
+path = "../../tests/scene_serde.rs"

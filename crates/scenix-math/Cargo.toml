@@ -23,4 +23,5 @@ serde = { workspace = true, optional = true }
 
 [[bench]]
 name = "math_bench"
+path = "../../benches/math_bench.rs"
 harness = false

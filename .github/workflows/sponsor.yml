@@ -1,0 +1,64 @@
+name: Sponsor
+
+on:
+  schedule:
+    - cron: "30 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  funding-reminder:
+    name: Weekly funding reminder
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update SPONSORS.md
+        run: |
+          cat > SPONSORS.md << 'EOF'
+          # Supporting Scenix
+
+          Scenix is free and open source, maintained in spare time alongside a full
+          development schedule. If this library saves you time or powers something
+          you ship, consider supporting its development.
+
+          ## Ways to Support
+
+          | Platform | Link |
+          |----------|------|
+          | 💖 GitHub Sponsors | [github.com/sponsors/aarambh-darshan](https://github.com/sponsors/aarambh-darshan) |
+          | ☕ Buy Me a Coffee | [buymeacoffee.com/aarambhdevhub](https://buymeacoffee.com/aarambhdevhub) |
+          | 💳 Razorpay (UPI / Card) | [razorpay.me/@aarambhdevhub](https://razorpay.me/@aarambhdevhub) |
+
+          ## What Your Support Funds
+
+          - Active development of Scenix through all planned milestones
+          - New examples, demos, and documentation
+          - Faster responses to issues and pull requests
+          - Future projects in the Aarambh Dev Hub ecosystem
+
+          ## Also Support Animato
+
+          Scenix is the companion to [Animato](https://github.com/AarambhDevHub/animato),
+          a stable Rust animation library. If you use both, consider supporting once —
+          it funds the entire ecosystem.
+
+          ## Current Supporters
+
+          Thank you to everyone who has starred the repo, shared the project,
+          left feedback, and contributed code. You keep this going.
+
+          ---
+
+          *SPONSORS.md is updated automatically every week.*
+          EOF
+
+      - name: Commit updated SPONSORS.md
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add SPONSORS.md
+          git diff --staged --quiet || git commit -m "chore: update SPONSORS.md [skip ci]"
+          git push
