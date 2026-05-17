@@ -1,0 +1,40 @@
+[package]
+name = "scenix-mesh"
+description = "CPU-side geometry, mesh, primitive, morph, instancing, and batching types for scenix."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std", "scenix-math/std"]
+serde = ["dep:serde", "scenix-core/serde", "scenix-math/serde"]
+
+[dependencies]
+scenix-core = { workspace = true }
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[bench]]
+name = "mesh_gen_bench"
+path = "../../benches/mesh_gen_bench.rs"
+harness = false
+
+[[test]]
+name = "mesh_geometry"
+path = "../../tests/mesh_geometry.rs"
+
+[[test]]
+name = "mesh_primitives"
+path = "../../tests/mesh_primitives.rs"
+
+[[test]]
+name = "mesh_serde"
+path = "../../tests/mesh_serde.rs"

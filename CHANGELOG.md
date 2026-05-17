@@ -7,6 +7,33 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-17
+
+### Added
+
+- Added the `scenix-mesh` crate with CPU-side `Geometry`, `Mesh`,
+  `MorphTarget`, `InstancedMesh`, `BatchedMesh`, buffer layout metadata, and
+  renderer-agnostic primitive generation.
+- Added face-weighted normal generation, UV-derivative tangent generation with
+  handedness, geometry bounds, validation, and indexed geometry merging.
+- Added standard primitives: box, sphere, plane, cylinder, cone, capsule, torus,
+  torus knot, icosphere, circle, ring, lathe, extrude, tube, and shape geometry.
+- Added `Shape` support for exterior contours and hole side walls during
+  extrusion.
+- Added mesh integration tests for validation, normals, tangents, merging,
+  bounds, instancing, batching, primitive validity, winding, UV ranges, facade
+  exports, and serde round trips.
+- Added `benches/mesh_gen_bench.rs` for primitive generation, tangent
+  computation, and geometry merge throughput.
+
+### Changed
+
+- Bumped all workspace crates to `0.3.0`.
+- Updated the `scenix` facade crate to enable and re-export `scenix-mesh` behind
+  the default `mesh` feature.
+- Updated README, roadmap, CI checks, publish ordering, and generated GitHub
+  Release notes for the Geometry release.
+
 ## [0.2.0] - 2026-05-16
 
 ### Added
@@ -54,6 +81,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/AarambhDevHub/scenix/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/AarambhDevHub/scenix/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/AarambhDevHub/scenix/releases/tag/v0.1.0

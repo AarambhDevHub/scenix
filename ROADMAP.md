@@ -25,7 +25,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 |---------|------|-------|--------|
 | `v0.1.0` | Foundation | Math, core traits, IDs, color, error types | ✅ |
 | `v0.2.0` | Scene Graph | Scene node tree, transforms, traversal, fog, LOD | ✅ |
-| `v0.3.0` | Geometry | Mesh, all primitives, morph targets, instanced/batched mesh | 📋 |
+| `v0.3.0` | Geometry | Mesh, all primitives, morph targets, instanced/batched mesh | ✅ |
 | `v0.4.0` | Materials & Lights | Material trait, PBR, physical, toon, all light types | 📋 |
 | `v0.5.0` | Textures & Camera | Texture loading, sampler, atlas, camera types, controllers | 📋 |
 | `v0.6.0` | Renderer | wgpu pipeline, deferred+forward rendering, shadow maps | 📋 |
@@ -144,42 +144,43 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 ### Crates shipped
 
 - `scenix-mesh` `v0.3.0` (new)
+- All previous crates bumped to `v0.3.0`
 
 ### Deliverables
 
 **`scenix-mesh`**
-- [ ] `Geometry` struct — positions, normals, uvs, uvs2, colors, indices, tangents
-- [ ] `geometry.compute_normals()` — face-weighted vertex normals
-- [ ] `geometry.compute_tangents()` — MikkTSpace tangent generation
-- [ ] `geometry.aabb()`, `geometry.bounding_sphere()`
-- [ ] `geometry.merge(other)` — combine geometries
-- [ ] `Mesh` struct — `Geometry` + `MaterialId`
-- [ ] `BufferLayout`, `VertexAttribute`, `IndexFormat`
-- [ ] `MorphTarget` — `name`, `positions_delta`, `normals_delta`, `weight`
-- [ ] `InstancedMesh` — `mesh_id`, `material_id`, `transforms: Vec<Mat4>`, `set_transform_at()`
-- [ ] `BatchedMesh` — multiple geometries in single draw call
+- [x] `Geometry` struct — positions, normals, uvs, uvs2, colors, indices, tangents
+- [x] `geometry.compute_normals()` — face-weighted vertex normals
+- [x] `geometry.compute_tangents()` — tangent generation with handedness
+- [x] `geometry.aabb()`, `geometry.bounding_sphere()`
+- [x] `geometry.merge(other)` — combine geometries
+- [x] `Mesh` struct — `Geometry` + `MaterialId`
+- [x] `BufferLayout`, `VertexAttribute`, `IndexFormat`
+- [x] `MorphTarget` — `name`, `positions_delta`, `normals_delta`, `weight`
+- [x] `InstancedMesh` — `mesh_id`, `material_id`, `transforms: Vec<Mat4>`, `set_transform_at()`
+- [x] `BatchedMesh` — multiple geometries in single draw call
 
 **Primitives (all return `Geometry`)**
-- [ ] `box_geometry(w, h, d, w_seg, h_seg, d_seg)`
-- [ ] `sphere_geometry(radius, width_seg, height_seg)`
-- [ ] `plane_geometry(w, h, w_seg, h_seg)`
-- [ ] `cylinder_geometry(top_r, bottom_r, height, radial_seg, height_seg, open_ended)`
-- [ ] `cone_geometry(radius, height, radial_seg, height_seg)`
-- [ ] `capsule_geometry(radius, height, cap_seg, radial_seg)`
-- [ ] `torus_geometry(radius, tube, radial_seg, tubular_seg)`
-- [ ] `torus_knot_geometry(radius, tube, tubular_seg, radial_seg, p, q)`
-- [ ] `icosphere_geometry(radius, subdivisions)`
-- [ ] `circle_geometry(radius, segments, theta_start, theta_length)`
-- [ ] `ring_geometry(inner_r, outer_r, theta_seg, phi_seg)`
-- [ ] `lathe_geometry(points, segments, phi_start, phi_length)`
-- [ ] `extrude_geometry(shape, depth, bevel_thickness, bevel_size, bevel_segments)`
-- [ ] `tube_geometry(path, tubular_seg, radius, radial_seg, closed)`
-- [ ] `shape_geometry(shape)` — 2D shape triangulation
+- [x] `box_geometry(w, h, d, w_seg, h_seg, d_seg)`
+- [x] `sphere_geometry(radius, width_seg, height_seg)`
+- [x] `plane_geometry(w, h, w_seg, h_seg)`
+- [x] `cylinder_geometry(top_r, bottom_r, height, radial_seg, height_seg, open_ended)`
+- [x] `cone_geometry(radius, height, radial_seg, height_seg)`
+- [x] `capsule_geometry(radius, height, cap_seg, radial_seg)`
+- [x] `torus_geometry(radius, tube, radial_seg, tubular_seg)`
+- [x] `torus_knot_geometry(radius, tube, tubular_seg, radial_seg, p, q)`
+- [x] `icosphere_geometry(radius, subdivisions)`
+- [x] `circle_geometry(radius, segments, theta_start, theta_length)`
+- [x] `ring_geometry(inner_r, outer_r, theta_seg, phi_seg)`
+- [x] `lathe_geometry(points, segments, phi_start, phi_length)`
+- [x] `extrude_geometry(shape, depth, bevel_thickness, bevel_size, bevel_segments)`
+- [x] `tube_geometry(path, tubular_seg, radius, radial_seg, closed)`
+- [x] `shape_geometry(shape)` — 2D shape triangulation
 
-- [ ] Tests: every primitive produces valid normals (dot(n, face_normal) > 0)
-- [ ] Tests: every primitive has correct vertex count for given segment params
-- [ ] Tests: UV coordinates in [0, 1] range
-- [ ] `benches/mesh_gen_bench.rs` — primitive generation throughput
+- [x] Tests: every primitive produces valid normals (dot(n, face_normal) > 0)
+- [x] Tests: every primitive has correct vertex count for given segment params
+- [x] Tests: UV coordinates in [0, 1] range
+- [x] `benches/mesh_gen_bench.rs` — primitive generation throughput
 
 ---
 

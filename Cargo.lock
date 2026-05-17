@@ -70,17 +70,18 @@ dependencies = [
 
 [[package]]
 name = "scenix"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "scenix-core",
  "scenix-input",
  "scenix-math",
+ "scenix-mesh",
  "scenix-scene",
 ]
 
 [[package]]
 name = "scenix-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bytemuck",
  "scenix-math",
@@ -90,7 +91,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-input"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "scenix-math",
  "serde",
@@ -98,7 +99,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-math"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "approx",
  "libm",
@@ -106,8 +107,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "scenix-mesh"
+version = "0.3.0"
+dependencies = [
+ "scenix-core",
+ "scenix-math",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "scenix-scene"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "scenix-core",
  "scenix-math",

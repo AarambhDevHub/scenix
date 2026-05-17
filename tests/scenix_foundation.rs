@@ -33,5 +33,12 @@ fn facade_exports_foundation_api() {
         assert!(scene.world_matrix(child).is_some());
     }
 
+    #[cfg(feature = "mesh")]
+    {
+        let geometry = scenix::sphere_geometry(1.0, 8, 4);
+        let mesh = scenix::Mesh::new(geometry, scenix::MaterialId::new(1));
+        assert!(!mesh.geometry.positions.is_empty());
+    }
+
     assert_eq!(Mat4::IDENTITY.to_cols_array()[0], 1.0);
 }

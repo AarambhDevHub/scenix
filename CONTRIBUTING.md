@@ -68,8 +68,8 @@ cargo test --workspace
 # Run tests with all features:
 cargo test --workspace --all-features
 
-# Verify no_std compatibility for math/core/input:
-cargo test -p scenix-math -p scenix-core -p scenix-input --no-default-features
+# Verify no_std compatibility for GPU-free crates:
+cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-mesh --no-default-features
 
 # Lint:
 cargo clippy --workspace --all-features -- -D warnings
@@ -91,15 +91,17 @@ scenix/
 ├── crates/
 │   ├── scenix-math/        ← Vec2/3/4, Mat4, Quat, Transform, Ray3, AABB — start here
 │   ├── scenix-core/        ← Traits, IDs, Color, errors
-│   ├── scenix-input/       ← PointerState, KeyboardState, GamepadState
+│   ├── scenix-input/       ← PointerState, KeyboardState, key/button state
+│   ├── scenix-scene/       ← Scene graph, nodes, traversal, fog, sprites, LOD
+│   ├── scenix-mesh/        ← Geometry buffers, primitives, instancing, batching
 │   └── scenix/             ← Facade crate
 ├── ARCHITECTURE.md        ← Long-term design for future crates
 └── ROADMAP.md             ← Versioned release plan
 ```
 
-Version `0.1.0` is Foundation only. Future crates such as `scenix-scene`,
-`scenix-mesh`, `scenix-renderer`, and `scenix-wasm` are documented in the roadmap
-but are not implemented yet.
+Version `0.3.0` includes the Foundation, Scene Graph, and Geometry layers.
+Future crates such as `scenix-material`, `scenix-light`, `scenix-renderer`, and
+`scenix-wasm` are documented in the roadmap but are not implemented yet.
 
 ---
 
@@ -199,8 +201,8 @@ cargo test -p scenix-math quat_slerp_midpoint
 # All features:
 cargo test --workspace --all-features
 
-# no_std (math + core + input only):
-cargo test -p scenix-math -p scenix-core -p scenix-input --no-default-features
+# no_std-compatible crates:
+cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-mesh --no-default-features
 ```
 
 ---

@@ -5,17 +5,18 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix v0.2.0 is the Scene Graph release of a renderer-agnostic 3D scene library for Rust.
+scenix v0.3.0 is the Geometry release of a renderer-agnostic 3D scene library for Rust.
 
-This release ships the GPU-free foundation plus a working scene graph:
+This release ships the GPU-free foundation, scene graph, and CPU-side geometry layer:
 
 - `scenix-math`: vectors, matrices, quaternions, transforms, rays, bounds, planes, and coordinate helpers.
 - `scenix-core`: typed IDs, color, errors, and shared traits.
 - `scenix-input`: pointer and keyboard state.
 - `scenix-scene`: scene node hierarchy, transform propagation, traversal, fog, sprites, and LOD helpers.
+- `scenix-mesh`: geometry buffers, primitive generation, morph targets, instancing, and batching helpers.
 - `scenix`: facade crate re-exporting the default APIs.
 
-Meshes, materials, renderer, loaders, WASM integration, and `animato` integration are planned in later roadmap milestones.
+Materials, lights, cameras, textures, renderer, loaders, WASM integration, and `animato` integration are planned in later roadmap milestones.
 
 ## Installation
 
@@ -23,30 +24,46 @@ Most users should start with the facade crate:
 
 ```toml
 [dependencies]
-scenix = "0.2"
+scenix = "0.3"
 ```
 
 Use the focused crates directly when you only need one layer:
 
 ```toml
 [dependencies]
-scenix-math = "0.2"
-scenix-core = "0.2"
-scenix-input = "0.2"
-scenix-scene = "0.2"
+scenix-math = "0.3"
+scenix-core = "0.3"
+scenix-input = "0.3"
+scenix-scene = "0.3"
+scenix-mesh = "0.3"
 ```
 
 For `no_std` math with portable trigonometry:
 
 ```toml
 [dependencies]
-scenix-math = { version = "0.2", default-features = false, features = ["libm"] }
-scenix-core = { version = "0.2", default-features = false }
-scenix-input = { version = "0.2", default-features = false }
-scenix-scene = { version = "0.2", default-features = false }
+scenix-math = { version = "0.3", default-features = false, features = ["libm"] }
+scenix-core = { version = "0.3", default-features = false }
+scenix-input = { version = "0.3", default-features = false }
+scenix-scene = { version = "0.3", default-features = false }
+scenix-mesh = { version = "0.3", default-features = false }
 ```
 
 ## Quick Start
+
+### Geometry And Meshes
+
+```rust
+use scenix::{MaterialId, Mesh, SceneNode, sphere_geometry};
+
+let geometry = sphere_geometry(1.0, 32, 16);
+let material = MaterialId::new(1);
+let mesh = Mesh::new(geometry, material);
+let node = SceneNode::mesh("planet", scenix::MeshId::new(1), material);
+
+assert!(!mesh.geometry.positions.is_empty());
+assert!(matches!(node.kind, scenix::NodeKind::Mesh { .. }));
+```
 
 ### Scene Graph
 
@@ -151,6 +168,7 @@ assert!(pointer.is_pressed(PointerButton::Left));
 |---------|---------|-------------|
 | `std` | yes | Enables standard-library conveniences such as `std::error::Error` and `Named`. |
 | `scene` | yes | Enables the `scenix-scene` graph API from the facade crate. |
+| `mesh` | yes | Enables the `scenix-mesh` geometry and primitive API from the facade crate. |
 | `libm` | no | Uses `libm` for portable `no_std` trigonometry in `scenix-math`. |
 | `serde` | no | Derives `Serialize` and `Deserialize` for public data types. |
 | `approx` | no | Implements `approx` traits for math types. |
@@ -165,6 +183,7 @@ scenix/
 │   ├── scenix-core/
 │   ├── scenix-input/
 │   ├── scenix-scene/
+│   ├── scenix-mesh/
 │   └── scenix/
 ├── ARCHITECTURE.md
 ├── ROADMAP.md
@@ -179,14 +198,14 @@ cargo fmt --check
 cargo clippy --workspace --all-features -- -D warnings
 cargo test --workspace
 cargo test --workspace --all-features
-cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene --no-default-features
+cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-mesh --no-default-features
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo bench --workspace --no-run
 ```
 
 ## Roadmap
 
-The long-term design remains the full scenix workspace described in [ARCHITECTURE.md](./ARCHITECTURE.md). Version `0.2.0` adds the scene graph on top of the Foundation APIs. Upcoming milestones add mesh primitives, materials, lights, cameras, textures, renderer, loaders, raycasting, helpers, `animato`, and WASM integration.
+The long-term design remains the full scenix workspace described in [ARCHITECTURE.md](./ARCHITECTURE.md). Version `0.3.0` adds mesh geometry and primitive generation on top of the Foundation and Scene Graph APIs. Upcoming milestones add materials, lights, cameras, textures, renderer, loaders, raycasting, helpers, `animato`, and WASM integration.
 
 See [ROADMAP.md](./ROADMAP.md) for the full versioned plan.
 
