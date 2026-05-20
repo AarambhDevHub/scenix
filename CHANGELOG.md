@@ -7,6 +7,30 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-20
+
+### Added
+
+- Added the `scenix-material` crate with the `Material` trait, compact
+  `PipelineKey`, `AlphaMode`, PBR, physical, unlit, Lambert, toon, normal,
+  wireframe, depth, line, points, and custom WGSL shader materials.
+- Added the `scenix-light` crate with ambient, directional, point, spot,
+  hemisphere, and area lights, validated `ShadowConfig`, and raw-sample
+  spherical-harmonics `LightProbe` projection.
+- Added CPU-side examples for material/light scene setup, material pipeline
+  keys, and light probes.
+- Added integration tests for material pipeline key uniqueness, alpha behavior,
+  material/light serde round trips, light constructors, shadow validation, scene
+  light attachment, and SH projection validation.
+
+### Changed
+
+- Bumped all workspace crates to `0.4.0`.
+- Updated the `scenix` facade crate to enable and re-export `scenix-material`
+  and `scenix-light` behind the default `material` and `light` features.
+- Updated README, roadmap, architecture notes, CI checks, publish ordering, and
+  generated GitHub Release notes for the Materials & Lights release.
+
 ## [0.3.0] - 2026-05-17
 
 ### Added
@@ -81,7 +105,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/AarambhDevHub/scenix/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/AarambhDevHub/scenix/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/AarambhDevHub/scenix/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/AarambhDevHub/scenix/releases/tag/v0.1.0

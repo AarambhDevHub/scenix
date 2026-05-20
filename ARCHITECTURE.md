@@ -229,7 +229,7 @@ scenix/
 │   │       ├── spot.rs                 ← SpotLight (position, target, angle, penumbra)
 │   │       ├── hemisphere.rs           ← HemisphereLight (sky color, ground color)
 │   │       ├── area.rs                 ← AreaLight (rect emitter, LTC approximation)
-│   │       ├── probe.rs                ← LightProbe (SH-based environment lighting, IBL)
+│   │       ├── probe.rs                ← LightProbe (SH-based environment lighting from raw samples in v0.4)
 │   │       └── shadow.rs               ← ShadowMap, ShadowConfig (PCF, bias, cascades)
 │   │
 │   ├── scenix-texture/                  ← Texture loading, sampling, atlases
@@ -407,7 +407,7 @@ members = [
 ]
 
 [workspace.package]
-version      = "0.1.0"
+version      = "0.4.0"
 edition      = "2024"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/AarambhDevHub/scenix"
@@ -416,22 +416,22 @@ rust-version = "1.89"
 
 [workspace.dependencies]
 # internal crates — version pinned to workspace
-scenix-math       = { path = "crates/scenix-math",       version = "0.1" }
-scenix-core       = { path = "crates/scenix-core",       version = "0.1" }
-scenix-scene      = { path = "crates/scenix-scene",      version = "0.1" }
-scenix-camera     = { path = "crates/scenix-camera",     version = "0.1" }
-scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.1" }
-scenix-material   = { path = "crates/scenix-material",   version = "0.1" }
-scenix-light      = { path = "crates/scenix-light",      version = "0.1" }
-scenix-texture    = { path = "crates/scenix-texture",    version = "0.1" }
-scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.1" }
-scenix-loader     = { path = "crates/scenix-loader",     version = "0.1" }
-scenix-post       = { path = "crates/scenix-post",       version = "0.1" }
-scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.1" }
-scenix-animato    = { path = "crates/scenix-animato",    version = "0.1" }
-scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.1" }
-scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.1" }
-scenix-input      = { path = "crates/scenix-input",      version = "0.1" }
+scenix-math       = { path = "crates/scenix-math",       version = "0.4" }
+scenix-core       = { path = "crates/scenix-core",       version = "0.4" }
+scenix-scene      = { path = "crates/scenix-scene",      version = "0.4" }
+scenix-camera     = { path = "crates/scenix-camera",     version = "0.4" }
+scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.4" }
+scenix-material   = { path = "crates/scenix-material",   version = "0.4" }
+scenix-light      = { path = "crates/scenix-light",      version = "0.4" }
+scenix-texture    = { path = "crates/scenix-texture",    version = "0.4" }
+scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.4" }
+scenix-loader     = { path = "crates/scenix-loader",     version = "0.4" }
+scenix-post       = { path = "crates/scenix-post",       version = "0.4" }
+scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.4" }
+scenix-animato    = { path = "crates/scenix-animato",    version = "0.4" }
+scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.4" }
+scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.4" }
+scenix-input      = { path = "crates/scenix-input",      version = "0.4" }
 
 # external crates — shared version pins
 wgpu             = { version = "24",  default-features = false }
@@ -1203,10 +1203,15 @@ pub struct LightProbe {
 }
 
 impl LightProbe {
-    pub fn from_cube_texture(cube: &TextureCube) -> Self;    // project cubemap to SH
-    pub fn from_equirectangular(hdr: &Texture2D) -> Self;
+    pub fn from_coefficients(sh_coefficients: [Vec3; 9], intensity: f32) -> Self;
+    pub fn from_cube_faces(faces: [&[Vec3]; 6], face_size: u32, intensity: f32) -> Result<Self, ValidationError>;
+    pub fn from_equirectangular_samples(samples: &[Vec3], width: u32, height: u32, intensity: f32) -> Result<Self, ValidationError>;
 }
 ```
+
+Texture-backed probe constructors are deferred until `scenix-texture` exists in
+v0.5.0. The v0.4.0 API projects linear RGB raw samples directly; cube face
+order is `+X, -X, +Y, -Y, +Z, -Z`.
 
 ---
 
@@ -1678,10 +1683,10 @@ impl KeyboardState {
 
 ```toml
 [dependencies]
-scenix = "0.1"
+scenix = "0.4"
 
 # Or with specific features:
-scenix = { version = "0.1", features = ["loader", "post", "animato", "helpers"] }
+scenix = { version = "0.4", features = ["loader", "post", "animato", "helpers"] }
 ```
 
 ```rust
@@ -1838,13 +1843,14 @@ raycaster = ["dep:scenix-raycaster"]
 animato  = ["dep:scenix-animato", "dep:animato"]
 helpers  = ["dep:scenix-helpers"]
 wasm     = ["dep:scenix-wasm", "dep:wasm-bindgen", "dep:web-sys"]
-serde    = ["scenix-math/serde", "scenix-core/serde", "scenix-scene/serde"]
+serde    = ["scenix-math/serde", "scenix-core/serde", "scenix-scene/serde",
+            "scenix-mesh/serde", "scenix-material/serde", "scenix-light/serde"]
 ```
 
 **Minimum useful combination** — scene graph and math only, zero GPU:
 
 ```toml
-scenix = { version = "0.1", default-features = false, features = ["scene", "camera", "mesh"] }
+scenix = { version = "0.4", default-features = false, features = ["scene", "mesh", "material", "light"] }
 ```
 
 ---
@@ -2208,7 +2214,7 @@ impl MyApp {
 
 ---
 
-*Document version: 0.1.0 — covers architecture through scenix 1.0.0*
+*Document version: 0.4.0 — covers architecture through scenix 1.0.0*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
 *Total crates: 17 (15 functional + 2 utility)*

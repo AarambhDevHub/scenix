@@ -26,7 +26,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v0.1.0` | Foundation | Math, core traits, IDs, color, error types | ✅ |
 | `v0.2.0` | Scene Graph | Scene node tree, transforms, traversal, fog, LOD | ✅ |
 | `v0.3.0` | Geometry | Mesh, all primitives, morph targets, instanced/batched mesh | ✅ |
-| `v0.4.0` | Materials & Lights | Material trait, PBR, physical, toon, all light types | 📋 |
+| `v0.4.0` | Materials & Lights | Material trait, PBR, physical, toon, all light types | ✅ |
 | `v0.5.0` | Textures & Camera | Texture loading, sampler, atlas, camera types, controllers | 📋 |
 | `v0.6.0` | Renderer | wgpu pipeline, deferred+forward rendering, shadow maps | 📋 |
 | `v0.7.0` | Loaders & Post | GLTF/OBJ/STL loaders, post-processing stack | 📋 |
@@ -196,32 +196,32 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 ### Deliverables
 
 **`scenix-material`**
-- [ ] `Material` trait — `pipeline_key()`, `is_transparent()`, `double_sided()`, `alpha_cutoff()`
-- [ ] `PipelineKey` struct — determines which shader pipeline to use
-- [ ] `AlphaMode` enum — `Opaque`, `Mask(f32)`, `Blend`
-- [ ] `PbrMaterial` — albedo, metallic, roughness, normal/ao/emissive textures, alpha mode
-- [ ] `PhysicalMaterial` — clearcoat, sheen, transmission, thickness, IOR, iridescence
-- [ ] `UnlitMaterial` — color + optional texture, no lighting
-- [ ] `LambertMaterial` — diffuse-only, faster than PBR
-- [ ] `ToonMaterial` — gradient map, discrete steps, outline
-- [ ] `NormalMaterial` — debug normals → RGB
-- [ ] `WireframeMaterial` — wireframe overlay
-- [ ] `DepthMaterial` — shadow pass depth output
-- [ ] `LineMaterial` — width, dash pattern, color
-- [ ] `PointsMaterial` — point size, attenuation
-- [ ] `ShaderMaterial` — custom WGSL vertex/fragment, raw uniforms
-- [ ] Tests: `PipelineKey` uniqueness for different material configs
+- [x] `Material` trait — `pipeline_key()`, `is_transparent()`, `double_sided()`, `alpha_cutoff()`
+- [x] `PipelineKey` struct — determines which shader pipeline to use
+- [x] `AlphaMode` enum — `Opaque`, `Mask(f32)`, `Blend`
+- [x] `PbrMaterial` — albedo, metallic, roughness, normal/ao/emissive textures, alpha mode
+- [x] `PhysicalMaterial` — clearcoat, sheen, transmission, thickness, IOR, iridescence
+- [x] `UnlitMaterial` — color + optional texture, no lighting
+- [x] `LambertMaterial` — diffuse-only, faster than PBR
+- [x] `ToonMaterial` — gradient map, discrete steps, outline
+- [x] `NormalMaterial` — debug normals → RGB
+- [x] `WireframeMaterial` — wireframe overlay
+- [x] `DepthMaterial` — shadow pass depth output
+- [x] `LineMaterial` — width, dash pattern, color
+- [x] `PointsMaterial` — point size, attenuation
+- [x] `ShaderMaterial` — custom WGSL vertex/fragment, raw uniforms
+- [x] Tests: `PipelineKey` uniqueness for different material configs
 
 **`scenix-light`**
-- [ ] `AmbientLight` — color, intensity
-- [ ] `DirectionalLight` — direction, color, intensity, optional `ShadowConfig`
-- [ ] `PointLight` — color, intensity, range, decay, optional `ShadowConfig`
-- [ ] `SpotLight` — color, intensity, range, angle, penumbra, optional `ShadowConfig`
-- [ ] `HemisphereLight` — sky_color, ground_color, intensity
-- [ ] `AreaLight` — width, height, color, intensity (LTC approximation)
-- [ ] `LightProbe` — 9-coefficient SH, `from_cube_texture()`, `from_equirectangular()`
-- [ ] `ShadowConfig` — map_size, near, far, bias, pcf_radius, cascades
-- [ ] Tests: SH projection from cubemap produces non-zero coefficients
+- [x] `AmbientLight` — color, intensity
+- [x] `DirectionalLight` — direction, color, intensity, optional `ShadowConfig`
+- [x] `PointLight` — color, intensity, range, decay, optional `ShadowConfig`
+- [x] `SpotLight` — color, intensity, range, angle, penumbra, optional `ShadowConfig`
+- [x] `HemisphereLight` — sky_color, ground_color, intensity
+- [x] `AreaLight` — width, height, color, intensity (LTC approximation)
+- [x] `LightProbe` — 9-coefficient SH, `from_coefficients()`, `from_cube_faces()`, `from_equirectangular_samples()`
+- [x] `ShadowConfig` — map_size, near, far, bias, pcf_radius, cascades
+- [x] Tests: SH projection from raw cube samples produces non-zero coefficients
 
 ---
 

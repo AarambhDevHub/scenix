@@ -40,5 +40,32 @@ fn facade_exports_foundation_api() {
         assert!(!mesh.geometry.positions.is_empty());
     }
 
+    #[cfg(feature = "material")]
+    {
+        let material = scenix::PbrMaterial::new()
+            .alpha_mode(facade_alpha_mode_mask())
+            .double_sided(true);
+        assert!(scenix::Material::double_sided(&material));
+        assert_eq!(scenix::Material::alpha_cutoff(&material), Some(0.5));
+    }
+
+    #[cfg(feature = "light")]
+    {
+        let light = scenix::DirectionalLight::new(Vec3::new(0.0, -2.0, 0.0), Color::WHITE, 2.0)
+            .shadow(facade_shadow_config());
+        assert!(light.shadow.unwrap().validate().is_ok());
+        assert_eq!(light.direction.length(), 1.0);
+    }
+
     assert_eq!(Mat4::IDENTITY.to_cols_array()[0], 1.0);
+}
+
+#[cfg(feature = "material")]
+fn facade_alpha_mode_mask() -> scenix::AlphaMode {
+    scenix::AlphaMode::Mask(0.5)
+}
+
+#[cfg(feature = "light")]
+fn facade_shadow_config() -> scenix::ShadowConfig {
+    scenix::ShadowConfig::new(1024, 0.1, 100.0)
 }

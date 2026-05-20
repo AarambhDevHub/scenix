@@ -1,6 +1,6 @@
 [package]
 name = "scenix"
-description = "Facade crate for the scenix Geometry APIs."
+description = "Facade crate for the scenix Materials and Lights APIs."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,12 +10,14 @@ rust-version.workspace = true
 readme.workspace = true
 
 [features]
-default = ["std", "scene", "mesh"]
-std = ["scenix-math/std", "scenix-core/std", "scenix-input/std", "scenix-scene?/std", "scenix-mesh?/std"]
+default = ["std", "scene", "mesh", "material", "light"]
+std = ["scenix-math/std", "scenix-core/std", "scenix-input/std", "scenix-scene?/std", "scenix-mesh?/std", "scenix-material?/std", "scenix-light?/std"]
 scene = ["dep:scenix-scene"]
 mesh = ["dep:scenix-mesh"]
+material = ["dep:scenix-material"]
+light = ["dep:scenix-light"]
 libm = ["scenix-math/libm"]
-serde = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde", "scenix-scene?/serde", "scenix-mesh?/serde"]
+serde = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde", "scenix-scene?/serde", "scenix-mesh?/serde", "scenix-material?/serde", "scenix-light?/serde"]
 approx = ["scenix-math/approx"]
 gpu = ["scenix-core/gpu"]
 
@@ -23,9 +25,23 @@ gpu = ["scenix-core/gpu"]
 scenix-core = { workspace = true }
 scenix-input = { workspace = true }
 scenix-math = { workspace = true }
+scenix-light = { workspace = true, optional = true }
+scenix-material = { workspace = true, optional = true }
 scenix-mesh = { workspace = true, optional = true }
 scenix-scene = { workspace = true, optional = true }
 
 [[test]]
 name = "scenix_foundation"
 path = "../../tests/scenix_foundation.rs"
+
+[[example]]
+name = "materials_and_lights"
+path = "../../examples/materials_and_lights.rs"
+
+[[example]]
+name = "material_pipeline_keys"
+path = "../../examples/material_pipeline_keys.rs"
+
+[[example]]
+name = "light_probe"
+path = "../../examples/light_probe.rs"

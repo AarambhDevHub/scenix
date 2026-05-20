@@ -27,7 +27,7 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no_std crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-mesh --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-mesh -p scenix-material -p scenix-light --no-default-features
 
       - name: Clippy
         run: cargo clippy --workspace --all-features -- -D warnings
@@ -47,6 +47,8 @@ jobs:
       #     cargo publish -p scenix-input --dry-run --no-verify
       #     cargo publish -p scenix-scene --dry-run --no-verify
       #     cargo publish -p scenix-mesh --dry-run --no-verify
+      #     cargo publish -p scenix-material --dry-run --no-verify
+      #     cargo publish -p scenix-light --dry-run --no-verify
       #     cargo publish -p scenix --dry-run --no-verify
 
   publish:
@@ -108,6 +110,8 @@ jobs:
             scenix-input \
             scenix-scene \
             scenix-mesh \
+            scenix-material \
+            scenix-light \
             scenix
           do
             publish_crate "$crate"
@@ -149,10 +153,10 @@ jobs:
 
             ### Highlights
 
-            - New `scenix-mesh` crate for renderer-agnostic CPU geometry.
-            - Built-in primitive generators for boxes, spheres, planes, cylinders, cones, capsules, torus meshes, torus knots, icospheres, circles, rings, lathe surfaces, extrusions, tubes, and 2D shapes.
-            - Geometry utilities for validation, face-weighted normals, tangent generation, bounds, indexed merging, morph targets, instanced meshes, and batched meshes.
-            - The facade crate now enables the `mesh` feature by default alongside `scene`.
+            - New `scenix-material` crate with the `Material` trait, compact `PipelineKey`, alpha modes, PBR, physical, toon, line, points, and custom WGSL shader materials.
+            - New `scenix-light` crate with ambient, directional, point, spot, hemisphere, and area lights.
+            - Validated `ShadowConfig` and texture-free `LightProbe` projection from raw cube-face or equirectangular linear RGB samples.
+            - The facade crate now enables the `material` and `light` features by default alongside `scene` and `mesh`.
 
             ### Crates published to crates.io
 
@@ -163,26 +167,30 @@ jobs:
             | [`scenix-input`](https://crates.io/crates/scenix-input) | `${{ steps.version.outputs.VERSION }}` | Platform-agnostic input state types |
             | [`scenix-scene`](https://crates.io/crates/scenix-scene) | `${{ steps.version.outputs.VERSION }}` | GPU-free scene graph and traversal APIs |
             | [`scenix-mesh`](https://crates.io/crates/scenix-mesh) | `${{ steps.version.outputs.VERSION }}` | CPU-side geometry, primitive generation, instancing, and batching |
-            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate for scenix Geometry APIs |
+            | [`scenix-material`](https://crates.io/crates/scenix-material) | `${{ steps.version.outputs.VERSION }}` | GPU-free material descriptions and pipeline keys |
+            | [`scenix-light`](https://crates.io/crates/scenix-light) | `${{ steps.version.outputs.VERSION }}` | GPU-free lights, shadow configuration, and light probes |
+            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate for scenix Materials and Lights APIs |
 
-            ### Geometry example
+            ### Materials and lights example
 
             ```rust
-            use scenix::{MaterialId, Mesh, SceneNode, sphere_geometry};
+            use scenix::{Color, DirectionalLight, Material, PbrMaterial, ShadowConfig, Vec3};
 
-            let geometry = sphere_geometry(1.0, 32, 16);
-            let material = MaterialId::new(1);
-            let mesh = Mesh::new(geometry, material);
-            let node = SceneNode::mesh("planet", scenix::MeshId::new(1), material);
+            let material = PbrMaterial::new()
+                .albedo(Color::from_hex(0xCC_88_44).to_linear())
+                .metallic_roughness(0.0, 0.55);
 
-            assert!(!mesh.geometry.positions.is_empty());
-            assert!(matches!(node.kind, scenix::NodeKind::Mesh { .. }));
+            let sun = DirectionalLight::new(Vec3::new(-1.0, -2.0, -1.0), Color::WHITE, 3.0)
+                .shadow(ShadowConfig::default());
+
+            assert!(!material.is_transparent());
+            assert!(sun.shadow.unwrap().validate().is_ok());
             ```
 
             ### Verification
 
             - `cargo test --workspace --all-features`
-            - `cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-mesh --no-default-features`
+            - `cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-mesh -p scenix-material -p scenix-light --no-default-features`
             - `cargo clippy --workspace --all-features -- -D warnings`
             - `cargo fmt --check`
             - `cargo doc --workspace --all-features --no-deps`

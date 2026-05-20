@@ -5,18 +5,20 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix v0.3.0 is the Geometry release of a renderer-agnostic 3D scene library for Rust.
+scenix v0.4.0 is the Materials & Lights release of a renderer-agnostic 3D scene library for Rust.
 
-This release ships the GPU-free foundation, scene graph, and CPU-side geometry layer:
+This release ships the GPU-free foundation, scene graph, CPU-side geometry, materials, and lights:
 
 - `scenix-math`: vectors, matrices, quaternions, transforms, rays, bounds, planes, and coordinate helpers.
 - `scenix-core`: typed IDs, color, errors, and shared traits.
 - `scenix-input`: pointer and keyboard state.
 - `scenix-scene`: scene node hierarchy, transform propagation, traversal, fog, sprites, and LOD helpers.
 - `scenix-mesh`: geometry buffers, primitive generation, morph targets, instancing, and batching helpers.
+- `scenix-material`: GPU-free material traits, pipeline keys, PBR, physical, toon, line, point, and custom shader materials.
+- `scenix-light`: GPU-free light types, shadow configuration, and raw-sample spherical-harmonics light probes.
 - `scenix`: facade crate re-exporting the default APIs.
 
-Materials, lights, cameras, textures, renderer, loaders, WASM integration, and `animato` integration are planned in later roadmap milestones.
+Cameras, textures, renderer, loaders, WASM integration, and `animato` integration are planned in later roadmap milestones.
 
 ## Installation
 
@@ -24,32 +26,71 @@ Most users should start with the facade crate:
 
 ```toml
 [dependencies]
-scenix = "0.3"
+scenix = "0.4"
 ```
 
 Use the focused crates directly when you only need one layer:
 
 ```toml
 [dependencies]
-scenix-math = "0.3"
-scenix-core = "0.3"
-scenix-input = "0.3"
-scenix-scene = "0.3"
-scenix-mesh = "0.3"
+scenix-math = "0.4"
+scenix-core = "0.4"
+scenix-input = "0.4"
+scenix-scene = "0.4"
+scenix-mesh = "0.4"
+scenix-material = "0.4"
+scenix-light = "0.4"
 ```
 
-For `no_std` math with portable trigonometry:
+For `no_std`-capable crates with portable math trigonometry:
 
 ```toml
 [dependencies]
-scenix-math = { version = "0.3", default-features = false, features = ["libm"] }
-scenix-core = { version = "0.3", default-features = false }
-scenix-input = { version = "0.3", default-features = false }
-scenix-scene = { version = "0.3", default-features = false }
-scenix-mesh = { version = "0.3", default-features = false }
+scenix-math = { version = "0.4", default-features = false, features = ["libm"] }
+scenix-core = { version = "0.4", default-features = false }
+scenix-input = { version = "0.4", default-features = false }
+scenix-scene = { version = "0.4", default-features = false }
+scenix-mesh = { version = "0.4", default-features = false }
+scenix-material = { version = "0.4", default-features = false }
+scenix-light = { version = "0.4", default-features = false }
 ```
 
 ## Quick Start
+
+### Materials And Lights
+
+```rust
+use scenix::{
+    Color, DirectionalLight, Material, PbrMaterial, ShadowConfig, Vec3,
+};
+
+let material = PbrMaterial::new()
+    .albedo(Color::from_hex(0xCC_88_44).to_linear())
+    .metallic_roughness(0.0, 0.55);
+
+let sun = DirectionalLight::new(Vec3::new(-1.0, -2.0, -1.0), Color::WHITE, 3.0)
+    .shadow(ShadowConfig::default());
+
+assert!(!material.is_transparent());
+assert!(sun.shadow.unwrap().validate().is_ok());
+```
+
+### Light Probes
+
+```rust
+use scenix::{LightProbe, Vec3};
+
+let px = [Vec3::new(1.0, 0.2, 0.2); 4];
+let nx = [Vec3::new(0.2, 1.0, 0.2); 4];
+let py = [Vec3::new(0.2, 0.2, 1.0); 4];
+let ny = [Vec3::new(0.1, 0.1, 0.1); 4];
+let pz = [Vec3::new(1.0, 1.0, 1.0); 4];
+let nz = [Vec3::new(0.4, 0.4, 0.8); 4];
+
+let probe = LightProbe::from_cube_faces([&px, &nx, &py, &ny, &pz, &nz], 2, 1.0).unwrap();
+
+assert!(probe.sh_coefficients[0].x > 0.0);
+```
 
 ### Geometry And Meshes
 
@@ -169,6 +210,8 @@ assert!(pointer.is_pressed(PointerButton::Left));
 | `std` | yes | Enables standard-library conveniences such as `std::error::Error` and `Named`. |
 | `scene` | yes | Enables the `scenix-scene` graph API from the facade crate. |
 | `mesh` | yes | Enables the `scenix-mesh` geometry and primitive API from the facade crate. |
+| `material` | yes | Enables GPU-free material types and pipeline keys from the facade crate. |
+| `light` | yes | Enables GPU-free light types, shadow config, and light probes from the facade crate. |
 | `libm` | no | Uses `libm` for portable `no_std` trigonometry in `scenix-math`. |
 | `serde` | no | Derives `Serialize` and `Deserialize` for public data types. |
 | `approx` | no | Implements `approx` traits for math types. |
@@ -184,6 +227,8 @@ scenix/
 │   ├── scenix-input/
 │   ├── scenix-scene/
 │   ├── scenix-mesh/
+│   ├── scenix-material/
+│   ├── scenix-light/
 │   └── scenix/
 ├── ARCHITECTURE.md
 ├── ROADMAP.md
@@ -198,14 +243,14 @@ cargo fmt --check
 cargo clippy --workspace --all-features -- -D warnings
 cargo test --workspace
 cargo test --workspace --all-features
-cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-mesh --no-default-features
+cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-mesh -p scenix-material -p scenix-light --no-default-features
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo bench --workspace --no-run
 ```
 
 ## Roadmap
 
-The long-term design remains the full scenix workspace described in [ARCHITECTURE.md](./ARCHITECTURE.md). Version `0.3.0` adds mesh geometry and primitive generation on top of the Foundation and Scene Graph APIs. Upcoming milestones add materials, lights, cameras, textures, renderer, loaders, raycasting, helpers, `animato`, and WASM integration.
+The long-term design remains the full scenix workspace described in [ARCHITECTURE.md](./ARCHITECTURE.md). Version `0.4.0` adds GPU-free material and light descriptions on top of the Foundation, Scene Graph, and Geometry APIs. Upcoming milestones add cameras, textures, renderer, loaders, raycasting, helpers, `animato`, and WASM integration.
 
 See [ROADMAP.md](./ROADMAP.md) for the full versioned plan.
 

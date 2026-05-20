@@ -1,0 +1,31 @@
+[package]
+name = "scenix-material"
+description = "GPU-free material traits, pipeline keys, and built-in material types for scenix."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std", "scenix-math/std"]
+serde = ["dep:serde", "scenix-core/serde", "scenix-math/serde"]
+
+[dependencies]
+scenix-core = { workspace = true }
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[test]]
+name = "material_pipeline"
+path = "../../tests/material_pipeline.rs"
+
+[[test]]
+name = "material_serde"
+path = "../../tests/material_serde.rs"
