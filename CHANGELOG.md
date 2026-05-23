@@ -7,6 +7,34 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-23
+
+### Added
+
+- Added the `scenix-texture` crate with raw CPU `Texture2D`,
+  `TextureCube`, `Texture3D`, `VideoTexture`, `Sampler`, deterministic
+  `TextureAtlas` packing, `TextureFormat` byte-size helpers, and RGBA8 CPU
+  mipmap generation.
+- Added the `scenix-camera` crate with perspective, orthographic, and cube
+  cameras, WebGPU-depth frustum extraction, screen-to-ray helpers, and orbit
+  and fly controllers that consume `scenix-input` state.
+- Added CPU-side examples for texture mipmaps with camera rays and orbit camera
+  controls.
+- Added integration tests for texture validation, atlas packing, mipmaps,
+  video-frame updates, camera projection/view behavior, frustum visibility,
+  cube camera matrices, controller clamps, facade exports, and serde round
+  trips.
+- Added compile-only benches for texture mipmap/atlas work and camera
+  frustum/controller work.
+
+### Changed
+
+- Bumped all workspace crates to `0.5.0`.
+- Updated the `scenix` facade crate to enable and re-export `scenix-camera`
+  and `scenix-texture` behind the default `camera` and `texture` features.
+- Updated README, roadmap, architecture notes, CI checks, publish ordering, and
+  generated GitHub Release notes for the Textures & Camera release.
+
 ## [0.4.0] - 2026-05-20
 
 ### Added
@@ -105,7 +133,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/AarambhDevHub/scenix/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/AarambhDevHub/scenix/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/AarambhDevHub/scenix/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/AarambhDevHub/scenix/compare/v0.1.0...v0.2.0

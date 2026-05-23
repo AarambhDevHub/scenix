@@ -1,0 +1,37 @@
+[package]
+name = "scenix-camera"
+description = "GPU-free camera, frustum, and controller types for scenix."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std", "scenix-input/std", "scenix-math/std"]
+serde = ["dep:serde", "scenix-core/serde", "scenix-input/serde", "scenix-math/serde"]
+
+[dependencies]
+scenix-core = { workspace = true }
+scenix-input = { workspace = true }
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[bench]]
+name = "camera_bench"
+path = "../../benches/camera_bench.rs"
+harness = false
+
+[[test]]
+name = "camera"
+path = "../../tests/camera.rs"
+
+[[test]]
+name = "camera_serde"
+path = "../../tests/camera_serde.rs"

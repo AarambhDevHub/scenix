@@ -57,6 +57,26 @@ fn facade_exports_foundation_api() {
         assert_eq!(light.direction.length(), 1.0);
     }
 
+    #[cfg(feature = "camera")]
+    {
+        let camera = scenix::PerspectiveCamera::new(60.0, 1.0, 0.1, 100.0)
+            .position(Vec3::new(0.0, 0.0, 5.0))
+            .target(Vec3::ZERO);
+        assert!(camera.frustum().contains_point(Vec3::ZERO));
+    }
+
+    #[cfg(feature = "texture")]
+    {
+        let texture = scenix::Texture2D::new(
+            1,
+            1,
+            scenix::TextureFormat::Rgba8Unorm,
+            vec![255, 255, 255, 255],
+        )
+        .unwrap();
+        assert_eq!(texture.base_level_len().unwrap(), 4);
+    }
+
     assert_eq!(Mat4::IDENTITY.to_cols_array()[0], 1.0);
 }
 

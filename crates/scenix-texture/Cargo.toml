@@ -1,0 +1,35 @@
+[package]
+name = "scenix-texture"
+description = "CPU-side texture data, samplers, atlases, and mipmap helpers for scenix."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std"]
+serde = ["dep:serde", "scenix-core/serde"]
+
+[dependencies]
+scenix-core = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[bench]]
+name = "texture_bench"
+path = "../../benches/texture_bench.rs"
+harness = false
+
+[[test]]
+name = "texture"
+path = "../../tests/texture.rs"
+
+[[test]]
+name = "texture_serde"
+path = "../../tests/texture_serde.rs"

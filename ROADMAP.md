@@ -27,7 +27,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v0.2.0` | Scene Graph | Scene node tree, transforms, traversal, fog, LOD | ✅ |
 | `v0.3.0` | Geometry | Mesh, all primitives, morph targets, instanced/batched mesh | ✅ |
 | `v0.4.0` | Materials & Lights | Material trait, PBR, physical, toon, all light types | ✅ |
-| `v0.5.0` | Textures & Camera | Texture loading, sampler, atlas, camera types, controllers | 📋 |
+| `v0.5.0` | Textures & Camera | Texture loading, sampler, atlas, camera types, controllers | ✅ |
 | `v0.6.0` | Renderer | wgpu pipeline, deferred+forward rendering, shadow maps | 📋 |
 | `v0.7.0` | Loaders & Post | GLTF/OBJ/STL loaders, post-processing stack | 📋 |
 | `v0.8.0` | Raycasting & Helpers | BVH raycaster, debug helpers, input abstraction | 📋 |
@@ -237,26 +237,26 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 ### Deliverables
 
 **`scenix-texture`**
-- [ ] `Texture2D` — width, height, format, data, mip_levels
-- [ ] `TextureCube` — 6 faces, format, mip_levels
-- [ ] `Texture3D` — width, height, depth, format, data
-- [ ] `VideoTexture` — frame-by-frame update interface
-- [ ] `Sampler` — mag/min/mip filter, address_u/v/w, anisotropy, compare
-- [ ] `TextureAtlas` — rect packing, UV lookup by name
-- [ ] `TextureFormat` enum — Rgba8, Rgba16Float, Depth32Float, Bc7, Astc, Etc2
-- [ ] `mipmap::generate(data, width, height) -> Vec<Vec<u8>>` — CPU mipmap generation
-- [ ] Tests: atlas packing fits expected number of rects, UV coords are valid
+- [x] `Texture2D` — width, height, format, data, mip_levels
+- [x] `TextureCube` — 6 faces, format, mip_levels
+- [x] `Texture3D` — width, height, depth, format, data
+- [x] `VideoTexture` — frame-by-frame update interface
+- [x] `Sampler` — mag/min/mip filter, address_u/v/w, anisotropy, compare
+- [x] `TextureAtlas` — rect packing, UV lookup by name
+- [x] `TextureFormat` enum — Rgba8, Rgba16Float, Depth32Float, Bc7, Astc, Etc2
+- [x] `mipmap::generate(data, width, height) -> Vec<Vec<u8>>` — CPU mipmap generation
+- [x] Tests: atlas packing fits expected number of rects, UV coords are valid
 
 **`scenix-camera`**
-- [ ] `PerspectiveCamera` — fov_y, aspect, near, far, `projection_matrix()`, `view_matrix()`
-- [ ] `OrthographicCamera` — left, right, top, bottom, near, far
-- [ ] `CubeCamera` — 6-face render for environment maps
-- [ ] `Frustum` — 6 planes extracted from VP matrix, `contains_point()`, `intersects_aabb()`
-- [ ] `OrbitController` — target, distance, min/max polar angle, zoom, damping
-- [ ] `FlyController` — speed, sensitivity, WASD movement
-- [ ] Controllers consume `PointerState` + `KeyboardState` from `scenix-input`
-- [ ] Tests: frustum correctly culls points outside the view volume
-- [ ] Tests: orbit controller clamps polar angle to [min, max]
+- [x] `PerspectiveCamera` — fov_y, aspect, near, far, `projection_matrix()`, `view_matrix()`
+- [x] `OrthographicCamera` — left, right, top, bottom, near, far
+- [x] `CubeCamera` — 6-face render for environment maps
+- [x] `Frustum` — 6 planes extracted from VP matrix, `contains_point()`, `intersects_aabb()`
+- [x] `OrbitController` — target, distance, min/max polar angle, zoom, damping
+- [x] `FlyController` — speed, sensitivity, WASD movement
+- [x] Controllers consume `PointerState` + `KeyboardState` from `scenix-input`
+- [x] Tests: frustum correctly culls points outside the view volume
+- [x] Tests: orbit controller clamps polar angle to [min, max]
 
 ---
 
@@ -481,11 +481,11 @@ These are not committed — they are ideas to revisit after the stable release.
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to set up the workspace, run tests, and submit pull requests.
 
-The best way to contribute right now is to pick any unchecked item from `v0.1.0` above and open a PR.
+The best way to contribute right now is to pick any unchecked item from `v0.6.0` above and open a PR.
 
 ---
 
-*Roadmap version: 0.1.0 — last updated May 2026*
-*Next milestone: v0.1.0 — Foundation*
+*Roadmap version: 0.5.0 — last updated May 2026*
+*Next milestone: v0.6.0 — Renderer*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
