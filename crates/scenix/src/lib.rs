@@ -1,9 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-//! Facade crate for scenix Textures and Camera APIs.
+//! Facade crate for scenix Renderer APIs.
 //!
 //! This release re-exports the Foundation crates, the GPU-free scene graph,
-//! CPU-side geometry, materials, lights, textures, and cameras.
+//! CPU-side geometry, materials, lights, textures, cameras, and optional
+//! renderer APIs.
 
 pub use scenix_core::*;
 pub use scenix_input::*;
@@ -26,3 +27,6 @@ pub use scenix_light::*;
 
 #[cfg(feature = "texture")]
 pub use scenix_texture::*;
+
+#[cfg(feature = "renderer")]
+pub use scenix_renderer::*;

@@ -7,6 +7,36 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-25
+
+### Added
+
+- Added the `scenix-renderer` crate with optional `wgpu` rendering,
+  headless and surface targets, renderer-owned mesh/material/texture/light
+  registries, frame stats, G-buffer targets, shadow-map atlas allocation, and
+  render target resize support.
+- Added `GpuMaterial` implementations for `PbrMaterial`, `UnlitMaterial`, and
+  `LambertMaterial`, plus stable material uniform byte packing.
+- Added `PipelineCache`, renderer pipeline keys, culling helpers, transparent
+  and opaque draw sorting, and embedded WGSL shader entry points for the first
+  renderer pass structure.
+- Added renderer examples for a headless cube, PBR sphere, and shadow scene.
+- Added CPU integration tests for renderer config validation, geometry packing,
+  resource registry errors, format mapping, culling errors, sorting, material
+  uniform bytes, facade exports, and renderer serde.
+- Added GPU-gated tests for pipeline cache reuse, headless framebuffer smoke
+  rendering, and resize target recreation.
+- Added `benches/render_bench.rs` for 1K, 10K, and 100K triangle scene render
+  submissions.
+
+### Changed
+
+- Bumped all workspace crates to `0.6.0`.
+- Updated the `scenix` facade crate to expose renderer APIs behind the
+  optional `renderer` feature while keeping default features CPU-only.
+- Updated README, roadmap, architecture notes, CI checks, publish ordering, and
+  generated GitHub Release notes for the Renderer release.
+
 ## [0.5.0] - 2026-05-23
 
 ### Added
@@ -133,7 +163,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/AarambhDevHub/scenix/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AarambhDevHub/scenix/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/AarambhDevHub/scenix/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/AarambhDevHub/scenix/compare/v0.2.0...v0.3.0

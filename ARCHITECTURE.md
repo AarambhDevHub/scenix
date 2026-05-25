@@ -407,7 +407,7 @@ members = [
 ]
 
 [workspace.package]
-version      = "0.5.0"
+version      = "0.6.0"
 edition      = "2024"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/AarambhDevHub/scenix"
@@ -416,25 +416,25 @@ rust-version = "1.89"
 
 [workspace.dependencies]
 # internal crates — version pinned to workspace
-scenix-math       = { path = "crates/scenix-math",       version = "0.5" }
-scenix-core       = { path = "crates/scenix-core",       version = "0.5" }
-scenix-scene      = { path = "crates/scenix-scene",      version = "0.5" }
-scenix-camera     = { path = "crates/scenix-camera",     version = "0.5" }
-scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.5" }
-scenix-material   = { path = "crates/scenix-material",   version = "0.5" }
-scenix-light      = { path = "crates/scenix-light",      version = "0.5" }
-scenix-texture    = { path = "crates/scenix-texture",    version = "0.5" }
-scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.5" }
-scenix-loader     = { path = "crates/scenix-loader",     version = "0.5" }
-scenix-post       = { path = "crates/scenix-post",       version = "0.5" }
-scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.5" }
-scenix-animato    = { path = "crates/scenix-animato",    version = "0.5" }
-scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.5" }
-scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.5" }
-scenix-input      = { path = "crates/scenix-input",      version = "0.5" }
+scenix-math       = { path = "crates/scenix-math",       version = "0.6" }
+scenix-core       = { path = "crates/scenix-core",       version = "0.6" }
+scenix-scene      = { path = "crates/scenix-scene",      version = "0.6" }
+scenix-camera     = { path = "crates/scenix-camera",     version = "0.6" }
+scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.6" }
+scenix-material   = { path = "crates/scenix-material",   version = "0.6" }
+scenix-light      = { path = "crates/scenix-light",      version = "0.6" }
+scenix-texture    = { path = "crates/scenix-texture",    version = "0.6" }
+scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.6" }
+scenix-loader     = { path = "crates/scenix-loader",     version = "0.6" }
+scenix-post       = { path = "crates/scenix-post",       version = "0.6" }
+scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.6" }
+scenix-animato    = { path = "crates/scenix-animato",    version = "0.6" }
+scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.6" }
+scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.6" }
+scenix-input      = { path = "crates/scenix-input",      version = "0.6" }
 
 # external crates — shared version pins
-wgpu             = { version = "24",  default-features = false }
+wgpu             = { version = "29.0.3" }
 bytemuck         = { version = "1",   features = ["derive"] }
 serde            = { version = "1",   features = ["derive"] }
 image            = { version = "0.25", default-features = false }
@@ -442,8 +442,9 @@ gltf             = { version = "1",   default-features = false }
 slotmap          = { version = "1" }
 ahash            = { version = "0.8" }
 log              = { version = "0.4" }
-winit            = { version = "0.31" }
+winit            = { version = "0.30.13" }
 raw-window-handle = { version = "0.6" }
+pollster         = { version = "0.4" }
 wasm-bindgen     = { version = "0.2" }
 js-sys           = { version = "0.3" }
 web-sys          = { version = "0.3", features = ["HtmlCanvasElement", "Window"] }
@@ -1683,10 +1684,10 @@ impl KeyboardState {
 
 ```toml
 [dependencies]
-scenix = "0.5"
+scenix = "0.6"
 
 # Or with specific features:
-scenix = { version = "0.5", features = ["loader", "post", "animato", "helpers"] }
+scenix = { version = "0.6", features = ["renderer"] }
 ```
 
 ```rust
@@ -1698,9 +1699,9 @@ pub use scenix_camera::*;
 pub use scenix_mesh::*;
 pub use scenix_material::*;
 pub use scenix_light::*;
+pub use scenix_texture::*;
 pub use scenix_input::*;
 
-#[cfg(feature = "texture")]   pub use scenix_texture::*;
 #[cfg(feature = "renderer")]  pub use scenix_renderer::*;
 #[cfg(feature = "loader")]    pub use scenix_loader::*;
 #[cfg(feature = "post")]      pub use scenix_post::*;
@@ -1827,7 +1828,7 @@ shaders/
 ```toml
 # scenix/Cargo.toml features
 [features]
-default  = ["std", "scene", "camera", "mesh", "material", "light", "texture", "renderer", "input"]
+default  = ["std", "scene", "camera", "mesh", "material", "light", "texture", "input"]
 std      = []                               # enables std-dependent types
 scene    = ["dep:scenix-scene"]
 camera   = ["dep:scenix-camera"]
@@ -1836,22 +1837,29 @@ material = ["dep:scenix-material"]
 light    = ["dep:scenix-light"]
 texture  = ["dep:scenix-texture"]
 input    = ["dep:scenix-input"]
-renderer = ["dep:scenix-renderer", "dep:wgpu"]
+renderer = ["dep:scenix-renderer"]
 loader   = ["dep:scenix-loader", "dep:gltf", "dep:image"]
 post     = ["dep:scenix-post"]
 raycaster = ["dep:scenix-raycaster"]
 animato  = ["dep:scenix-animato", "dep:animato"]
 helpers  = ["dep:scenix-helpers"]
 wasm     = ["dep:scenix-wasm", "dep:wasm-bindgen", "dep:web-sys"]
-serde    = ["scenix-math/serde", "scenix-core/serde", "scenix-scene/serde",
-            "scenix-camera/serde", "scenix-mesh/serde", "scenix-material/serde",
-            "scenix-light/serde", "scenix-texture/serde"]
+serde    = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde",
+            "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde",
+            "scenix-material?/serde", "scenix-light?/serde", "scenix-texture?/serde",
+            "scenix-renderer?/serde"]
 ```
 
-**Minimum useful combination** — scene graph and math only, zero GPU:
+**Minimum useful combination** — scene graph and authoring data only, zero GPU:
 
 ```toml
-scenix = { version = "0.5", default-features = false, features = ["scene", "camera", "mesh", "material", "light", "texture"] }
+scenix = { version = "0.6", default-features = false, features = ["scene", "camera", "mesh", "material", "light", "texture"] }
+```
+
+**Renderer opt-in** — add the `wgpu` layer only when an application needs GPU rendering:
+
+```toml
+scenix = { version = "0.6", features = ["renderer"] }
 ```
 
 ---
@@ -2209,13 +2217,14 @@ impl MyApp {
 |-------|----------|-------|
 | `scenix-math` | ✅ | Uses `libm` for trig when `std` is disabled |
 | `scenix-core` | ✅ | IDs, traits, Color — zero allocations |
-| `scenix-scene` | ❌ | Requires `alloc` (SlotMap, Vec) |
+| `scenix-scene` | ✅ | Uses `alloc` for graph storage |
 | `scenix-input` | ✅ | Pure data types |
-| All GPU crates | ❌ | Require `std` + wgpu |
+| CPU authoring crates | ✅ | `scenix-camera`, `scenix-mesh`, `scenix-material`, `scenix-light`, and `scenix-texture` compile without default features |
+| `scenix-renderer` | ❌ | Requires `std` + `wgpu` |
 
 ---
 
-*Document version: 0.5.0 — covers architecture through scenix 1.0.0*
+*Document version: 0.6.0 — covers architecture through scenix 1.0.0*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
-*Total crates: 17 (15 functional + 2 utility)*
+*Total crates: 17 planned; 10 shipped through v0.6.0*

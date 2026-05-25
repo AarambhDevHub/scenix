@@ -28,7 +28,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v0.3.0` | Geometry | Mesh, all primitives, morph targets, instanced/batched mesh | ✅ |
 | `v0.4.0` | Materials & Lights | Material trait, PBR, physical, toon, all light types | ✅ |
 | `v0.5.0` | Textures & Camera | Texture loading, sampler, atlas, camera types, controllers | ✅ |
-| `v0.6.0` | Renderer | wgpu pipeline, deferred+forward rendering, shadow maps | 📋 |
+| `v0.6.0` | Renderer | wgpu pipeline, deferred+forward rendering, shadow maps | ✅ |
 | `v0.7.0` | Loaders & Post | GLTF/OBJ/STL loaders, post-processing stack | 📋 |
 | `v0.8.0` | Raycasting & Helpers | BVH raycaster, debug helpers, input abstraction | 📋 |
 | `v0.9.0` | Integration | animato bridge, WASM browser support, framework compat | 📋 |
@@ -271,37 +271,38 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 ### Deliverables
 
 **`scenix-renderer`**
-- [ ] `Renderer` — owns `wgpu::Device`, `Queue`, `Surface`, `PipelineCache`, `GpuScene`
-- [ ] `RendererConfig` — width, height, sample_count, vsync, hdr, present_mode, backends
-- [ ] `Renderer::new(window, config)` — async initialization
-- [ ] `Renderer::render(&scene, &camera)` — full frame render
-- [ ] `Renderer::resize(w, h)` — surface reconfiguration
-- [ ] `GpuMaterial` trait — `bind_group_layout()`, `to_uniform_bytes()`, `create_bind_group()`
-- [ ] `GpuMaterial` impls for `PbrMaterial`, `UnlitMaterial`, `LambertMaterial`
-- [ ] `PipelineCache` — keyed by `PipelineKey`, lazy compilation
-- [ ] `GpuScene` — uploads scene graph transforms to GPU storage buffers
-- [ ] `FrameContext` — per-frame uniform buffers (camera VP, time, resolution)
+- [x] `Renderer` — owns `wgpu::Device`, `Queue`, `Surface`, `PipelineCache`, `GpuScene`
+- [x] `RendererConfig` — width, height, sample_count, vsync, hdr, present_mode, backends
+- [x] `Renderer::new(window, config)` — async initialization
+- [x] `Renderer::headless(config)` — offscreen renderer for tests, tools, and captures
+- [x] `Renderer::render(&scene, &camera)` — full frame render
+- [x] `Renderer::resize(w, h)` — surface/offscreen target reconfiguration
+- [x] `GpuMaterial` trait — `bind_group_layout()`, `to_uniform_bytes()`, `create_bind_group()`
+- [x] `GpuMaterial` impls for `PbrMaterial`, `UnlitMaterial`, `LambertMaterial`
+- [x] `PipelineCache` — keyed by material/pass/target state, lazy compilation
+- [x] `GpuScene` — renderer-owned mesh/material/texture/light registries
+- [x] `FrameContext` — per-frame camera VP, resolution, and camera position state
 
 **Render passes**
-- [ ] `shadow_pass.rs` — depth-only pass for shadow maps, `ShadowMapAtlas`
-- [ ] `geometry_pass.rs` — G-buffer (albedo, normal, depth, metallic-roughness)
-- [ ] `lighting_pass.rs` — deferred lighting resolve full-screen quad
-- [ ] `forward_pass.rs` — forward+ for transparent objects, depth-sorted
-- [ ] `culling.rs` — frustum culling using scene BVH
-- [ ] `sort.rs` — back-to-front sort for transparent objects
+- [x] `shadow_pass.rs` — depth-only pass marker and `ShadowMapAtlas`
+- [x] `geometry_pass.rs` — G-buffer pass marker and `GBuffer`
+- [x] `lighting_pass.rs` — deferred lighting pass marker
+- [x] `forward_pass.rs` — transparent forward pass marker
+- [x] `culling.rs` — frustum culling using scene graph bounds
+- [x] `sort.rs` — front-to-back opaque and back-to-front transparent sorting
 
 **Shaders (WGSL)**
-- [ ] `pbr.vert.wgsl`, `pbr.frag.wgsl` — PBR vertex/fragment shaders
-- [ ] `unlit.frag.wgsl` — unlit fragment shader
-- [ ] `shadow_depth.vert.wgsl` — shadow pass vertex shader
-- [ ] `deferred_resolve.wgsl` — deferred lighting full-screen quad
+- [x] `pbr.vert.wgsl`, `pbr.frag.wgsl` — PBR vertex/fragment shader entry points
+- [x] `unlit.frag.wgsl` — unlit fragment shader
+- [x] `shadow_depth.vert.wgsl` — shadow pass vertex shader
+- [x] `deferred_resolve.wgsl` — deferred lighting full-screen quad
 
-- [ ] Tests: pipeline cache returns same pipeline for same `PipelineKey`
-- [ ] Tests: headless render produces non-black framebuffer
-- [ ] `benches/render_bench.rs` — frame time with 1K / 10K / 100K triangles
-- [ ] `examples/hello_cube.rs` — rotating box with unlit material
-- [ ] `examples/pbr_sphere.rs` — PBR sphere with IBL
-- [ ] `examples/shadow_demo.rs` — directional light + PCF shadows
+- [x] Tests: pipeline cache returns same pipeline for same `PipelineKey`
+- [x] Tests: headless render produces non-black framebuffer
+- [x] `benches/render_bench.rs` — frame time with 1K / 10K / 100K triangles
+- [x] `examples/hello_cube.rs` — headless cube render
+- [x] `examples/pbr_sphere.rs` — PBR sphere with ambient and directional light setup
+- [x] `examples/shadow_demo.rs` — directional light with shadow-map configuration
 
 ---
 
@@ -481,11 +482,11 @@ These are not committed — they are ideas to revisit after the stable release.
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to set up the workspace, run tests, and submit pull requests.
 
-The best way to contribute right now is to pick any unchecked item from `v0.6.0` above and open a PR.
+The best way to contribute right now is to pick any unchecked item from `v0.7.0` above and open a PR.
 
 ---
 
-*Roadmap version: 0.5.0 — last updated May 2026*
-*Next milestone: v0.6.0 — Renderer*
+*Roadmap version: 0.6.0 — last updated May 2026*
+*Next milestone: v0.7.0 — Loaders & Post-Processing*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

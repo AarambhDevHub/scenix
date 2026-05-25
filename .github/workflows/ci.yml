@@ -37,6 +37,30 @@ jobs:
       - name: Test no_std crates
         run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture --no-default-features
 
+  renderer-gpu:
+    name: Renderer GPU smoke (lavapipe)
+    runs-on: ubuntu-latest
+
+    env:
+      SCENIX_RUN_GPU_TESTS: "1"
+      WGPU_BACKEND: vulkan
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Mesa Vulkan software driver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools
+
+      - name: Test renderer GPU path
+        run: cargo test -p scenix-renderer --all-features
+
   lint:
     name: Lint and docs
     runs-on: ubuntu-latest

@@ -1,0 +1,67 @@
+[package]
+name = "scenix-renderer"
+description = "wgpu renderer, GPU scene upload, passes, and frame orchestration for scenix."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = [
+    "scenix-camera/std",
+    "scenix-core/std",
+    "scenix-light/std",
+    "scenix-material/std",
+    "scenix-math/std",
+    "scenix-mesh/std",
+    "scenix-scene/std",
+    "scenix-texture/std",
+]
+serde = [
+    "dep:serde",
+    "scenix-camera/serde",
+    "scenix-core/serde",
+    "scenix-light/serde",
+    "scenix-material/serde",
+    "scenix-math/serde",
+    "scenix-mesh/serde",
+    "scenix-scene/serde",
+    "scenix-texture/serde",
+    "wgpu/serde",
+]
+
+[dependencies]
+bytemuck = { workspace = true }
+raw-window-handle = { workspace = true }
+scenix-camera = { workspace = true }
+scenix-core = { workspace = true }
+scenix-light = { workspace = true }
+scenix-material = { workspace = true }
+scenix-math = { workspace = true }
+scenix-mesh = { workspace = true }
+scenix-scene = { workspace = true }
+scenix-texture = { workspace = true }
+serde = { workspace = true, optional = true }
+wgpu = { workspace = true }
+
+[dev-dependencies]
+pollster = { workspace = true }
+serde_json = { workspace = true }
+winit = { workspace = true }
+
+[[bench]]
+name = "render_bench"
+path = "../../benches/render_bench.rs"
+harness = false
+
+[[test]]
+name = "renderer"
+path = "../../tests/renderer.rs"
+
+[[test]]
+name = "renderer_gpu"
+path = "../../tests/renderer_gpu.rs"

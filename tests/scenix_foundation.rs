@@ -77,6 +77,14 @@ fn facade_exports_foundation_api() {
         assert_eq!(texture.base_level_len().unwrap(), 4);
     }
 
+    #[cfg(feature = "renderer")]
+    {
+        let config = scenix::RendererConfig::new(64, 64);
+        assert!(config.validate().is_ok());
+        let mode = scenix::RenderTargetMode::Headless;
+        assert!(matches!(mode, scenix::RenderTargetMode::Headless));
+    }
+
     assert_eq!(Mat4::IDENTITY.to_cols_array()[0], 1.0);
 }
 

@@ -23,11 +23,22 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Install Mesa Vulkan software driver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools
+
       - name: Test all features
         run: cargo test --workspace --all-features
 
       - name: Test no_std crates
         run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture --no-default-features
+
+      - name: Test renderer GPU path
+        run: cargo test -p scenix-renderer --all-features
+        env:
+          SCENIX_RUN_GPU_TESTS: "1"
+          WGPU_BACKEND: vulkan
 
       - name: Clippy
         run: cargo clippy --workspace --all-features -- -D warnings
@@ -51,6 +62,7 @@ jobs:
       #     cargo publish -p scenix-material --dry-run --no-verify
       #     cargo publish -p scenix-light --dry-run --no-verify
       #     cargo publish -p scenix-texture --dry-run --no-verify
+      #     cargo publish -p scenix-renderer --dry-run --no-verify
       #     cargo publish -p scenix --dry-run --no-verify
 
   publish:
@@ -116,6 +128,7 @@ jobs:
             scenix-material \
             scenix-light \
             scenix-texture \
+            scenix-renderer \
             scenix
           do
             publish_crate "$crate"
@@ -152,15 +165,16 @@ jobs:
 
             ```toml
             [dependencies]
-            scenix = "${{ steps.version.outputs.VERSION }}"
+            scenix = { version = "${{ steps.version.outputs.VERSION }}", features = ["renderer"] }
             ```
 
             ### Highlights
 
-            - New `scenix-texture` crate with raw CPU texture containers, sampler metadata, deterministic atlas packing, video-frame updates, and RGBA8 mipmap generation.
-            - New `scenix-camera` crate with perspective, orthographic, and cube cameras, WebGPU-depth frustum extraction, screen-to-ray helpers, and orbit/fly controllers.
-            - The facade crate now enables the `camera` and `texture` features by default alongside scene, mesh, material, and light APIs.
-            - Image file decoding and GPU upload remain deferred to the loader and renderer milestones, keeping v0.5.0 dependency-light and renderer-agnostic.
+            - New optional `scenix-renderer` crate powered by `wgpu` 29 with surface and headless render targets.
+            - Renderer-owned mesh, material, texture, and light registration keeps `SceneGraph` renderer-agnostic while enabling real GPU frame submission.
+            - Added `RendererConfig`, `FrameContext`, `FrameStats`, `GpuScene`, `GpuMaterial`, `PipelineCache`, `GBuffer`, `ShadowMapAtlas`, culling helpers, transparent sorting, and embedded WGSL shader entry points.
+            - The facade crate remains CPU-only by default; opt into GPU APIs with `features = ["renderer"]`.
+            - Loader, image decoding, post-processing, WASM wrappers, and GLTF asset pipelines remain deferred to later milestones.
 
             ### Crates published to crates.io
 
@@ -175,34 +189,47 @@ jobs:
             | [`scenix-material`](https://crates.io/crates/scenix-material) | `${{ steps.version.outputs.VERSION }}` | GPU-free material descriptions and pipeline keys |
             | [`scenix-light`](https://crates.io/crates/scenix-light) | `${{ steps.version.outputs.VERSION }}` | GPU-free lights, shadow configuration, and light probes |
             | [`scenix-texture`](https://crates.io/crates/scenix-texture) | `${{ steps.version.outputs.VERSION }}` | CPU-side texture data, samplers, atlases, and mipmaps |
-            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate for scenix Textures and Camera APIs |
+            | [`scenix-renderer`](https://crates.io/crates/scenix-renderer) | `${{ steps.version.outputs.VERSION }}` | Optional wgpu renderer, resource registries, targets, passes, and pipeline cache |
+            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate with optional renderer APIs |
 
-            ### Textures and camera example
+            ### Headless renderer example
 
             ```rust
-            use scenix::{PerspectiveCamera, Texture2D, TextureFormat, Vec2, Vec3};
+            use scenix::{
+                Color, MaterialId, MeshId, PerspectiveCamera, PbrMaterial, Renderer,
+                RendererConfig, SceneGraph, SceneNode, Vec3, box_geometry,
+            };
 
-            let texture = Texture2D::new(
-                1,
-                1,
-                TextureFormat::Rgba8UnormSrgb,
-                vec![255, 255, 255, 255],
+            # async fn run() -> Result<(), scenix::ScenixError> {
+            let mut renderer = Renderer::headless(RendererConfig::new(256, 256)).await?;
+            let mesh_id = MeshId::new(1);
+            let material_id = MaterialId::new(1);
+
+            renderer.register_mesh(mesh_id, &box_geometry(1.0, 1.0, 1.0, 1, 1, 1))?;
+            renderer.register_pbr_material(
+                material_id,
+                &PbrMaterial::new().albedo(Color::from_rgb(0.8, 0.25, 0.15)),
             )?;
 
-            let camera = PerspectiveCamera::new(60.0, 16.0 / 9.0, 0.1, 100.0)
-                .position(Vec3::new(0.0, 0.0, 5.0))
-                .target(Vec3::ZERO);
-            let ray = camera.screen_to_ray(Vec2::ZERO);
+            let mut scene = SceneGraph::new();
+            scene.add(SceneNode::mesh("cube", mesh_id, material_id));
+            scene.update_world_transforms();
 
-            assert_eq!(texture.base_level_len()?, 4);
-            assert!(ray.direction.z < 0.0);
-            # Ok::<(), scenix::ValidationError>(())
+            let camera = PerspectiveCamera::new(60.0, 16.0 / 9.0, 0.1, 100.0)
+                .position(Vec3::new(0.0, 0.0, 4.0))
+                .target(Vec3::ZERO);
+            let stats = renderer.render(&scene, &camera)?;
+
+            assert_eq!(stats.visible_meshes, 1);
+            # Ok(())
+            # }
             ```
 
             ### Verification
 
             - `cargo test --workspace --all-features`
             - `cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture --no-default-features`
+            - `SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer --all-features`
             - `cargo clippy --workspace --all-features -- -D warnings`
             - `cargo fmt --check`
             - `cargo doc --workspace --all-features --no-deps`
