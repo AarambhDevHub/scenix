@@ -2171,11 +2171,12 @@ dependencies = [
 
 [[package]]
 name = "scenix"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "pollster",
  "scenix-camera",
  "scenix-core",
+ "scenix-helpers",
  "scenix-input",
  "scenix-light",
  "scenix-loader",
@@ -2183,6 +2184,7 @@ dependencies = [
  "scenix-math",
  "scenix-mesh",
  "scenix-post",
+ "scenix-raycaster",
  "scenix-renderer",
  "scenix-scene",
  "scenix-texture",
@@ -2190,7 +2192,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-camera"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "scenix-core",
  "scenix-input",
@@ -2201,7 +2203,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-core"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "bytemuck",
  "scenix-math",
@@ -2210,8 +2212,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "scenix-helpers"
+version = "0.8.0"
+dependencies = [
+ "scenix-camera",
+ "scenix-core",
+ "scenix-light",
+ "scenix-math",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "scenix-input"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "scenix-math",
  "serde",
@@ -2219,7 +2233,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-light"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2230,7 +2244,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-loader"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "gltf",
  "image",
@@ -2252,7 +2266,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-material"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2262,7 +2276,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-math"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "approx",
  "libm",
@@ -2271,7 +2285,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-mesh"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2281,7 +2295,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-post"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "bytemuck",
  "pollster",
@@ -2293,8 +2307,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "scenix-raycaster"
+version = "0.8.0"
+dependencies = [
+ "scenix-camera",
+ "scenix-core",
+ "scenix-math",
+ "scenix-mesh",
+ "scenix-scene",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "scenix-renderer"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "bytemuck",
  "pollster",
@@ -2316,7 +2343,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-scene"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2327,7 +2354,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-texture"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "scenix-core",
  "serde",

@@ -35,10 +35,13 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no_std crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers --no-default-features
 
       - name: Test loader all features
         run: cargo test -p scenix-loader --all-features
+
+      - name: Test raycaster and helpers all features
+        run: cargo test -p scenix-raycaster -p scenix-helpers --all-features
 
   renderer-gpu:
     name: Renderer and post GPU smoke (lavapipe)

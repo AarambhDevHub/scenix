@@ -30,7 +30,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v0.5.0` | Textures & Camera | Texture loading, sampler, atlas, camera types, controllers | ✅ |
 | `v0.6.0` | Renderer | wgpu pipeline, deferred+forward rendering, shadow maps | ✅ |
 | `v0.7.0` | Loaders & Post | GLTF/OBJ/STL loaders, post-processing stack | ✅ |
-| `v0.8.0` | Raycasting & Helpers | BVH raycaster, debug helpers, input abstraction | 📋 |
+| `v0.8.0` | Raycasting & Helpers | BVH raycaster, debug helpers, input abstraction | ✅ |
 | `v0.9.0` | Integration | animato bridge, WASM browser support, framework compat | 📋 |
 | `v1.0.0` | Stable | API freeze, full docs, examples, all CI green | 📋 |
 
@@ -359,26 +359,27 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 ### Deliverables
 
 **`scenix-raycaster`**
-- [ ] `Raycaster` — `cast_ray(scene, ray) -> Option<Intersection>`
-- [ ] `Raycaster::cast_ray_all(scene, ray) -> Vec<Intersection>` — all hits, sorted by distance
-- [ ] `Raycaster::from_camera_ndc(camera, ndc_x, ndc_y) -> Ray3`
-- [ ] `Intersection` — `node_id`, `distance`, `point`, `normal`, `uv`
-- [ ] `Bvh` — SAH-based build from scene AABB list
-- [ ] `Bvh::traverse(ray) -> Vec<NodeId>` — candidate list
-- [ ] Tests: ray-AABB, ray-triangle, ray-sphere intersection correctness
-- [ ] Tests: BVH produces same results as brute-force (correctness proof)
-- [ ] `benches/bvh_bench.rs` — BVH build + 1K ray queries
+- [x] `Raycaster` — `cast_ray(scene, ray) -> Option<Intersection>`
+- [x] `Raycaster::cast_ray_all(scene, ray) -> Vec<Intersection>` — all hits, sorted by distance
+- [x] `Raycaster::from_camera_ndc(camera, ndc_x, ndc_y) -> Ray3`
+- [x] `Intersection` — `node_id`, `distance`, `point`, `normal`, `uv`
+- [x] `Bvh` — SAH-based build from scene AABB list
+- [x] `Bvh::traverse(ray) -> Vec<NodeId>` — candidate list
+- [x] Tests: ray-AABB, ray-triangle, ray-sphere intersection correctness
+- [x] Tests: BVH produces same results as brute-force (correctness proof)
+- [x] `benches/bvh_bench.rs` — BVH build + 1K ray queries
 
 **`scenix-helpers`**
-- [ ] `GridHelper` — `to_geometry()` → line-list grid plane
-- [ ] `AxesHelper` — `to_geometry()` → RGB XYZ axis lines
-- [ ] `BoundingBoxHelper` — wireframe AABB for a node
-- [ ] `ArrowHelper` — directional arrow with configurable head
-- [ ] `SpotLightHelper`, `PointLightHelper`, `DirectionalLightHelper`
-- [ ] `CameraHelper` — frustum wireframe visualization
-- [ ] `SkeletonHelper` — bone visualization
-- [ ] `examples/raycasting.rs` — mouse picking with BVH
-- [ ] `examples/helpers_demo.rs` — all helpers in one scene
+- [x] `LineGeometry` — validated line-list storage for helper output
+- [x] `GridHelper` — `to_geometry()` → line-list grid plane
+- [x] `AxesHelper` — `to_geometry()` → RGB XYZ axis lines
+- [x] `BoundingBoxHelper` — wireframe AABB
+- [x] `ArrowHelper` — directional arrow with configurable head
+- [x] `SpotLightHelper`, `PointLightHelper`, `DirectionalLightHelper`
+- [x] `CameraHelper` — frustum wireframe visualization
+- [x] `SkeletonHelper` — bone visualization
+- [x] `examples/raycasting.rs` — mouse picking with BVH
+- [x] `examples/helpers_demo.rs` — all helpers in one scene
 
 ---
 
@@ -483,11 +484,11 @@ These are not committed — they are ideas to revisit after the stable release.
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to set up the workspace, run tests, and submit pull requests.
 
-The best way to contribute right now is to pick any unchecked item from `v0.8.0` above and open a PR.
+The best way to contribute right now is to pick any unchecked item from `v0.9.0` above and open a PR.
 
 ---
 
-*Roadmap version: 0.7.0 — last updated May 2026*
-*Next milestone: v0.8.0 — Raycasting & Helpers*
+*Roadmap version: 0.8.0 — last updated May 2026*
+*Next milestone: v0.9.0 — Integration*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

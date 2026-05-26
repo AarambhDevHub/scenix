@@ -1,0 +1,48 @@
+[package]
+name = "scenix-raycaster"
+description = "CPU-side BVH raycasting and scene picking for scenix."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = [
+    "scenix-camera/std",
+    "scenix-core/std",
+    "scenix-math/std",
+    "scenix-mesh/std",
+    "scenix-scene/std",
+]
+serde = [
+    "dep:serde",
+    "scenix-camera/serde",
+    "scenix-core/serde",
+    "scenix-math/serde",
+    "scenix-mesh/serde",
+    "scenix-scene/serde",
+]
+
+[dependencies]
+scenix-camera = { workspace = true }
+scenix-core = { workspace = true }
+scenix-math = { workspace = true }
+scenix-mesh = { workspace = true }
+scenix-scene = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[bench]]
+name = "bvh_bench"
+path = "../../benches/bvh_bench.rs"
+harness = false
+
+[[test]]
+name = "raycaster"
+path = "../../tests/raycaster.rs"

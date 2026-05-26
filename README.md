@@ -5,7 +5,7 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix v0.7.0 is the Loaders & Post-Processing release. It adds CPU-side asset loading and an optional `wgpu` post-processing stack while keeping the facade crate CPU-authoring defaults unchanged.
+scenix v0.8.0 is the Raycasting & Helpers release. It adds CPU-side BVH raycasting, exact mesh picking, and debug line helpers while keeping renderer and loader features optional.
 
 This release ships:
 
@@ -21,9 +21,11 @@ This release ships:
 - `scenix-loader`: optional glTF/GLB, OBJ/MTL, STL, PNG/JPEG/WebP, KTX2, HDR/EXR, and path-cache loaders that output CPU-side scenix data.
 - `scenix-renderer`: optional `wgpu` renderer with headless/surface targets, renderer-owned registries, G-buffer/shadow targets, culling/sorting helpers, and pipeline caching.
 - `scenix-post`: optional `wgpu` full-screen post stack with bloom, SSAO, tonemap, FXAA, TAA, SMAA, depth of field, fog, outline, and motion blur passes.
+- `scenix-raycaster`: BVH-accelerated CPU picking with exact mesh intersections and camera-ray helpers.
+- `scenix-helpers`: CPU debug `LineGeometry` for grids, axes, bounds, arrows, lights, cameras, and skeletons.
 - `scenix`: facade crate re-exporting CPU APIs by default, loader APIs behind `features = ["loader"]`, and GPU APIs behind `features = ["renderer", "post"]`.
 
-Raycasting, helpers, WASM integration, and `animato` integration remain later roadmap milestones.
+WASM integration and `animato` integration remain later roadmap milestones.
 
 ## Installation
 
@@ -31,54 +33,58 @@ Most users should start with the facade crate:
 
 ```toml
 [dependencies]
-scenix = "0.7"
+scenix = "0.8"
 ```
 
 Enable CPU asset loading:
 
 ```toml
 [dependencies]
-scenix = { version = "0.7", features = ["loader"] }
+scenix = { version = "0.8", features = ["loader"] }
 ```
 
 Enable GPU rendering and post-processing:
 
 ```toml
 [dependencies]
-scenix = { version = "0.7", features = ["renderer", "post"] }
+scenix = { version = "0.8", features = ["renderer", "post"] }
 ```
 
 Use focused crates directly when you only need one layer:
 
 ```toml
 [dependencies]
-scenix-math = "0.7"
-scenix-core = "0.7"
-scenix-input = "0.7"
-scenix-scene = "0.7"
-scenix-camera = "0.7"
-scenix-mesh = "0.7"
-scenix-material = "0.7"
-scenix-light = "0.7"
-scenix-texture = "0.7"
-scenix-loader = "0.7"
-scenix-renderer = "0.7"
-scenix-post = "0.7"
+scenix-math = "0.8"
+scenix-core = "0.8"
+scenix-input = "0.8"
+scenix-scene = "0.8"
+scenix-camera = "0.8"
+scenix-mesh = "0.8"
+scenix-material = "0.8"
+scenix-light = "0.8"
+scenix-texture = "0.8"
+scenix-loader = "0.8"
+scenix-renderer = "0.8"
+scenix-post = "0.8"
+scenix-raycaster = "0.8"
+scenix-helpers = "0.8"
 ```
 
 For `no_std`-capable CPU crates:
 
 ```toml
 [dependencies]
-scenix-math = { version = "0.7", default-features = false, features = ["libm"] }
-scenix-core = { version = "0.7", default-features = false }
-scenix-input = { version = "0.7", default-features = false }
-scenix-scene = { version = "0.7", default-features = false }
-scenix-camera = { version = "0.7", default-features = false }
-scenix-mesh = { version = "0.7", default-features = false }
-scenix-material = { version = "0.7", default-features = false }
-scenix-light = { version = "0.7", default-features = false }
-scenix-texture = { version = "0.7", default-features = false }
+scenix-math = { version = "0.8", default-features = false, features = ["libm"] }
+scenix-core = { version = "0.8", default-features = false }
+scenix-input = { version = "0.8", default-features = false }
+scenix-scene = { version = "0.8", default-features = false }
+scenix-camera = { version = "0.8", default-features = false }
+scenix-mesh = { version = "0.8", default-features = false }
+scenix-material = { version = "0.8", default-features = false }
+scenix-light = { version = "0.8", default-features = false }
+scenix-texture = { version = "0.8", default-features = false }
+scenix-raycaster = { version = "0.8", default-features = false }
+scenix-helpers = { version = "0.8", default-features = false }
 ```
 
 `scenix-loader`, `scenix-renderer`, and `scenix-post` are `std` crates.
@@ -128,6 +134,52 @@ renderer.set_post_stack(Some(
 # }
 ```
 
+### Raycasting
+
+```rust
+use std::collections::BTreeMap;
+use scenix::{
+    Geometry, MaterialId, MeshId, PerspectiveCamera, Raycaster, SceneGraph, SceneNode,
+    Vec2, Vec3, box_geometry,
+};
+
+let mesh_id = MeshId::new(1);
+let material_id = MaterialId::new(1);
+let mut meshes = BTreeMap::<MeshId, Geometry>::new();
+meshes.insert(mesh_id, box_geometry(1.0, 1.0, 1.0, 1, 1, 1));
+
+let mut scene = SceneGraph::new();
+scene.add(SceneNode::mesh("cube", mesh_id, material_id));
+scene.update_world_transforms();
+
+let camera = PerspectiveCamera::new(60.0, 1.0, 0.1, 100.0)
+    .position(Vec3::new(0.0, 0.0, 4.0))
+    .target(Vec3::ZERO);
+let ray = Raycaster::from_camera_ndc(&camera, Vec2::ZERO);
+
+let mut raycaster = Raycaster::new();
+raycaster.build_bvh(&scene, &meshes).unwrap();
+let hit = raycaster.cast_ray(ray, &scene, &meshes);
+
+assert!(hit.is_some());
+```
+
+### Debug Helpers
+
+```rust
+use scenix::{AxesHelper, BoundingBoxHelper, Color, GridHelper, LineGeometry, Aabb, Vec3};
+
+let mut lines = LineGeometry::new();
+lines.merge(&GridHelper::new(10.0, 10).to_geometry());
+lines.merge(&AxesHelper::new(2.0).to_geometry());
+lines.merge(
+    &BoundingBoxHelper::new(Aabb::new(-Vec3::ONE, Vec3::ONE), Color::WHITE).to_geometry(),
+);
+
+lines.validate().unwrap();
+assert_eq!(lines.segment_count(), 37);
+```
+
 ### Texture And Camera
 
 ```rust
@@ -160,6 +212,8 @@ assert!(ray.direction.z < 0.0);
 | `material` | yes | Enables GPU-free material types and pipeline keys from the facade crate. |
 | `light` | yes | Enables GPU-free light types, shadow config, and light probes from the facade crate. |
 | `texture` | yes | Enables raw texture, sampler, atlas, video, and mipmap APIs from the facade crate. |
+| `raycaster` | yes | Enables BVH scene picking and exact mesh ray intersection APIs. |
+| `helpers` | yes | Enables debug `LineGeometry` helpers for grids, axes, bounds, cameras, lights, and skeletons. |
 | `loader` | no | Enables optional `scenix-loader` asset loading APIs from the facade crate. |
 | `renderer` | no | Enables optional `scenix-renderer`/`wgpu` APIs from the facade crate. |
 | `post` | no | Enables optional `scenix-post` APIs and renderer post-stack integration. |
@@ -185,8 +239,12 @@ scenix/
 │   ├── scenix-loader/
 │   ├── scenix-renderer/
 │   ├── scenix-post/
+│   ├── scenix-raycaster/
+│   ├── scenix-helpers/
 │   └── scenix/
 ├── examples/
+│   ├── raycasting.rs
+│   ├── helpers_demo.rs
 │   ├── gltf_scene.rs
 │   ├── post_processing.rs
 │   ├── hello_cube.rs
@@ -197,6 +255,8 @@ scenix/
 ├── benches/
 │   ├── loader_bench.rs
 │   ├── post_bench.rs
+│   ├── bvh_bench.rs
+│   ├── helpers_bench.rs
 │   └── render_bench.rs
 ├── ARCHITECTURE.md
 ├── ROADMAP.md
@@ -211,8 +271,9 @@ cargo fmt --check
 cargo clippy --workspace --all-features -- -D warnings
 cargo test --workspace
 cargo test --workspace --all-features
-cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture --no-default-features
+cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers --no-default-features
 cargo test -p scenix-loader --all-features
+cargo test -p scenix-raycaster -p scenix-helpers --all-features
 SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer -p scenix-post --all-features
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo bench --workspace --no-run
@@ -220,7 +281,7 @@ cargo bench --workspace --no-run
 
 ## Roadmap
 
-The long-term design remains the full scenix workspace described in [ARCHITECTURE.md](./ARCHITECTURE.md). Version `0.7.0` adds optional CPU loaders and optional GPU post-processing on top of the renderer. The next milestone is `v0.8.0` Raycasting & Helpers.
+The long-term design remains the full scenix workspace described in [ARCHITECTURE.md](./ARCHITECTURE.md). Version `0.8.0` adds CPU raycasting and debug helpers. The next milestone is `v0.9.0` Integration.
 
 See [ROADMAP.md](./ROADMAP.md) for the full versioned plan.
 

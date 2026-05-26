@@ -1,0 +1,45 @@
+[package]
+name = "scenix-helpers"
+description = "CPU-side debug line helpers for scenix scenes, cameras, lights, and bounds."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = [
+    "scenix-camera/std",
+    "scenix-core/std",
+    "scenix-light/std",
+    "scenix-math/std",
+]
+serde = [
+    "dep:serde",
+    "scenix-camera/serde",
+    "scenix-core/serde",
+    "scenix-light/serde",
+    "scenix-math/serde",
+]
+
+[dependencies]
+scenix-camera = { workspace = true }
+scenix-core = { workspace = true }
+scenix-light = { workspace = true }
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[bench]]
+name = "helpers_bench"
+path = "../../benches/helpers_bench.rs"
+harness = false
+
+[[test]]
+name = "helpers"
+path = "../../tests/helpers.rs"

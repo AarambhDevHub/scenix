@@ -7,6 +7,31 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-26
+
+### Added
+
+- Added the `scenix-raycaster` crate with `Raycaster`, `Bvh`,
+  `GeometryProvider`, camera NDC ray helpers, and exact world-space mesh
+  triangle intersections.
+- Added node-level SAH BVH build/traversal over visible scene mesh AABBs, with
+  layer filtering and brute-force validation support.
+- Added the `scenix-helpers` crate with validated `LineGeometry`, grid, axes,
+  bounding box, arrow, light, camera, and skeleton debug helpers.
+- Added `examples/raycasting.rs`, `examples/helpers_demo.rs`,
+  `benches/bvh_bench.rs`, and `benches/helpers_bench.rs`.
+- Added integration tests for ray primitives, camera rays, BVH-vs-brute-force
+  picking, layer/visibility filtering, helper geometry validation, helper
+  output counts, serde round trips, and facade exports.
+
+### Changed
+
+- Bumped all workspace crates to `0.8.0`.
+- Updated the `scenix` facade crate to enable and re-export `scenix-raycaster`
+  and `scenix-helpers` by default.
+- Updated README, roadmap, architecture notes, CI checks, publish ordering, and
+  generated GitHub Release notes for the Raycasting & Helpers release.
+
 ## [0.7.0] - 2026-05-26
 
 ### Added
@@ -190,7 +215,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/AarambhDevHub/scenix/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/AarambhDevHub/scenix/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/AarambhDevHub/scenix/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AarambhDevHub/scenix/compare/v0.4.0...v0.5.0

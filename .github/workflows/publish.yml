@@ -32,10 +32,13 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no_std crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers --no-default-features
 
       - name: Test loader all features
         run: cargo test -p scenix-loader --all-features
+
+      - name: Test raycaster and helpers all features
+        run: cargo test -p scenix-raycaster -p scenix-helpers --all-features
 
       - name: Test renderer and post GPU paths
         run: cargo test -p scenix-renderer -p scenix-post --all-features
@@ -68,6 +71,8 @@ jobs:
       #     cargo publish -p scenix-loader --dry-run --no-verify
       #     cargo publish -p scenix-post --dry-run --no-verify
       #     cargo publish -p scenix-renderer --dry-run --no-verify
+      #     cargo publish -p scenix-raycaster --dry-run --no-verify
+      #     cargo publish -p scenix-helpers --dry-run --no-verify
       #     cargo publish -p scenix --dry-run --no-verify
 
   publish:
@@ -136,6 +141,8 @@ jobs:
             scenix-loader \
             scenix-post \
             scenix-renderer \
+            scenix-raycaster \
+            scenix-helpers \
             scenix
           do
             publish_crate "$crate"
@@ -177,11 +184,11 @@ jobs:
 
             ### Highlights
 
-            - New optional `scenix-loader` crate for CPU-side glTF/GLB, OBJ/MTL, STL, PNG/JPEG/WebP, KTX2, HDR/EXR, and canonical path cache loading.
-            - New optional `scenix-post` crate for a `wgpu` full-screen post stack with bloom, SSAO, tonemap, FXAA, TAA, SMAA, depth of field, fog, outline, and motion blur passes.
-            - `Renderer` can now apply an optional post stack through `Renderer::set_post_stack` without changing the existing `Renderer::render` signature.
-            - The facade crate still keeps CPU authoring features enabled by default; opt into loaders with `features = ["loader"]` and GPU post-processing with `features = ["renderer", "post"]`.
-            - Raycasting, debug helpers, WASM wrappers, and `animato` integration remain deferred to later milestones.
+            - New default `scenix-raycaster` crate for CPU-side scene picking with node-level SAH BVH traversal and exact mesh triangle intersections.
+            - New default `scenix-helpers` crate for validated `LineGeometry` debug helpers: grids, axes, bounds, arrows, lights, cameras, and skeletons.
+            - `Raycaster::from_camera_ndc` bridges camera screen rays into picking workflows without requiring renderer or GPU readback.
+            - `GeometryProvider` lets applications keep mesh storage in their own maps or slices while still using BVH acceleration.
+            - Loaders, renderer, and post-processing remain optional; WASM wrappers and `animato` integration remain deferred to later milestones.
 
             ### Crates published to crates.io
 
@@ -199,39 +206,45 @@ jobs:
             | [`scenix-loader`](https://crates.io/crates/scenix-loader) | `${{ steps.version.outputs.VERSION }}` | CPU-side glTF, OBJ, STL, image, KTX2, HDR, and cache loaders |
             | [`scenix-post`](https://crates.io/crates/scenix-post) | `${{ steps.version.outputs.VERSION }}` | Optional wgpu post-processing stack and full-screen effects |
             | [`scenix-renderer`](https://crates.io/crates/scenix-renderer) | `${{ steps.version.outputs.VERSION }}` | Optional wgpu renderer, resource registries, targets, passes, and pipeline cache |
-            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate with optional loader, renderer, and post APIs |
+            | [`scenix-raycaster`](https://crates.io/crates/scenix-raycaster) | `${{ steps.version.outputs.VERSION }}` | BVH scene picking and exact CPU mesh intersections |
+            | [`scenix-helpers`](https://crates.io/crates/scenix-helpers) | `${{ steps.version.outputs.VERSION }}` | Debug line helpers for grids, axes, bounds, cameras, lights, and skeletons |
+            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate with default CPU authoring, raycaster, helper APIs, and optional loader/GPU APIs |
 
-            ### glTF + post-processing example
+            ### Raycasting + helpers example
 
             ```rust
+            use std::collections::BTreeMap;
             use scenix::{
-                BloomConfig, FxaaConfig, GltfLoader, PerspectiveCamera, PostStack,
-                Renderer, RendererConfig, ToneMapper, Vec3,
+                AxesHelper, Geometry, GridHelper, LineGeometry, MaterialId, MeshId,
+                PerspectiveCamera, Raycaster, SceneGraph, SceneNode, Vec2, Vec3,
+                box_geometry,
             };
 
-            # async fn run() -> Result<(), scenix::ScenixError> {
-            let asset = GltfLoader::new().load_file("scene.gltf")?;
-            let mut renderer = Renderer::headless(RendererConfig::new(256, 256)).await?;
-            renderer.set_post_stack(Some(
-                PostStack::new()
-                    .with_bloom(BloomConfig::default())
-                    .with_tonemap(ToneMapper::Aces)
-                    .with_fxaa(FxaaConfig::default()),
-            ));
+            # fn run() -> Result<(), scenix::ValidationError> {
+            let mesh_id = MeshId::new(1);
+            let material_id = MaterialId::new(1);
+            let mut meshes = BTreeMap::<MeshId, Geometry>::new();
+            meshes.insert(mesh_id, box_geometry(1.0, 1.0, 1.0, 1, 1, 1));
 
-            for (mesh_id, geometry) in &asset.meshes {
-                renderer.register_mesh(*mesh_id, geometry)?;
-            }
-            for (material_id, material) in &asset.materials {
-                renderer.register_pbr_material(*material_id, material)?;
-            }
+            let mut scene = SceneGraph::new();
+            scene.add(SceneNode::mesh("cube", mesh_id, material_id));
+            scene.update_world_transforms();
 
-            let camera = PerspectiveCamera::new(60.0, 16.0 / 9.0, 0.1, 100.0)
+            let camera = PerspectiveCamera::new(60.0, 1.0, 0.1, 100.0)
                 .position(Vec3::new(0.0, 0.0, 4.0))
                 .target(Vec3::ZERO);
-            let stats = renderer.render(&asset.scene, &camera)?;
+            let ray = Raycaster::from_camera_ndc(&camera, Vec2::ZERO);
 
-            assert!(stats.visible_meshes > 0);
+            let mut raycaster = Raycaster::new();
+            raycaster.build_bvh(&scene, &meshes)?;
+            let hit = raycaster.cast_ray(ray, &scene, &meshes);
+
+            let mut helper_lines = LineGeometry::new();
+            helper_lines.merge(&GridHelper::new(10.0, 10).to_geometry());
+            helper_lines.merge(&AxesHelper::new(2.0).to_geometry());
+            helper_lines.validate()?;
+
+            assert!(hit.is_some());
             # Ok(())
             # }
             ```
@@ -239,8 +252,9 @@ jobs:
             ### Verification
 
             - `cargo test --workspace --all-features`
-            - `cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture --no-default-features`
+            - `cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers --no-default-features`
             - `cargo test -p scenix-loader --all-features`
+            - `cargo test -p scenix-raycaster -p scenix-helpers --all-features`
             - `SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer -p scenix-post --all-features`
             - `cargo clippy --workspace --all-features -- -D warnings`
             - `cargo fmt --check`

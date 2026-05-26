@@ -407,7 +407,7 @@ members = [
 ]
 
 [workspace.package]
-version      = "0.7.0"
+version      = "0.8.0"
 edition      = "2024"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/AarambhDevHub/scenix"
@@ -416,22 +416,22 @@ rust-version = "1.89"
 
 [workspace.dependencies]
 # internal crates — version pinned to workspace
-scenix-math       = { path = "crates/scenix-math",       version = "0.7" }
-scenix-core       = { path = "crates/scenix-core",       version = "0.7" }
-scenix-scene      = { path = "crates/scenix-scene",      version = "0.7" }
-scenix-camera     = { path = "crates/scenix-camera",     version = "0.7" }
-scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.7" }
-scenix-material   = { path = "crates/scenix-material",   version = "0.7" }
-scenix-light      = { path = "crates/scenix-light",      version = "0.7" }
-scenix-texture    = { path = "crates/scenix-texture",    version = "0.7" }
-scenix-loader     = { path = "crates/scenix-loader",     version = "0.7" }
-scenix-post       = { path = "crates/scenix-post",       version = "0.7" }
-scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.7" }
-scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.7" }
-scenix-animato    = { path = "crates/scenix-animato",    version = "0.7" }
-scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.7" }
-scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.7" }
-scenix-input      = { path = "crates/scenix-input",      version = "0.7" }
+scenix-math       = { path = "crates/scenix-math",       version = "0.8" }
+scenix-core       = { path = "crates/scenix-core",       version = "0.8" }
+scenix-scene      = { path = "crates/scenix-scene",      version = "0.8" }
+scenix-camera     = { path = "crates/scenix-camera",     version = "0.8" }
+scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.8" }
+scenix-material   = { path = "crates/scenix-material",   version = "0.8" }
+scenix-light      = { path = "crates/scenix-light",      version = "0.8" }
+scenix-texture    = { path = "crates/scenix-texture",    version = "0.8" }
+scenix-loader     = { path = "crates/scenix-loader",     version = "0.8" }
+scenix-post       = { path = "crates/scenix-post",       version = "0.8" }
+scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.8" }
+scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.8" }
+scenix-animato    = { path = "crates/scenix-animato",    version = "0.8" }
+scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.8" }
+scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.8" }
+scenix-input      = { path = "crates/scenix-input",      version = "0.8" }
 
 # external crates — shared version pins
 wgpu             = { version = "29.0.3" }
@@ -1464,6 +1464,8 @@ impl Renderer {
 
 **Depends on:** `scenix-math`, `scenix-core`, `scenix-scene`, `scenix-mesh`
 
+**Status in v0.8.0:** shipped as a default facade CPU crate. It builds a node-level SAH BVH over visible mesh-node world AABBs, then performs exact world-space triangle intersection for candidate nodes supplied by the caller's geometry store.
+
 ```rust
 pub struct Raycaster {
     bvh:    Option<Bvh>,
@@ -1471,20 +1473,32 @@ pub struct Raycaster {
 }
 
 pub struct Intersection {
-    pub node_id:  NodeId,
-    pub distance: f32,       // parametric t along ray
-    pub point:    Vec3,      // world-space hit point
-    pub normal:   Vec3,      // world-space surface normal at hit
-    pub uv:       Vec2,      // UV coordinates at hit (for texture lookups)
+    pub node_id:     NodeId,
+    pub mesh_id:     MeshId,
+    pub material_id: MaterialId,
+    pub distance:    f32,       // parametric t along ray
+    pub point:       Vec3,      // world-space hit point
+    pub normal:      Vec3,      // world-space surface normal at hit
+    pub uv:          Vec2,      // UV coordinates at hit (for texture lookups)
+}
+
+pub trait GeometryProvider {
+    fn geometry(&self, mesh_id: MeshId) -> Option<&Geometry>;
 }
 
 impl Raycaster {
     pub fn new() -> Self;
-    pub fn build_bvh(&mut self, scene: &SceneGraph, meshes: &HashMap<MeshId, Geometry>);
+    pub fn with_layers(layers: u32) -> Self;
+    pub fn build_bvh(
+        &mut self,
+        scene: &SceneGraph,
+        meshes: &impl GeometryProvider,
+    ) -> Result<(), ValidationError>;
     // Call build_bvh once after scene load, and again after structural changes.
 
-    pub fn cast_ray(&self, ray: Ray3, scene: &SceneGraph) -> Option<Intersection>;
-    pub fn cast_ray_all(&self, ray: Ray3, scene: &SceneGraph) -> Vec<Intersection>;
+    pub fn cast_ray(&self, ray: Ray3, scene: &SceneGraph, meshes: &impl GeometryProvider) -> Option<Intersection>;
+    pub fn cast_ray_all(&self, ray: Ray3, scene: &SceneGraph, meshes: &impl GeometryProvider) -> Vec<Intersection>;
+    pub fn cast_ray_all_bruteforce(&self, ray: Ray3, scene: &SceneGraph, meshes: &impl GeometryProvider) -> Vec<Intersection>;
     // cast_ray_all returns all intersections sorted by distance ascending.
 
     pub fn from_camera_ndc(camera: &PerspectiveCamera, ndc: Vec2) -> Ray3;
@@ -1605,11 +1619,19 @@ impl WebRenderer {
 
 ### 4.15 `scenix-helpers`
 
-**Responsibility:** Debug visualization helpers. Generate meshes for grids, axes, bounding boxes, light cones, camera frustums, and skeleton bones. Essential for scene debugging — Three.js ships 12+ helpers; scenix matches them.
+**Responsibility:** Debug visualization helpers. Generate line geometry for grids, axes, bounding boxes, light cones, camera frustums, and skeleton bones. Essential for scene debugging — Three.js ships 12+ helpers; scenix matches them.
 
-**Depends on:** `scenix-math`, `scenix-core`, `scenix-mesh`, `scenix-light`, `scenix-camera`
+**Depends on:** `scenix-math`, `scenix-core`, `scenix-light`, `scenix-camera`
+
+**Status in v0.8.0:** shipped as a default facade CPU crate. Helpers output `LineGeometry` instead of weakening `scenix-mesh::Geometry` triangle validation.
 
 ```rust
+pub struct LineGeometry {
+    pub positions: Vec<Vec3>,
+    pub colors:    Vec<Color>,
+    pub indices:   Vec<u32>,    // optional line-list indices
+}
+
 pub struct GridHelper {
     pub size:      f32,       // total grid extent
     pub divisions: u32,
@@ -1623,8 +1645,8 @@ pub struct AxesHelper {
 }
 
 pub struct BoundingBoxHelper {
-    pub node_id: NodeId,      // the node whose AABB to visualize
-    pub color:   Color,
+    pub aabb:  Aabb,
+    pub color: Color,
 }
 
 pub struct ArrowHelper {
@@ -1637,15 +1659,15 @@ pub struct ArrowHelper {
 }
 
 impl GridHelper {
-    pub fn to_geometry(&self) -> Geometry;    // generates line-list geometry
+    pub fn to_geometry(&self) -> LineGeometry;
 }
 
 impl AxesHelper {
-    pub fn to_geometry(&self) -> Geometry;
+    pub fn to_geometry(&self) -> LineGeometry;
 }
 
 impl ArrowHelper {
-    pub fn to_geometry(&self) -> Geometry;
+    pub fn to_geometry(&self) -> LineGeometry;
 }
 ```
 
@@ -1700,10 +1722,10 @@ impl KeyboardState {
 
 ```toml
 [dependencies]
-scenix = "0.7"
+scenix = "0.8"
 
 # Or with specific features:
-scenix = { version = "0.7", features = ["loader", "renderer", "post"] }
+scenix = { version = "0.8", features = ["loader", "renderer", "post"] }
 ```
 
 ```rust
@@ -1844,7 +1866,7 @@ shaders/
 ```toml
 # scenix/Cargo.toml features
 [features]
-default  = ["std", "scene", "camera", "mesh", "material", "light", "texture"]
+default  = ["std", "scene", "camera", "mesh", "material", "light", "texture", "raycaster", "helpers"]
 std      = []                               # enables std-dependent types
 scene    = ["dep:scenix-scene"]
 camera   = ["dep:scenix-camera"]
@@ -1862,25 +1884,26 @@ wasm     = ["dep:scenix-wasm", "dep:wasm-bindgen", "dep:web-sys"]
 serde    = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde",
             "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde",
             "scenix-material?/serde", "scenix-light?/serde", "scenix-texture?/serde",
-            "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde"]
+            "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde",
+            "scenix-raycaster?/serde", "scenix-helpers?/serde"]
 ```
 
 **Minimum useful combination** — scene graph and authoring data only, zero GPU:
 
 ```toml
-scenix = { version = "0.7", default-features = false, features = ["scene", "camera", "mesh", "material", "light", "texture"] }
+scenix = { version = "0.8", default-features = false, features = ["scene", "camera", "mesh", "material", "light", "texture", "raycaster", "helpers"] }
 ```
 
 **Renderer opt-in** — add the `wgpu` layer only when an application needs GPU rendering:
 
 ```toml
-scenix = { version = "0.7", features = ["renderer"] }
+scenix = { version = "0.8", features = ["renderer"] }
 ```
 
 **Loader + post opt-in** — load CPU assets and enable renderer post effects:
 
 ```toml
-scenix = { version = "0.7", features = ["loader", "renderer", "post"] }
+scenix = { version = "0.8", features = ["loader", "renderer", "post"] }
 ```
 
 ---
@@ -2113,7 +2136,7 @@ Before `cargo publish` for any crate:
 ```
 scenix-math → scenix-core → scenix-input → scenix-scene → scenix-camera → scenix-mesh
           → scenix-material → scenix-light → scenix-texture
-          → scenix-renderer → scenix-loader → scenix-post
+          → scenix-loader → scenix-post → scenix-renderer
           → scenix-raycaster → scenix-helpers → scenix-animato → scenix-wasm → scenix
 ```
 
@@ -2184,7 +2207,8 @@ scenix runs on every platform that `wgpu` supports. The architecture splits GPU-
 ├─────────────────────────────────────────────┤
 │  scenix-scene, scenix-mesh, scenix-material,   │
 │  scenix-camera, scenix-light, scenix-math,     │  ← GPU-free (runs everywhere)
-│  scenix-core, scenix-input, scenix-raycaster   │
+│  scenix-core, scenix-input, scenix-raycaster,  │
+│  scenix-helpers                                │
 ├─────────────────────────────────────────────┤
 │       scenix-renderer (wgpu)                 │  ← needs GPU
 ├──────────┬──────────┬──────────┬────────────┤
@@ -2244,10 +2268,12 @@ impl MyApp {
 | `scenix-loader` | ❌ | Requires `std` and parser/decoder crates |
 | `scenix-renderer` | ❌ | Requires `std` + `wgpu` |
 | `scenix-post` | ❌ | Requires `std` + `wgpu` |
+| `scenix-raycaster` | ✅ | Uses `alloc` for BVH and hit vectors |
+| `scenix-helpers` | ✅ | Uses `alloc` for `LineGeometry` |
 
 ---
 
-*Document version: 0.7.0 — covers architecture through scenix 1.0.0*
+*Document version: 0.8.0 — covers architecture through scenix 1.0.0*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
-*Total crates: 17 planned; 12 shipped through v0.7.0*
+*Total crates: 17 planned; 14 shipped through v0.8.0*
