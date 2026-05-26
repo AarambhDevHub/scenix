@@ -302,20 +302,20 @@ scenix/
 │   │   ├── Cargo.toml
 │   │   └── src/
 │   │       ├── lib.rs
-│   │       ├── node_animator.rs        ← NodeAnimator: binds Tween/Spring to NodeId
-│   │       ├── camera_animator.rs      ← CameraAnimator: animates fov, position, target
-│   │       ├── material_animator.rs    ← MaterialAnimator: animates albedo, opacity, etc.
-│   │       ├── skinned.rs              ← SkinnedMeshAnimator: drives bone transforms
-│   │       └── driver.rs               ← scenixAnimationDriver: ticks all bound animators
+│   │       ├── values.rs               ← AnimVec3, AnimQuat, AnimColor wrappers
+│   │       ├── tracks.rs               ← Scalar/Vec3/Quat/Color/Bool tracks
+│   │       ├── scene.rs                ← NodeAnimator: binds tracks to NodeId
+│   │       ├── camera.rs               ← CameraAnimator and CameraStoreMut
+│   │       ├── material.rs             ← MaterialAnimator for PBR fields
+│   │       ├── skeleton.rs             ← SkinnedMeshAnimator: drives bone transforms
+│   │       └── driver.rs               ← ScenixAnimationDriver: ticks all bound animators
 │   │
 │   ├── scenix-wasm/                     ← WebGPU / WebGL2 browser integration
 │   │   ├── Cargo.toml
 │   │   └── src/
 │   │       ├── lib.rs
-│   │       ├── canvas.rs               ← wgpu Surface from HtmlCanvasElement
-│   │       ├── raf.rs                  ← requestAnimationFrame render loop driver
-│   │       ├── input.rs                ← pointer/touch/keyboard events → InputState
-│   │       └── resize.rs               ← ResizeObserver → renderer resize handling
+│   │       ├── input.rs                ← DOM key/button mapping helpers
+│   │       └── web.rs                  ← WebRenderer, canvas sizing, generated scene
 │   │
 │   ├── scenix-helpers/                  ← Debug visualization helpers
 │   │   ├── Cargo.toml
@@ -361,7 +361,7 @@ scenix/
 │   ├── helpers_demo.rs                 ← GridHelper + AxesHelper + LightHelpers
 │   ├── sprite_particles.rs             ← billboard particle system with Sprites
 │   ├── environment_map.rs              ← CubeCamera IBL capture + reflections
-│   └── wasm_viewer/                    ← wasm-pack example: GLTF viewer in browser
+│   └── wasm_viewer/                    ← generated-scene browser viewer
 │       ├── src/lib.rs
 │       └── www/index.html
 │
@@ -407,7 +407,7 @@ members = [
 ]
 
 [workspace.package]
-version      = "0.8.0"
+version      = "0.9.0"
 edition      = "2024"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/AarambhDevHub/scenix"
@@ -416,22 +416,22 @@ rust-version = "1.89"
 
 [workspace.dependencies]
 # internal crates — version pinned to workspace
-scenix-math       = { path = "crates/scenix-math",       version = "0.8" }
-scenix-core       = { path = "crates/scenix-core",       version = "0.8" }
-scenix-scene      = { path = "crates/scenix-scene",      version = "0.8" }
-scenix-camera     = { path = "crates/scenix-camera",     version = "0.8" }
-scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.8" }
-scenix-material   = { path = "crates/scenix-material",   version = "0.8" }
-scenix-light      = { path = "crates/scenix-light",      version = "0.8" }
-scenix-texture    = { path = "crates/scenix-texture",    version = "0.8" }
-scenix-loader     = { path = "crates/scenix-loader",     version = "0.8" }
-scenix-post       = { path = "crates/scenix-post",       version = "0.8" }
-scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.8" }
-scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.8" }
-scenix-animato    = { path = "crates/scenix-animato",    version = "0.8" }
-scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.8" }
-scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.8" }
-scenix-input      = { path = "crates/scenix-input",      version = "0.8" }
+scenix-math       = { path = "crates/scenix-math",       version = "0.9" }
+scenix-core       = { path = "crates/scenix-core",       version = "0.9" }
+scenix-scene      = { path = "crates/scenix-scene",      version = "0.9" }
+scenix-camera     = { path = "crates/scenix-camera",     version = "0.9" }
+scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.9" }
+scenix-material   = { path = "crates/scenix-material",   version = "0.9" }
+scenix-light      = { path = "crates/scenix-light",      version = "0.9" }
+scenix-texture    = { path = "crates/scenix-texture",    version = "0.9" }
+scenix-loader     = { path = "crates/scenix-loader",     version = "0.9" }
+scenix-post       = { path = "crates/scenix-post",       version = "0.9" }
+scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.9" }
+scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.9" }
+scenix-animato    = { path = "crates/scenix-animato",    version = "0.9" }
+scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.9" }
+scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.9" }
+scenix-input      = { path = "crates/scenix-input",      version = "0.9" }
 
 # external crates — shared version pins
 wgpu             = { version = "29.0.3" }
@@ -452,7 +452,7 @@ pollster         = { version = "0.4" }
 wasm-bindgen     = { version = "0.2" }
 js-sys           = { version = "0.3" }
 web-sys          = { version = "0.3", features = ["HtmlCanvasElement", "Window"] }
-animato          = { version = "0.8", optional = true }
+animato          = { version = "1.4.0", default-features = false }
 criterion        = { version = "0.5", features = ["html_reports"] }
 approx           = { version = "0.5" }
 thiserror        = { version = "2" }
@@ -1520,9 +1520,11 @@ Memory: ~48 bytes per node (AABB + child indices)
 
 ### 4.13 `scenix-animato`
 
-**Responsibility:** The bridge between animato's animation values and scenix's scene graph. Allows animato `Tween`, `Spring`, `Timeline`, and `KeyframeTrack` to drive any scene property.
+**Responsibility:** The bridge between Animato 1.4.0 animation values and scenix data. Allows Animato `Tween` and `Spring` values to drive scene node transforms, camera fields, PBR material fields, and explicit skeleton pose arrays.
 
-**Depends on:** `scenix-math`, `scenix-core`, `scenix-scene`, `animato`
+**Depends on:** `scenix-math`, `scenix-core`, `scenix-scene`, `scenix-camera`, `scenix-material`, `animato = "1.4.0"`
+
+**Status in v0.9.0:** shipped as an optional facade feature. The bridge uses local `AnimVec3`, `AnimQuat`, and `AnimColor` wrappers so scenix math/color types can participate in Animato interpolation without changing the underlying CPU crates.
 
 ```rust
 pub struct NodeAnimator {
@@ -1531,10 +1533,10 @@ pub struct NodeAnimator {
 }
 
 pub enum NodeAnimationTarget {
-    Translation(Box<dyn animato::Update + Send>),    // animates Transform.translation
-    Rotation(Box<dyn animato::Update + Send>),        // animates Transform.rotation (Quat)
-    Scale(Box<dyn animato::Update + Send>),
-    Visibility,
+    Translation(Vec3Track),
+    Rotation(QuatTrack),
+    Scale(Vec3Track),
+    Visibility(BoolTrack),
 }
 
 pub struct MaterialAnimator {
@@ -1543,54 +1545,53 @@ pub struct MaterialAnimator {
 }
 
 pub enum MaterialAnimationTarget {
-    AlbedoColor(Box<dyn animato::Update + Send>),
-    Opacity(Box<dyn animato::Update + Send>),
-    Emissive(Box<dyn animato::Update + Send>),
-    Roughness(Box<dyn animato::Update + Send>),
-    Metallic(Box<dyn animato::Update + Send>),
+    Albedo(ColorTrack),
+    Opacity(ScalarTrack),
+    Emissive(Vec3Track),
+    Roughness(ScalarTrack),
+    Metallic(ScalarTrack),
 }
 
-pub struct scenixAnimationDriver {
+pub struct ScenixAnimationDriver {
     node_animators:     Vec<NodeAnimator>,
-    material_animators: Vec<MaterialAnimator>,
     camera_animators:   Vec<CameraAnimator>,
+    material_animators: Vec<MaterialAnimator>,
+    skeleton_animators: Vec<SkinnedMeshAnimator>,
 }
 
-impl scenixAnimationDriver {
-    pub fn tick(&mut self, dt: f32, scene: &mut SceneGraph, materials: &mut MaterialStore);
-    pub fn add_node_animator(&mut self, animator: NodeAnimator);
-    pub fn add_material_animator(&mut self, animator: MaterialAnimator);
+impl ScenixAnimationDriver {
+    pub fn tick(&mut self, dt: f32, scene: &mut SceneGraph, cameras: &mut impl CameraStoreMut, materials: &mut impl PbrMaterialStoreMut, skeletons: &mut [SkeletonPose]);
+    pub fn add_node(&mut self, animator: NodeAnimator);
+    pub fn add_camera(&mut self, animator: CameraAnimator);
+    pub fn add_material(&mut self, animator: MaterialAnimator);
+    pub fn add_skeleton(&mut self, animator: SkinnedMeshAnimator);
+    pub fn pause(&mut self);
+    pub fn resume(&mut self);
 }
 ```
 
 **Usage example:**
 
 ```rust
-use animato::{Tween, Easing, Spring, SpringConfig};
-use scenix_animato::{NodeAnimator, NodeAnimationTarget};
+use scenix_animato::{NodeAnimator, NodeAnimationTarget, ScenixAnimationDriver, Vec3Track};
+use scenix_math::Vec3;
 
-// Animate a node's Y position with a spring
-let spring = Spring::new(SpringConfig::wobbly());
-driver.add_node_animator(NodeAnimator {
-    node_id: sword_node,
-    target: NodeAnimationTarget::Translation(Box::new(spring)),
-});
-
-// Animate material opacity with a tween
-let tween = Tween::new(1.0_f32, 0.0).duration(0.5).easing(Easing::EaseInCubic).build();
-driver.add_material_animator(MaterialAnimator {
-    material_id: ghost_mat,
-    target: MaterialAnimationTarget::Opacity(Box::new(tween)),
-});
+let mut driver = ScenixAnimationDriver::new();
+driver.add_node(NodeAnimator::new(
+    sword_node,
+    NodeAnimationTarget::Translation(Vec3Track::tween(Vec3::ZERO, Vec3::Y, 0.5)),
+));
 ```
 
 ---
 
 ### 4.14 `scenix-wasm`
 
-**Responsibility:** Browser-specific integrations: creating a `wgpu::Surface` from a `<canvas>`, managing `requestAnimationFrame`, and forwarding DOM input events into scenix's input types.
+**Responsibility:** Browser-specific integrations: creating a `wgpu::Surface` from a `<canvas>`, forwarding DOM input events into scenix input types, clamping canvas sizes, and providing a generated-scene `WebRenderer` wrapper.
 
-**Depends on:** `scenix-renderer`, `wasm-bindgen`, `web-sys`
+**Depends on:** `scenix-renderer`, `scenix-scene`, `scenix-camera`, `scenix-input`, `wasm-bindgen`, `web-sys`
+
+**Status in v0.9.0:** shipped as an optional facade feature. The example intentionally uses a generated cube scene and does not fetch glTF or network assets in the browser.
 
 ```rust
 #[wasm_bindgen]
@@ -1598,20 +1599,22 @@ pub struct WebRenderer {
     renderer: Renderer,
     scene:    SceneGraph,
     camera:   PerspectiveCamera,
-    clock:    f64,               // last timestamp from rAF
+    pointer:  PointerState,
+    keyboard: KeyboardState,
 }
 
 #[wasm_bindgen]
 impl WebRenderer {
-    #[wasm_bindgen(constructor)]
     pub async fn new(canvas: HtmlCanvasElement) -> Result<WebRenderer, JsValue>;
 
-    pub fn tick(&mut self, timestamp_ms: f64);   // called from requestAnimationFrame
-    pub fn resize(&mut self, width: u32, height: u32);
+    pub fn tick(&mut self, timestamp_ms: f64) -> Result<(), JsValue>;
+    pub fn resize(&mut self, width: u32, height: u32) -> Result<(), JsValue>;
     pub fn on_pointer_move(&mut self, x: f32, y: f32);
-    pub fn on_pointer_down(&mut self, x: f32, y: f32, button: u8);
-    pub fn on_pointer_up(&mut self, x: f32, y: f32, button: u8);
+    pub fn on_pointer_down(&mut self, button: i16, x: f32, y: f32);
+    pub fn on_pointer_up(&mut self, button: i16, x: f32, y: f32);
     pub fn on_wheel(&mut self, delta_y: f32);
+    pub fn on_key_down(&mut self, code: &str);
+    pub fn on_key_up(&mut self, code: &str);
 }
 ```
 
@@ -1722,10 +1725,10 @@ impl KeyboardState {
 
 ```toml
 [dependencies]
-scenix = "0.8"
+scenix = "0.9"
 
 # Or with specific features:
-scenix = { version = "0.8", features = ["loader", "renderer", "post"] }
+scenix = { version = "0.9", features = ["loader", "renderer", "post"] }
 ```
 
 ```rust
@@ -1763,7 +1766,7 @@ User code
     ▼
 Every frame:
     │
-    ├─[1] scenixAnimationDriver::tick(dt)      ← update all animato-driven properties
+    ├─[1] ScenixAnimationDriver::tick(dt)      ← update all animato-driven properties
     │        └─ writes back to SceneGraph transforms and MaterialStore
     │
     ├─[2] SceneGraph::propagate_transforms()  ← recompute dirty world matrices
@@ -1878,32 +1881,40 @@ renderer = ["dep:scenix-renderer"]
 loader   = ["dep:scenix-loader"]
 post     = ["dep:scenix-post", "scenix-renderer?/post"]
 raycaster = ["dep:scenix-raycaster"]
-animato  = ["dep:scenix-animato", "dep:animato"]
+animato  = ["dep:scenix-animato"]
 helpers  = ["dep:scenix-helpers"]
-wasm     = ["dep:scenix-wasm", "dep:wasm-bindgen", "dep:web-sys"]
+wasm     = ["dep:scenix-wasm"]
 serde    = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde",
             "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde",
             "scenix-material?/serde", "scenix-light?/serde", "scenix-texture?/serde",
             "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde",
-            "scenix-raycaster?/serde", "scenix-helpers?/serde"]
+            "scenix-raycaster?/serde", "scenix-helpers?/serde",
+            "scenix-animato?/serde", "scenix-wasm?/serde"]
 ```
 
 **Minimum useful combination** — scene graph and authoring data only, zero GPU:
 
 ```toml
-scenix = { version = "0.8", default-features = false, features = ["scene", "camera", "mesh", "material", "light", "texture", "raycaster", "helpers"] }
+scenix = { version = "0.9", default-features = false, features = ["scene", "camera", "mesh", "material", "light", "texture", "raycaster", "helpers"] }
 ```
 
 **Renderer opt-in** — add the `wgpu` layer only when an application needs GPU rendering:
 
 ```toml
-scenix = { version = "0.8", features = ["renderer"] }
+scenix = { version = "0.9", features = ["renderer"] }
 ```
 
 **Loader + post opt-in** — load CPU assets and enable renderer post effects:
 
 ```toml
-scenix = { version = "0.8", features = ["loader", "renderer", "post"] }
+scenix = { version = "0.9", features = ["loader", "renderer", "post"] }
+```
+
+**Integration opt-in** — add Animato or browser wrappers without changing the default CPU authoring set:
+
+```toml
+scenix = { version = "0.9", features = ["animato"] }
+scenix = { version = "0.9", features = ["wasm"] }
 ```
 
 ---
@@ -2042,19 +2053,17 @@ pub async fn main() {
 
 ```rust
 use scenix::*;
-use scenix_animato::{scenixAnimationDriver, NodeAnimator, NodeAnimationTarget};
-use animato::{Spring, SpringConfig};
+use scenix_animato::{NodeAnimator, NodeAnimationTarget, ScenixAnimationDriver, Vec3Track};
 
-let mut anim_driver = scenixAnimationDriver::new();
+let mut anim_driver = ScenixAnimationDriver::new();
 
-let spring = Spring::new(SpringConfig::wobbly());
-anim_driver.add_node_animator(NodeAnimator {
-    node_id: camera_node,
-    target: NodeAnimationTarget::Translation(Box::new(spring)),
-});
+anim_driver.add_node(NodeAnimator::new(
+    camera_node,
+    NodeAnimationTarget::Translation(Vec3Track::tween(Vec3::ZERO, Vec3::Y, 0.5)),
+));
 
 // In render loop:
-anim_driver.tick(dt, &mut scene, &mut material_store);
+anim_driver.tick(dt, &mut scene, &mut cameras, &mut materials, &mut skeletons)?;
 renderer.render(&scene, &camera)?;
 ```
 
@@ -2270,10 +2279,12 @@ impl MyApp {
 | `scenix-post` | ❌ | Requires `std` + `wgpu` |
 | `scenix-raycaster` | ✅ | Uses `alloc` for BVH and hit vectors |
 | `scenix-helpers` | ✅ | Uses `alloc` for `LineGeometry` |
+| `scenix-animato` | ✅ | Uses `alloc` and Animato 1.4.0 tween/spring features |
+| `scenix-wasm` | ❌ | Browser-only wrapper requiring `std`, `wasm-bindgen`, `web-sys`, and `wgpu` |
 
 ---
 
-*Document version: 0.8.0 — covers architecture through scenix 1.0.0*
+*Document version: 0.9.0 — covers architecture through scenix 1.0.0*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
-*Total crates: 17 planned; 14 shipped through v0.8.0*
+*Total crates: 17 planned; 17 shipped through v0.9.0*

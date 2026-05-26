@@ -15,11 +15,13 @@ members = [
     "crates/scenix-renderer",
     "crates/scenix-raycaster",
     "crates/scenix-helpers",
+    "crates/scenix-animato",
+    "crates/scenix-wasm",
     "crates/scenix",
 ]
 
 [workspace.package]
-version = "0.8.0"
+version = "0.9.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/AarambhDevHub/scenix"
@@ -28,25 +30,30 @@ rust-version = "1.89"
 readme = "README.md"
 
 [workspace.dependencies]
-scenix-math = { path = "crates/scenix-math", version = "0.8.0", default-features = false }
-scenix-core = { path = "crates/scenix-core", version = "0.8.0", default-features = false }
-scenix-input = { path = "crates/scenix-input", version = "0.8.0", default-features = false }
-scenix-scene = { path = "crates/scenix-scene", version = "0.8.0", default-features = false }
-scenix-camera = { path = "crates/scenix-camera", version = "0.8.0", default-features = false }
-scenix-mesh = { path = "crates/scenix-mesh", version = "0.8.0", default-features = false }
-scenix-material = { path = "crates/scenix-material", version = "0.8.0", default-features = false }
-scenix-light = { path = "crates/scenix-light", version = "0.8.0", default-features = false }
-scenix-texture = { path = "crates/scenix-texture", version = "0.8.0", default-features = false }
-scenix-loader = { path = "crates/scenix-loader", version = "0.8.0", default-features = false }
-scenix-post = { path = "crates/scenix-post", version = "0.8.0", default-features = false }
-scenix-renderer = { path = "crates/scenix-renderer", version = "0.8.0", default-features = false }
-scenix-raycaster = { path = "crates/scenix-raycaster", version = "0.8.0", default-features = false }
-scenix-helpers = { path = "crates/scenix-helpers", version = "0.8.0", default-features = false }
+scenix-math = { path = "crates/scenix-math", version = "0.9.0", default-features = false }
+scenix-core = { path = "crates/scenix-core", version = "0.9.0", default-features = false }
+scenix-input = { path = "crates/scenix-input", version = "0.9.0", default-features = false }
+scenix-scene = { path = "crates/scenix-scene", version = "0.9.0", default-features = false }
+scenix-camera = { path = "crates/scenix-camera", version = "0.9.0", default-features = false }
+scenix-mesh = { path = "crates/scenix-mesh", version = "0.9.0", default-features = false }
+scenix-material = { path = "crates/scenix-material", version = "0.9.0", default-features = false }
+scenix-light = { path = "crates/scenix-light", version = "0.9.0", default-features = false }
+scenix-texture = { path = "crates/scenix-texture", version = "0.9.0", default-features = false }
+scenix-loader = { path = "crates/scenix-loader", version = "0.9.0", default-features = false }
+scenix-post = { path = "crates/scenix-post", version = "0.9.0", default-features = false }
+scenix-renderer = { path = "crates/scenix-renderer", version = "0.9.0", default-features = false }
+scenix-raycaster = { path = "crates/scenix-raycaster", version = "0.9.0", default-features = false }
+scenix-helpers = { path = "crates/scenix-helpers", version = "0.9.0", default-features = false }
+scenix-animato = { path = "crates/scenix-animato", version = "0.9.0", default-features = false }
+scenix-wasm = { path = "crates/scenix-wasm", version = "0.9.0", default-features = false }
 
+animato = { version = "1.4.0", default-features = false }
 approx = { version = "0.5", default-features = false }
 bytemuck = { version = "1", default-features = false, features = ["derive"] }
+console_error_panic_hook = { version = "0.1" }
 gltf = { version = "1.4.1", default-features = false }
 image = { version = "0.25.10", default-features = false }
+js-sys = { version = "0.3" }
 ktx2 = { version = "0.4.0", default-features = false }
 libm = { version = "0.2" }
 pollster = { version = "0.4" }
@@ -57,6 +64,9 @@ serde_json = { version = "1" }
 slotmap = { version = "1", default-features = false }
 stl_io = { version = "0.11.0" }
 tobj = { version = "4.0.3", default-features = false }
+wasm-bindgen = { version = "0.2" }
+wasm-bindgen-futures = { version = "0.4" }
+web-sys = { version = "0.3" }
 wgpu = { version = "29.0.3" }
 winit = { version = "0.30.13" }
 

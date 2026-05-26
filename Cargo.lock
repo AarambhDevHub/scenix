@@ -78,6 +78,108 @@ dependencies = [
 ]
 
 [[package]]
+name = "animato"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f008921505f2f0733b0293cc512445b27e9020e4a6f884e364c711479e1ff84d"
+dependencies = [
+ "animato-color",
+ "animato-core",
+ "animato-driver",
+ "animato-path",
+ "animato-physics",
+ "animato-spring",
+ "animato-timeline",
+ "animato-tween",
+ "palette",
+ "serde",
+]
+
+[[package]]
+name = "animato-color"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99e1123edf4c867afd75abdd7c6f966116db3f6535cacc006a7325c4dad1d2fc"
+dependencies = [
+ "animato-core",
+ "palette",
+ "serde",
+]
+
+[[package]]
+name = "animato-core"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3a0fc17621711bec9ad1f078d3a47d0a5aa6470dbf1549cf1c9d312aca20d04"
+dependencies = [
+ "libm",
+ "serde",
+]
+
+[[package]]
+name = "animato-driver"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0531a2b8cf0131c9a31b94f9a973ec740e375fbea5c9013fa882f5603bfbb53d"
+dependencies = [
+ "animato-core",
+]
+
+[[package]]
+name = "animato-path"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "459214d8a0c0df7c84fa7a9e1fefe36ed5f2e753c660b2059cb9d0fb1727cb8f"
+dependencies = [
+ "animato-core",
+ "animato-tween",
+ "libm",
+ "serde",
+]
+
+[[package]]
+name = "animato-physics"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9be1833033cce675966a38ad4175f23ca989b39b8eb6a251454a9020fbbc27e9"
+dependencies = [
+ "animato-core",
+ "libm",
+ "serde",
+]
+
+[[package]]
+name = "animato-spring"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "beefbc7478b1546137040ddd16e1c813a2cf4557c02c6786328526195f986694"
+dependencies = [
+ "animato-core",
+ "serde",
+]
+
+[[package]]
+name = "animato-timeline"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "125cc3e94b4a2945f60a28eb7023a66e21b64c51a3d9d08c17713aef548fba68"
+dependencies = [
+ "animato-core",
+ "animato-tween",
+ "serde",
+]
+
+[[package]]
+name = "animato-tween"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d10edd5731d243f92b5f9447a03784ab0f4e9c9635e572a254b9ed2962b3dd0"
+dependencies = [
+ "animato-core",
+ "serde",
+]
+
+[[package]]
 name = "approx"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -201,6 +303,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
 
 [[package]]
+name = "by_address"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64fa3c856b712db6612c019f14756e64e4bcea13337a6b33b696333a9eaa2d06"
+
+[[package]]
 name = "bytemuck"
 version = "1.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -316,6 +424,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ca0197aee26d1ae37445ee532fefce43251d24cc7c166799f4d46817f1d3973"
 dependencies = [
  "crossbeam-utils",
+]
+
+[[package]]
+name = "console_error_panic_hook"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
+dependencies = [
+ "cfg-if",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -471,6 +589,12 @@ dependencies = [
  "smallvec",
  "zune-inflate",
 ]
+
+[[package]]
+name = "fast-srgb8"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd2e7510819d6fbf51a5545c8f922716ecfb14df168a3242f7d33e0239efe6a1"
 
 [[package]]
 name = "fdeflate"
@@ -1669,6 +1793,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "palette"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4cbf71184cc5ecc2e4e1baccdb21026c20e5fc3dcf63028a086131b3ab00b6e6"
+dependencies = [
+ "approx",
+ "fast-srgb8",
+ "libm",
+ "palette_derive",
+ "serde",
+]
+
+[[package]]
+name = "palette_derive"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5030daf005bface118c096f510ffb781fc28f9ab6a32ab224d8631be6851d30"
+dependencies = [
+ "by_address",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "parking_lot"
 version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2171,9 +2320,10 @@ dependencies = [
 
 [[package]]
 name = "scenix"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "pollster",
+ "scenix-animato",
  "scenix-camera",
  "scenix-core",
  "scenix-helpers",
@@ -2188,11 +2338,26 @@ dependencies = [
  "scenix-renderer",
  "scenix-scene",
  "scenix-texture",
+ "scenix-wasm",
+]
+
+[[package]]
+name = "scenix-animato"
+version = "0.9.0"
+dependencies = [
+ "animato",
+ "scenix-camera",
+ "scenix-core",
+ "scenix-material",
+ "scenix-math",
+ "scenix-scene",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
 name = "scenix-camera"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "scenix-core",
  "scenix-input",
@@ -2203,7 +2368,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-core"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "bytemuck",
  "scenix-math",
@@ -2213,7 +2378,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-helpers"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "scenix-camera",
  "scenix-core",
@@ -2225,7 +2390,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-input"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "scenix-math",
  "serde",
@@ -2233,7 +2398,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-light"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2244,7 +2409,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-loader"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "gltf",
  "image",
@@ -2266,7 +2431,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-material"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2276,7 +2441,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-math"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "approx",
  "libm",
@@ -2285,7 +2450,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-mesh"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2295,7 +2460,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-post"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "bytemuck",
  "pollster",
@@ -2308,7 +2473,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-raycaster"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "scenix-camera",
  "scenix-core",
@@ -2321,7 +2486,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-renderer"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "bytemuck",
  "pollster",
@@ -2343,7 +2508,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-scene"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2354,11 +2519,31 @@ dependencies = [
 
 [[package]]
 name = "scenix-texture"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "scenix-core",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "scenix-wasm"
+version = "0.9.0"
+dependencies = [
+ "console_error_panic_hook",
+ "js-sys",
+ "scenix-camera",
+ "scenix-core",
+ "scenix-input",
+ "scenix-light",
+ "scenix-material",
+ "scenix-math",
+ "scenix-mesh",
+ "scenix-renderer",
+ "scenix-scene",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]

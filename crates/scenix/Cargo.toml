@@ -11,7 +11,7 @@ readme.workspace = true
 
 [features]
 default = ["std", "scene", "camera", "mesh", "material", "light", "texture", "raycaster", "helpers"]
-std = ["scenix-math/std", "scenix-core/std", "scenix-input/std", "scenix-scene?/std", "scenix-camera?/std", "scenix-mesh?/std", "scenix-material?/std", "scenix-light?/std", "scenix-texture?/std", "scenix-loader?/std", "scenix-post?/std", "scenix-renderer?/std", "scenix-raycaster?/std", "scenix-helpers?/std"]
+std = ["scenix-math/std", "scenix-core/std", "scenix-input/std", "scenix-scene?/std", "scenix-camera?/std", "scenix-mesh?/std", "scenix-material?/std", "scenix-light?/std", "scenix-texture?/std", "scenix-loader?/std", "scenix-post?/std", "scenix-renderer?/std", "scenix-raycaster?/std", "scenix-helpers?/std", "scenix-animato?/std", "scenix-wasm?/std"]
 scene = ["dep:scenix-scene"]
 camera = ["dep:scenix-camera"]
 mesh = ["dep:scenix-mesh"]
@@ -23,8 +23,10 @@ post = ["dep:scenix-post", "scenix-renderer?/post"]
 renderer = ["dep:scenix-renderer"]
 raycaster = ["dep:scenix-raycaster"]
 helpers = ["dep:scenix-helpers"]
+animato = ["dep:scenix-animato"]
+wasm = ["dep:scenix-wasm"]
 libm = ["scenix-math/libm"]
-serde = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde", "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde", "scenix-material?/serde", "scenix-light?/serde", "scenix-texture?/serde", "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde", "scenix-raycaster?/serde", "scenix-helpers?/serde"]
+serde = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde", "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde", "scenix-material?/serde", "scenix-light?/serde", "scenix-texture?/serde", "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde", "scenix-raycaster?/serde", "scenix-helpers?/serde", "scenix-animato?/serde", "scenix-wasm?/serde"]
 approx = ["scenix-math/approx"]
 gpu = ["scenix-core/gpu"]
 
@@ -43,6 +45,8 @@ scenix-renderer = { workspace = true, optional = true }
 scenix-scene = { workspace = true, optional = true }
 scenix-texture = { workspace = true, optional = true }
 scenix-helpers = { workspace = true, optional = true }
+scenix-animato = { workspace = true, optional = true }
+scenix-wasm = { workspace = true, optional = true }
 
 [dev-dependencies]
 pollster = { workspace = true }
@@ -104,6 +108,15 @@ path = "../../examples/raycasting.rs"
 name = "helpers_demo"
 path = "../../examples/helpers_demo.rs"
 
+[[example]]
+name = "animato_integration"
+path = "../../examples/animato_integration.rs"
+required-features = ["animato"]
+
 [[test]]
 name = "scenix_v08"
 path = "../../tests/scenix_v08.rs"
+
+[[test]]
+name = "scenix_v09"
+path = "../../tests/scenix_v09.rs"

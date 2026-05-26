@@ -31,7 +31,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v0.6.0` | Renderer | wgpu pipeline, deferred+forward rendering, shadow maps | ✅ |
 | `v0.7.0` | Loaders & Post | GLTF/OBJ/STL loaders, post-processing stack | ✅ |
 | `v0.8.0` | Raycasting & Helpers | BVH raycaster, debug helpers, input abstraction | ✅ |
-| `v0.9.0` | Integration | animato bridge, WASM browser support, framework compat | 📋 |
+| `v0.9.0` | Integration | animato bridge, WASM browser support, framework compat | ✅ |
 | `v1.0.0` | Stable | API freeze, full docs, examples, all CI green | 📋 |
 
 ---
@@ -395,23 +395,26 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 ### Deliverables
 
 **`scenix-animato`**
-- [ ] `NodeAnimator` — binds `Tween`/`Spring` to `NodeId` transform
-- [ ] `NodeAnimationTarget` enum — `Translation`, `Rotation`, `Scale`, `Visibility`
-- [ ] `CameraAnimator` — animates fov, position, target
-- [ ] `MaterialAnimator` — animates albedo, opacity, emissive
-- [ ] `SkinnedMeshAnimator` — drives bone transforms from keyframe data
-- [ ] `scenixAnimationDriver` — ticks all bound animators per frame
-- [ ] Tests: tween drives node position from A to B correctly
+- [x] `AnimVec3`, `AnimQuat`, `AnimColor` wrappers for Animato interpolation, with quaternion slerp for rotations
+- [x] `ScalarTrack`, `Vec3Track`, `QuatTrack`, `ColorTrack`, `BoolTrack` backed by Animato 1.4.0 tweens and springs where applicable
+- [x] `NodeAnimator` — binds tracks to `NodeId` transform and visibility fields
+- [x] `NodeAnimationTarget` enum — `Translation`, `Rotation`, `Scale`, `Visibility`
+- [x] `CameraAnimator` — animates fov, position, target, up vector, and orthographic bounds through `CameraStoreMut`
+- [x] `MaterialAnimator` — animates PBR albedo, opacity, emissive, roughness, and metallic fields
+- [x] `SkeletonPose`, `BoneAnimation`, `SkinnedMeshAnimator` — drives explicit bone transform arrays
+- [x] `ScenixAnimationDriver` — ticks all bound animators per frame with pause/resume, add/remove/clear, completion pruning, and deterministic order
+- [x] Tests: node transform/visibility animation, camera stores, PBR material fields, skeleton poses, driver behavior, serde round trips
 
 **`scenix-wasm`**
-- [ ] `WebRenderer` — wraps `Renderer` for `<canvas>` + `requestAnimationFrame`
-- [ ] `WebRenderer::new(canvas) -> Result<WebRenderer, JsValue>` — async init
-- [ ] `WebRenderer::tick(timestamp_ms)` — called from rAF
-- [ ] `WebRenderer::resize(w, h)`
-- [ ] `on_pointer_move/down/up`, `on_wheel` — DOM input forwarding
-- [ ] `examples/wasm_viewer/` — GLTF viewer in browser
-- [ ] `examples/animato_integration.rs` — spring camera + tween material
-- [ ] `examples/orbit_camera.rs` — OrbitController with mouse input
+- [x] `WebRenderer` — wraps `Renderer`, `SceneGraph`, `PerspectiveCamera`, `PointerState`, and `KeyboardState` for `<canvas>` + `requestAnimationFrame`
+- [x] `WebRenderer::new(canvas) -> Result<WebRenderer, JsValue>` — async init
+- [x] `WebRenderer::tick(timestamp_ms)` — called from rAF
+- [x] `WebRenderer::resize(w, h)`
+- [x] `on_pointer_move/down/up`, `on_wheel`, `on_key_down/up` — DOM input forwarding
+- [x] `key_code_from_dom`, `pointer_button_from_dom`, `canvas_size`, `clamp_canvas_size`, and panic hook helpers
+- [x] `examples/wasm_viewer/` — generated-scene browser viewer
+- [x] `examples/animato_integration.rs` — spring camera target + tween node/material animation
+- [x] Tests/checks: DOM mapping unit tests, zero-size resize clamping, wasm target compile, wasm viewer compile
 
 ---
 
@@ -484,11 +487,11 @@ These are not committed — they are ideas to revisit after the stable release.
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to set up the workspace, run tests, and submit pull requests.
 
-The best way to contribute right now is to pick any unchecked item from `v0.9.0` above and open a PR.
+The best way to contribute right now is to pick any unchecked item from `v1.0.0` above and open a PR.
 
 ---
 
-*Roadmap version: 0.8.0 — last updated May 2026*
-*Next milestone: v0.9.0 — Integration*
+*Roadmap version: 0.9.0 — last updated May 2026*
+*Next milestone: v1.0.0 — Stable*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

@@ -43,6 +43,29 @@ jobs:
       - name: Test raycaster and helpers all features
         run: cargo test -p scenix-raycaster -p scenix-helpers --all-features
 
+      - name: Test animato bridge all features
+        run: cargo test -p scenix-animato --all-features
+
+  wasm:
+    name: WASM compile
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check scenix-wasm
+        run: cargo check -p scenix-wasm --target wasm32-unknown-unknown --all-features
+
+      - name: Check wasm viewer example
+        run: cargo check --manifest-path examples/wasm_viewer/Cargo.toml --target wasm32-unknown-unknown
+
   renderer-gpu:
     name: Renderer and post GPU smoke (lavapipe)
     runs-on: ubuntu-latest

@@ -4,8 +4,8 @@
 //!
 //! This release re-exports the Foundation crates, the GPU-free scene graph,
 //! CPU-side geometry, materials, lights, textures, cameras, optional loaders,
-//! raycasting, debug helper geometry, optional post-processing, and optional
-//! renderer APIs.
+//! raycasting, debug helper geometry, optional Animato and WASM integration,
+//! optional post-processing, and optional renderer APIs.
 
 pub use scenix_core::*;
 pub use scenix_input::*;
@@ -34,6 +34,12 @@ pub use scenix_raycaster::*;
 
 #[cfg(feature = "helpers")]
 pub use scenix_helpers::*;
+
+#[cfg(feature = "animato")]
+pub use scenix_animato::*;
+
+#[cfg(feature = "wasm")]
+pub use scenix_wasm::*;
 
 #[cfg(feature = "loader")]
 pub use scenix_loader::*;

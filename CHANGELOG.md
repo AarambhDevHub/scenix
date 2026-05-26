@@ -7,6 +7,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-26
+
+### Added
+
+- Added the `scenix-animato` crate with Animato 1.4.0-compatible wrappers for
+  `Vec3`, `Quat`, and `Color`, plus scalar, vector, quaternion, color, and
+  boolean tracks.
+- Added node, camera, PBR material, skeleton pose, and deterministic driver
+  animation APIs that apply Animato tweens and springs to existing scenix data.
+- Added the `scenix-wasm` crate with DOM key/pointer mapping helpers, panic
+  hook setup, valid canvas-size clamping, and a browser `WebRenderer` wrapper
+  around the existing renderer and a generated cube scene.
+- Added `examples/animato_integration.rs`, `examples/wasm_viewer/`, and
+  `benches/animato_bridge_bench.rs`.
+- Added integration tests for node, camera, material, skeleton, driver, serde,
+  WASM helper mappings, and facade exports.
+
+### Changed
+
+- Bumped all workspace crates to `0.9.0`.
+- Updated the `scenix` facade crate with optional `animato` and `wasm` features
+  while keeping v0.8 default CPU authoring, raycaster, and helper features
+  unchanged.
+- Updated README, roadmap, architecture notes, CI checks, publish ordering, and
+  generated GitHub Release notes for the Integration release.
+
 ## [0.8.0] - 2026-05-26
 
 ### Added
@@ -215,7 +241,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/AarambhDevHub/scenix/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/AarambhDevHub/scenix/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/AarambhDevHub/scenix/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/AarambhDevHub/scenix/compare/v0.5.0...v0.6.0
