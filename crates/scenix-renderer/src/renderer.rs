@@ -31,6 +31,10 @@ pub struct Renderer {
     gpu_scene: GpuScene,
     gbuffer: GBuffer,
     shadow_maps: ShadowMapAtlas,
+    #[cfg(feature = "post")]
+    post_stack: Option<scenix_post::PostStack>,
+    #[cfg(feature = "post")]
+    post_source: Option<TextureTarget>,
     frame_index: u64,
 }
 
@@ -82,6 +86,10 @@ impl Renderer {
             gpu_scene: GpuScene::new(),
             gbuffer,
             shadow_maps,
+            #[cfg(feature = "post")]
+            post_stack: None,
+            #[cfg(feature = "post")]
+            post_source: None,
             frame_index: 0,
         })
     }
@@ -111,6 +119,10 @@ impl Renderer {
             gpu_scene: GpuScene::new(),
             gbuffer,
             shadow_maps,
+            #[cfg(feature = "post")]
+            post_stack: None,
+            #[cfg(feature = "post")]
+            post_source: None,
             frame_index: 0,
         })
     }
@@ -120,6 +132,10 @@ impl Renderer {
         self.config = self.config.clone().resized(width, height);
         self.config.validate()?;
         self.gbuffer.resize(&self.device, width, height);
+        #[cfg(feature = "post")]
+        {
+            self.post_source = None;
+        }
 
         if let Some(surface) = &self.surface {
             let surface_config =
@@ -175,18 +191,7 @@ impl Renderer {
 
         match self.target_mode {
             RenderTargetMode::Headless => {
-                let view = self
-                    .offscreen
-                    .as_ref()
-                    .ok_or(ScenixError::Gpu(GpuError::Init))?
-                    .view();
-                self.render_to_view(
-                    view,
-                    frame_context,
-                    stats.visible_meshes,
-                    &opaque,
-                    &transparent,
-                );
+                self.render_headless(frame_context, stats.visible_meshes, &opaque, &transparent)?;
             }
             RenderTargetMode::Surface => {
                 self.render_surface(frame_context, stats.visible_meshes, &opaque, &transparent)?;
@@ -376,6 +381,27 @@ impl Renderer {
         self.target_mode
     }
 
+    /// Sets the optional post-processing stack.
+    #[cfg(feature = "post")]
+    #[inline]
+    pub fn set_post_stack(&mut self, post_stack: Option<scenix_post::PostStack>) {
+        self.post_stack = post_stack;
+    }
+
+    /// Returns the active post-processing stack.
+    #[cfg(feature = "post")]
+    #[inline]
+    pub const fn post_stack(&self) -> Option<&scenix_post::PostStack> {
+        self.post_stack.as_ref()
+    }
+
+    /// Returns the mutable active post-processing stack.
+    #[cfg(feature = "post")]
+    #[inline]
+    pub fn post_stack_mut(&mut self) -> Option<&mut scenix_post::PostStack> {
+        self.post_stack.as_mut()
+    }
+
     /// Reads the first pixel from the headless render target.
     ///
     /// This is intended for smoke tests and tooling, not per-frame gameplay
@@ -440,6 +466,61 @@ impl Renderer {
         Ok(pixel)
     }
 
+    fn render_headless(
+        &mut self,
+        frame_context: FrameContext,
+        visible_meshes: u32,
+        opaque: &[crate::DrawSubmission],
+        transparent: &[crate::DrawSubmission],
+    ) -> Result<(), ScenixError> {
+        #[cfg(feature = "post")]
+        let color_format = self.config.preferred_color_format();
+        #[cfg(feature = "post")]
+        {
+            if self
+                .post_stack
+                .as_ref()
+                .is_some_and(|stack| !stack.is_empty())
+            {
+                self.ensure_post_source(color_format)?;
+                let source_view = self.post_source.as_ref().unwrap().view();
+                self.render_scene_to_view(
+                    source_view,
+                    frame_context,
+                    visible_meshes,
+                    opaque,
+                    transparent,
+                );
+                let final_view = self
+                    .offscreen
+                    .as_ref()
+                    .ok_or(ScenixError::Gpu(GpuError::Init))?
+                    .view();
+                let context = scenix_post::PostContext {
+                    frame_index: self.frame_index,
+                    resolution: Vec2::new(self.config.width as f32, self.config.height as f32),
+                    color_format,
+                };
+                self.post_stack.as_mut().unwrap().apply_to_view(
+                    &self.device,
+                    &self.queue,
+                    source_view,
+                    final_view,
+                    context,
+                )?;
+                return Ok(());
+            }
+        }
+
+        let view = self
+            .offscreen
+            .as_ref()
+            .ok_or(ScenixError::Gpu(GpuError::Init))?
+            .view();
+        self.render_scene_to_view(view, frame_context, visible_meshes, opaque, transparent);
+        Ok(())
+    }
+
     fn render_surface(
         &mut self,
         frame_context: FrameContext,
@@ -469,12 +550,90 @@ impl Renderer {
         let view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        self.render_to_view(&view, frame_context, visible_meshes, opaque, transparent);
+        let format = self.surface_config.as_ref().map_or_else(
+            || self.config.preferred_color_format(),
+            |config| config.format,
+        );
+        self.render_to_final_view(
+            &view,
+            format,
+            frame_context,
+            visible_meshes,
+            opaque,
+            transparent,
+        )?;
         frame.present();
         Ok(())
     }
 
-    fn render_to_view(
+    fn render_to_final_view(
+        &mut self,
+        view: &wgpu::TextureView,
+        #[cfg_attr(not(feature = "post"), allow(unused_variables))] format: wgpu::TextureFormat,
+        frame_context: FrameContext,
+        visible_meshes: u32,
+        opaque: &[crate::DrawSubmission],
+        transparent: &[crate::DrawSubmission],
+    ) -> Result<(), ScenixError> {
+        #[cfg(feature = "post")]
+        {
+            if self
+                .post_stack
+                .as_ref()
+                .is_some_and(|stack| !stack.is_empty())
+            {
+                self.ensure_post_source(format)?;
+                let source_view = self.post_source.as_ref().unwrap().view();
+                self.render_scene_to_view(
+                    source_view,
+                    frame_context,
+                    visible_meshes,
+                    opaque,
+                    transparent,
+                );
+                let context = scenix_post::PostContext {
+                    frame_index: self.frame_index,
+                    resolution: Vec2::new(self.config.width as f32, self.config.height as f32),
+                    color_format: format,
+                };
+                self.post_stack.as_mut().unwrap().apply_to_view(
+                    &self.device,
+                    &self.queue,
+                    source_view,
+                    view,
+                    context,
+                )?;
+                return Ok(());
+            }
+        }
+
+        self.render_scene_to_view(view, frame_context, visible_meshes, opaque, transparent);
+        Ok(())
+    }
+
+    #[cfg(feature = "post")]
+    fn ensure_post_source(&mut self, format: wgpu::TextureFormat) -> Result<(), ScenixError> {
+        let replace = self.post_source.as_ref().is_none_or(|target| {
+            target.width() != self.config.width
+                || target.height() != self.config.height
+                || target.format() != format
+        });
+        if replace {
+            self.post_source = Some(TextureTarget::new(
+                &self.device,
+                "scenix.post.source",
+                self.config.width,
+                self.config.height,
+                format,
+                wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::TEXTURE_BINDING
+                    | wgpu::TextureUsages::COPY_SRC,
+            ));
+        }
+        Ok(())
+    }
+
+    fn render_scene_to_view(
         &self,
         view: &wgpu::TextureView,
         _frame_context: FrameContext,

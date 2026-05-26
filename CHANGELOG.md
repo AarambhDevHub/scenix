@@ -7,6 +7,33 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-26
+
+### Added
+
+- Added the `scenix-loader` crate with CPU-side glTF/GLB, OBJ/MTL, STL,
+  PNG/JPEG/WebP, KTX2, HDR/EXR, and path-cache loading APIs.
+- Added `GltfLoader`, `GltfAsset`, `LoadedCamera`, `LoadedLight`,
+  `LoaderOptions`, and `AssetCache` for renderer-agnostic asset import.
+- Added the `scenix-post` crate with `PostStack`, `PostEffect`, `PostTarget`,
+  `PostContext`, bloom, SSAO, tonemap, FXAA, TAA, SMAA, depth of field, fog,
+  outline, and motion blur configuration.
+- Added optional renderer post-stack integration through
+  `Renderer::set_post_stack`, `Renderer::post_stack`, and
+  `Renderer::post_stack_mut`.
+- Added `examples/gltf_scene.rs`, `examples/post_processing.rs`,
+  `benches/loader_bench.rs`, and `benches/post_bench.rs`.
+- Added integration tests for generated loader fixtures, image/KTX2/STL/OBJ
+  parsing, cache behavior, post stack ordering, post config clamping, facade
+  exports, and optional GPU post smoke coverage.
+
+### Changed
+
+- Bumped all workspace crates to `0.7.0`.
+- Updated the `scenix` facade crate with optional `loader` and `post` features.
+- Updated README, roadmap, architecture notes, CI checks, publish ordering, and
+  generated GitHub Release notes for the Loaders & Post-Processing release.
+
 ## [0.6.0] - 2026-05-25
 
 ### Added
@@ -163,7 +190,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/AarambhDevHub/scenix/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/AarambhDevHub/scenix/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/AarambhDevHub/scenix/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/AarambhDevHub/scenix/compare/v0.3.0...v0.4.0

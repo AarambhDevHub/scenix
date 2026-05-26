@@ -34,8 +34,11 @@ jobs:
       - name: Test no_std crates
         run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture --no-default-features
 
-      - name: Test renderer GPU path
-        run: cargo test -p scenix-renderer --all-features
+      - name: Test loader all features
+        run: cargo test -p scenix-loader --all-features
+
+      - name: Test renderer and post GPU paths
+        run: cargo test -p scenix-renderer -p scenix-post --all-features
         env:
           SCENIX_RUN_GPU_TESTS: "1"
           WGPU_BACKEND: vulkan
@@ -62,6 +65,8 @@ jobs:
       #     cargo publish -p scenix-material --dry-run --no-verify
       #     cargo publish -p scenix-light --dry-run --no-verify
       #     cargo publish -p scenix-texture --dry-run --no-verify
+      #     cargo publish -p scenix-loader --dry-run --no-verify
+      #     cargo publish -p scenix-post --dry-run --no-verify
       #     cargo publish -p scenix-renderer --dry-run --no-verify
       #     cargo publish -p scenix --dry-run --no-verify
 
@@ -128,6 +133,8 @@ jobs:
             scenix-material \
             scenix-light \
             scenix-texture \
+            scenix-loader \
+            scenix-post \
             scenix-renderer \
             scenix
           do
@@ -165,16 +172,16 @@ jobs:
 
             ```toml
             [dependencies]
-            scenix = { version = "${{ steps.version.outputs.VERSION }}", features = ["renderer"] }
+            scenix = { version = "${{ steps.version.outputs.VERSION }}", features = ["loader", "renderer", "post"] }
             ```
 
             ### Highlights
 
-            - New optional `scenix-renderer` crate powered by `wgpu` 29 with surface and headless render targets.
-            - Renderer-owned mesh, material, texture, and light registration keeps `SceneGraph` renderer-agnostic while enabling real GPU frame submission.
-            - Added `RendererConfig`, `FrameContext`, `FrameStats`, `GpuScene`, `GpuMaterial`, `PipelineCache`, `GBuffer`, `ShadowMapAtlas`, culling helpers, transparent sorting, and embedded WGSL shader entry points.
-            - The facade crate remains CPU-only by default; opt into GPU APIs with `features = ["renderer"]`.
-            - Loader, image decoding, post-processing, WASM wrappers, and GLTF asset pipelines remain deferred to later milestones.
+            - New optional `scenix-loader` crate for CPU-side glTF/GLB, OBJ/MTL, STL, PNG/JPEG/WebP, KTX2, HDR/EXR, and canonical path cache loading.
+            - New optional `scenix-post` crate for a `wgpu` full-screen post stack with bloom, SSAO, tonemap, FXAA, TAA, SMAA, depth of field, fog, outline, and motion blur passes.
+            - `Renderer` can now apply an optional post stack through `Renderer::set_post_stack` without changing the existing `Renderer::render` signature.
+            - The facade crate still keeps CPU authoring features enabled by default; opt into loaders with `features = ["loader"]` and GPU post-processing with `features = ["renderer", "post"]`.
+            - Raycasting, debug helpers, WASM wrappers, and `animato` integration remain deferred to later milestones.
 
             ### Crates published to crates.io
 
@@ -189,38 +196,42 @@ jobs:
             | [`scenix-material`](https://crates.io/crates/scenix-material) | `${{ steps.version.outputs.VERSION }}` | GPU-free material descriptions and pipeline keys |
             | [`scenix-light`](https://crates.io/crates/scenix-light) | `${{ steps.version.outputs.VERSION }}` | GPU-free lights, shadow configuration, and light probes |
             | [`scenix-texture`](https://crates.io/crates/scenix-texture) | `${{ steps.version.outputs.VERSION }}` | CPU-side texture data, samplers, atlases, and mipmaps |
+            | [`scenix-loader`](https://crates.io/crates/scenix-loader) | `${{ steps.version.outputs.VERSION }}` | CPU-side glTF, OBJ, STL, image, KTX2, HDR, and cache loaders |
+            | [`scenix-post`](https://crates.io/crates/scenix-post) | `${{ steps.version.outputs.VERSION }}` | Optional wgpu post-processing stack and full-screen effects |
             | [`scenix-renderer`](https://crates.io/crates/scenix-renderer) | `${{ steps.version.outputs.VERSION }}` | Optional wgpu renderer, resource registries, targets, passes, and pipeline cache |
-            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate with optional renderer APIs |
+            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate with optional loader, renderer, and post APIs |
 
-            ### Headless renderer example
+            ### glTF + post-processing example
 
             ```rust
             use scenix::{
-                Color, MaterialId, MeshId, PerspectiveCamera, PbrMaterial, Renderer,
-                RendererConfig, SceneGraph, SceneNode, Vec3, box_geometry,
+                BloomConfig, FxaaConfig, GltfLoader, PerspectiveCamera, PostStack,
+                Renderer, RendererConfig, ToneMapper, Vec3,
             };
 
             # async fn run() -> Result<(), scenix::ScenixError> {
+            let asset = GltfLoader::new().load_file("scene.gltf")?;
             let mut renderer = Renderer::headless(RendererConfig::new(256, 256)).await?;
-            let mesh_id = MeshId::new(1);
-            let material_id = MaterialId::new(1);
+            renderer.set_post_stack(Some(
+                PostStack::new()
+                    .with_bloom(BloomConfig::default())
+                    .with_tonemap(ToneMapper::Aces)
+                    .with_fxaa(FxaaConfig::default()),
+            ));
 
-            renderer.register_mesh(mesh_id, &box_geometry(1.0, 1.0, 1.0, 1, 1, 1))?;
-            renderer.register_pbr_material(
-                material_id,
-                &PbrMaterial::new().albedo(Color::from_rgb(0.8, 0.25, 0.15)),
-            )?;
-
-            let mut scene = SceneGraph::new();
-            scene.add(SceneNode::mesh("cube", mesh_id, material_id));
-            scene.update_world_transforms();
+            for (mesh_id, geometry) in &asset.meshes {
+                renderer.register_mesh(*mesh_id, geometry)?;
+            }
+            for (material_id, material) in &asset.materials {
+                renderer.register_pbr_material(*material_id, material)?;
+            }
 
             let camera = PerspectiveCamera::new(60.0, 16.0 / 9.0, 0.1, 100.0)
                 .position(Vec3::new(0.0, 0.0, 4.0))
                 .target(Vec3::ZERO);
-            let stats = renderer.render(&scene, &camera)?;
+            let stats = renderer.render(&asset.scene, &camera)?;
 
-            assert_eq!(stats.visible_meshes, 1);
+            assert!(stats.visible_meshes > 0);
             # Ok(())
             # }
             ```
@@ -229,7 +240,8 @@ jobs:
 
             - `cargo test --workspace --all-features`
             - `cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture --no-default-features`
-            - `SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer --all-features`
+            - `cargo test -p scenix-loader --all-features`
+            - `SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer -p scenix-post --all-features`
             - `cargo clippy --workspace --all-features -- -D warnings`
             - `cargo fmt --check`
             - `cargo doc --workspace --all-features --no-deps`

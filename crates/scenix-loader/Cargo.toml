@@ -1,6 +1,6 @@
 [package]
-name = "scenix-renderer"
-description = "wgpu renderer, GPU scene upload, passes, and frame orchestration for scenix."
+name = "scenix-loader"
+description = "CPU-side asset loaders for glTF, OBJ, STL, image, KTX2, and HDR data."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -20,9 +20,8 @@ std = [
     "scenix-mesh/std",
     "scenix-scene/std",
     "scenix-texture/std",
-    "scenix-post?/std",
 ]
-post = ["dep:scenix-post"]
+http = ["dep:reqwest", "reqwest/rustls-tls"]
 serde = [
     "dep:serde",
     "scenix-camera/serde",
@@ -31,41 +30,35 @@ serde = [
     "scenix-material/serde",
     "scenix-math/serde",
     "scenix-mesh/serde",
-    "scenix-post?/serde",
     "scenix-scene/serde",
     "scenix-texture/serde",
-    "wgpu/serde",
 ]
 
 [dependencies]
-bytemuck = { workspace = true }
-raw-window-handle = { workspace = true }
+gltf = { workspace = true, features = ["import", "names", "utils", "base64", "image", "urlencoding", "KHR_lights_punctual", "KHR_materials_unlit"] }
+image = { workspace = true, features = ["png", "jpeg", "webp", "hdr", "exr"] }
+ktx2 = { workspace = true }
+reqwest = { workspace = true, optional = true }
 scenix-camera = { workspace = true }
 scenix-core = { workspace = true }
 scenix-light = { workspace = true }
 scenix-material = { workspace = true }
 scenix-math = { workspace = true }
 scenix-mesh = { workspace = true }
-scenix-post = { workspace = true, optional = true }
 scenix-scene = { workspace = true }
 scenix-texture = { workspace = true }
 serde = { workspace = true, optional = true }
-wgpu = { workspace = true }
+stl_io = { workspace = true }
+tobj = { workspace = true }
 
 [dev-dependencies]
-pollster = { workspace = true }
 serde_json = { workspace = true }
-winit = { workspace = true }
 
 [[bench]]
-name = "render_bench"
-path = "../../benches/render_bench.rs"
+name = "loader_bench"
+path = "../../benches/loader_bench.rs"
 harness = false
 
 [[test]]
-name = "renderer"
-path = "../../tests/renderer.rs"
-
-[[test]]
-name = "renderer_gpu"
-path = "../../tests/renderer_gpu.rs"
+name = "loader"
+path = "../../tests/loader.rs"

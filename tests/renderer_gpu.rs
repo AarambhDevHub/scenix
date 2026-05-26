@@ -110,3 +110,29 @@ fn resize_recreates_offscreen_targets() -> Result<(), Box<dyn std::error::Error>
         Ok(())
     })
 }
+
+#[cfg(feature = "post")]
+#[test]
+fn renderer_applies_optional_post_stack() -> Result<(), Box<dyn std::error::Error>> {
+    if !run_gpu_tests() {
+        return Ok(());
+    }
+
+    pollster::block_on(async {
+        let (mut renderer, scene, camera) = cube_renderer().await?;
+        renderer.set_post_stack(Some(
+            scenix_post::PostStack::new()
+                .with_bloom(scenix_post::BloomConfig::default())
+                .with_tonemap(scenix_post::ToneMapper::Aces)
+                .with_fxaa(scenix_post::FxaaConfig::default()),
+        ));
+
+        let stats = renderer.render(&scene, &camera)?;
+        assert_eq!(stats.visible_meshes, 1);
+        assert_eq!(renderer.post_stack().unwrap().len(), 3);
+
+        let pixel = renderer.read_headless_pixel()?;
+        assert!(pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0);
+        Ok(())
+    })
+}

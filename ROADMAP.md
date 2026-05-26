@@ -29,7 +29,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v0.4.0` | Materials & Lights | Material trait, PBR, physical, toon, all light types | ✅ |
 | `v0.5.0` | Textures & Camera | Texture loading, sampler, atlas, camera types, controllers | ✅ |
 | `v0.6.0` | Renderer | wgpu pipeline, deferred+forward rendering, shadow maps | ✅ |
-| `v0.7.0` | Loaders & Post | GLTF/OBJ/STL loaders, post-processing stack | 📋 |
+| `v0.7.0` | Loaders & Post | GLTF/OBJ/STL loaders, post-processing stack | ✅ |
 | `v0.8.0` | Raycasting & Helpers | BVH raycaster, debug helpers, input abstraction | 📋 |
 | `v0.9.0` | Integration | animato bridge, WASM browser support, framework compat | 📋 |
 | `v1.0.0` | Stable | API freeze, full docs, examples, all CI green | 📋 |
@@ -318,31 +318,32 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 ### Deliverables
 
 **`scenix-loader`**
-- [ ] `GltfLoader::load(path) -> Result<SceneGraph>` — meshes, materials, textures, hierarchy
-- [ ] `GltfLoader::load_url(url) -> Result<SceneGraph>` — async WASM-compatible
-- [ ] `obj::load(path) -> Result<Vec<Geometry>>` — OBJ + MTL parsing
-- [ ] `stl::load(path) -> Result<Geometry>` — binary + ASCII STL
-- [ ] `image::load(path) -> Result<Texture2D>` — PNG, JPEG, WebP, KTX2
-- [ ] `hdr::load(path) -> Result<TextureCube>` — HDR/EXR → cubemap for IBL
-- [ ] `AssetCache` — dedup by path, reference counting, optional hot-reload
-- [ ] Tests: round-trip load of reference GLTF assets (BoxTextured, DamagedHelmet)
-- [ ] Tests: OBJ vertex count matches expected
+- [x] `GltfLoader::load(path) -> Result<GltfAsset>` — meshes, materials, textures, cameras, hierarchy
+- [x] `GltfLoader::load_url(url) -> Result<GltfAsset>` — async HTTP behind the `http` feature
+- [x] `obj::load(path) -> Result<Vec<Geometry>>` — OBJ + MTL parsing
+- [x] `stl::load(path) -> Result<Geometry>` — binary + ASCII STL
+- [x] `image::load(path) -> Result<Texture2D>` — PNG, JPEG, WebP
+- [x] `ktx2::load(path) -> Result<Texture2D>` — KTX2 container metadata and supported raw texture formats
+- [x] `hdr::load(path) -> Result<TextureCube>` — HDR/EXR-compatible image decode to cube texture data
+- [x] `AssetCache` — canonical path deduplication with `Arc<T>`, invalidation, and clear
+- [x] Tests: generated glTF/GLB, OBJ/MTL, STL, image, KTX2, HDR cube, cache, and serde metadata coverage
 
 **`scenix-post`**
-- [ ] `PostStack` — ordered chain of effects, builder pattern
-- [ ] `bloom.rs` — threshold, intensity, radius, blur passes (dual kawase)
-- [ ] `ssao.rs` — screen-space ambient occlusion (kernel samples + blur)
-- [ ] `tonemap.rs` — `ToneMapper` enum: ACES, Reinhard, Filmic, AgX
-- [ ] `fxaa.rs` — fast approximate anti-aliasing
-- [ ] `taa.rs` — temporal anti-aliasing with jitter matrix
-- [ ] `smaa.rs` — enhanced subpixel morphological AA
-- [ ] `dof.rs` — depth of field (aperture, focus distance, bokeh)
-- [ ] `fog.rs` — volumetric fog (exponential, height-based)
-- [ ] `outline.rs` — selected object outline highlighting
-- [ ] `motion_blur.rs` — per-object motion blur via velocity buffer
-- [ ] Tests: PostStack applies effects in correct order
-- [ ] `examples/post_processing.rs` — full stack: SSAO + Bloom + ToneMap + TAA
-- [ ] `examples/gltf_scene.rs` — load and display a GLTF file
+- [x] `PostStack` — ordered chain of effects, builder pattern
+- [x] Full-screen GPU pass stack with grow-only scratch targets and cached pipelines
+- [x] Bloom — threshold, intensity, radius
+- [x] SSAO — radius, intensity, bias
+- [x] Tone mapping — `ToneMapper::None`, `Reinhard`, `Aces`, `Exposure`
+- [x] FXAA — fast approximate anti-aliasing pass
+- [x] TAA — feedback and jitter pass
+- [x] SMAA — quality preset pass
+- [x] Depth of field — focus distance, aperture, blur radius
+- [x] Fog — screen-space fog color/density blend
+- [x] Outline — luminance-edge outline
+- [x] Motion blur — compact screen-space blur pass
+- [x] Tests: PostStack ordering, removal, clear behavior, config clamps, serde, and GPU-gated smoke path
+- [x] `examples/post_processing.rs` — stack: SSAO + Bloom + ToneMap + FXAA + TAA
+- [x] `examples/gltf_scene.rs` — generate, load, register, and render a tiny glTF scene
 
 ---
 
@@ -482,11 +483,11 @@ These are not committed — they are ideas to revisit after the stable release.
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to set up the workspace, run tests, and submit pull requests.
 
-The best way to contribute right now is to pick any unchecked item from `v0.7.0` above and open a PR.
+The best way to contribute right now is to pick any unchecked item from `v0.8.0` above and open a PR.
 
 ---
 
-*Roadmap version: 0.6.0 — last updated May 2026*
-*Next milestone: v0.7.0 — Loaders & Post-Processing*
+*Roadmap version: 0.7.0 — last updated May 2026*
+*Next milestone: v0.8.0 — Raycasting & Helpers*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

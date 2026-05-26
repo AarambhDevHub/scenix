@@ -407,7 +407,7 @@ members = [
 ]
 
 [workspace.package]
-version      = "0.6.0"
+version      = "0.7.0"
 edition      = "2024"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/AarambhDevHub/scenix"
@@ -416,29 +416,33 @@ rust-version = "1.89"
 
 [workspace.dependencies]
 # internal crates — version pinned to workspace
-scenix-math       = { path = "crates/scenix-math",       version = "0.6" }
-scenix-core       = { path = "crates/scenix-core",       version = "0.6" }
-scenix-scene      = { path = "crates/scenix-scene",      version = "0.6" }
-scenix-camera     = { path = "crates/scenix-camera",     version = "0.6" }
-scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.6" }
-scenix-material   = { path = "crates/scenix-material",   version = "0.6" }
-scenix-light      = { path = "crates/scenix-light",      version = "0.6" }
-scenix-texture    = { path = "crates/scenix-texture",    version = "0.6" }
-scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.6" }
-scenix-loader     = { path = "crates/scenix-loader",     version = "0.6" }
-scenix-post       = { path = "crates/scenix-post",       version = "0.6" }
-scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.6" }
-scenix-animato    = { path = "crates/scenix-animato",    version = "0.6" }
-scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.6" }
-scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.6" }
-scenix-input      = { path = "crates/scenix-input",      version = "0.6" }
+scenix-math       = { path = "crates/scenix-math",       version = "0.7" }
+scenix-core       = { path = "crates/scenix-core",       version = "0.7" }
+scenix-scene      = { path = "crates/scenix-scene",      version = "0.7" }
+scenix-camera     = { path = "crates/scenix-camera",     version = "0.7" }
+scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.7" }
+scenix-material   = { path = "crates/scenix-material",   version = "0.7" }
+scenix-light      = { path = "crates/scenix-light",      version = "0.7" }
+scenix-texture    = { path = "crates/scenix-texture",    version = "0.7" }
+scenix-loader     = { path = "crates/scenix-loader",     version = "0.7" }
+scenix-post       = { path = "crates/scenix-post",       version = "0.7" }
+scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.7" }
+scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.7" }
+scenix-animato    = { path = "crates/scenix-animato",    version = "0.7" }
+scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.7" }
+scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.7" }
+scenix-input      = { path = "crates/scenix-input",      version = "0.7" }
 
 # external crates — shared version pins
 wgpu             = { version = "29.0.3" }
 bytemuck         = { version = "1",   features = ["derive"] }
 serde            = { version = "1",   features = ["derive"] }
-image            = { version = "0.25", default-features = false }
-gltf             = { version = "1",   default-features = false }
+image            = { version = "0.25.10", default-features = false }
+gltf             = { version = "1.4.1",   default-features = false }
+ktx2             = { version = "0.4.0" }
+tobj             = { version = "4.0.3", default-features = false }
+stl_io           = { version = "0.11.0" }
+reqwest          = { version = "0.12", default-features = false }
 slotmap          = { version = "1" }
 ahash            = { version = "0.8" }
 log              = { version = "0.4" }
@@ -1357,7 +1361,9 @@ pub struct GpuScene {
 
 **Responsibility:** Load 3D assets from disk or bytes into `SceneGraph`, `Geometry`, and `Texture2D` objects. Zero GPU dependency — loaders produce CPU-side data only.
 
-**Depends on:** `scenix-math`, `scenix-core`, `scenix-scene`, `scenix-mesh`, `scenix-material`, `scenix-texture`
+**Status in v0.7.0:** shipped as an optional `std` crate. It decodes into CPU-side scenix data only; renderer users still register loaded meshes, materials, textures, and lights with `Renderer`.
+
+**Depends on:** `scenix-math`, `scenix-core`, `scenix-scene`, `scenix-camera`, `scenix-mesh`, `scenix-material`, `scenix-light`, `scenix-texture`
 
 #### `src/gltf.rs`
 
@@ -1366,32 +1372,35 @@ pub struct GltfLoader;
 
 pub struct GltfAsset {
     pub scene:     SceneGraph,
-    pub meshes:    HashMap<MeshId, Geometry>,
-    pub materials: HashMap<MaterialId, PbrMaterial>,
-    pub textures:  HashMap<TextureId, Texture2D>,
-    pub animations: Vec<GltfAnimation>,    // raw keyframe data, for scenix-animato
+    pub meshes:    BTreeMap<MeshId, Geometry>,
+    pub materials: BTreeMap<MaterialId, PbrMaterial>,
+    pub textures:  BTreeMap<TextureId, Texture2D>,
+    pub samplers:  BTreeMap<TextureId, Sampler>,
+    pub lights:    BTreeMap<LightId, LoadedLight>,
+    pub cameras:   BTreeMap<CameraId, LoadedCamera>,
 }
 
 impl GltfLoader {
-    pub fn load_file(path: &Path) -> Result<GltfAsset, LoadError>;
-    pub fn load_bytes(bytes: &[u8]) -> Result<GltfAsset, LoadError>;
-    pub async fn load_url(url: &str) -> Result<GltfAsset, LoadError>;    // WASM
+    pub fn load(&self, path: impl AsRef<Path>) -> Result<GltfAsset, ScenixError>;
+    pub fn load_file(&self, path: impl AsRef<Path>) -> Result<GltfAsset, ScenixError>;
+    pub fn load_bytes(&self, bytes: &[u8], base_dir: Option<PathBuf>) -> Result<GltfAsset, ScenixError>;
+    pub async fn load_url(&self, url: &str) -> Result<GltfAsset, ScenixError>; // behind "http"
 }
 ```
 
 #### `src/cache.rs`
 
 ```rust
-pub struct AssetCache {
-    meshes:    HashMap<PathBuf, MeshId>,
-    textures:  HashMap<PathBuf, TextureId>,
-    materials: HashMap<PathBuf, MaterialId>,
+pub struct AssetCache<T> {
+    assets: BTreeMap<PathBuf, Arc<T>>,
 }
 
-impl AssetCache {
-    pub fn load_texture(&mut self, path: &Path) -> Result<TextureId, LoadError>;
-    pub fn load_mesh(&mut self, path: &Path) -> Result<MeshId, LoadError>;
-    // Subsequent loads of the same path return the cached ID immediately.
+impl<T> AssetCache<T> {
+    pub fn get_or_load(&mut self, path: impl AsRef<Path>, load: impl FnOnce(&Path) -> Result<T, ScenixError>) -> Result<Arc<T>, ScenixError>;
+    pub fn invalidate(&mut self, path: impl AsRef<Path>) -> bool;
+    pub fn clear(&mut self);
+    pub fn len(&self) -> usize;
+    pub fn contains(&self, path: impl AsRef<Path>) -> bool;
 }
 ```
 
@@ -1401,42 +1410,49 @@ impl AssetCache {
 
 **Responsibility:** Full-screen post-processing effects, composited in a configurable stack.
 
-**Depends on:** `scenix-renderer`, `scenix-math`
+**Status in v0.7.0:** shipped as an optional `std` + `wgpu` crate. `scenix-post` depends on `wgpu`, `scenix-core`, and `scenix-math`; `scenix-renderer` optionally depends on `scenix-post` behind its `post` feature. This dependency inversion avoids a renderer/post Cargo cycle while preserving `Renderer::set_post_stack`.
+
+**Depends on:** `wgpu`, `scenix-core`, `scenix-math`
 
 ```rust
 pub struct PostStack {
-    effects: Vec<Box<dyn PostEffect>>,
+    effects: Vec<PostEffect>,
 }
 
 impl PostStack {
     pub fn new() -> Self;
-    pub fn add<E: PostEffect + 'static>(self, effect: E) -> Self;
     pub fn with_bloom(self, config: BloomConfig) -> Self;
     pub fn with_ssao(self, config: SsaoConfig) -> Self;
     pub fn with_tonemap(self, mapper: ToneMapper) -> Self;
-    pub fn with_fxaa(self) -> Self;
-    pub fn with_taa(self) -> Self;
+    pub fn with_fxaa(self, config: FxaaConfig) -> Self;
+    pub fn with_taa(self, config: TaaConfig) -> Self;
+    pub fn with_smaa(self, config: SmaaConfig) -> Self;
     pub fn with_dof(self, config: DofConfig) -> Self;
-}
-
-pub trait PostEffect: Send + Sync {
-    fn apply(&self, device: &wgpu::Device, queue: &wgpu::Queue,
-             input: &wgpu::TextureView, output: &wgpu::TextureView);
+    pub fn with_fog(self, config: FogPostConfig) -> Self;
+    pub fn with_outline(self, config: OutlineConfig) -> Self;
+    pub fn with_motion_blur(self, config: MotionBlurConfig) -> Self;
+    pub fn apply_to_view(&mut self, device: &wgpu::Device, queue: &wgpu::Queue,
+                         input: &wgpu::TextureView, output: &wgpu::TextureView,
+                         context: PostContext) -> Result<PostStats, ScenixError>;
 }
 
 pub struct BloomConfig {
     pub threshold:  f32,    // luminance threshold above which bloom applies
     pub intensity:  f32,    // bloom strength multiplier
     pub radius:     f32,    // blur spread in UV space
-    pub passes:     u32,    // number of downsample/upsample passes
 }
 
 pub enum ToneMapper {
-    Aces,         // Academy Color Encoding System (cinema standard)
-    Reinhard,     // simple, slightly desaturating
-    Filmic,       // S-curve, film grain look
-    AgX,          // modern, handles very bright highlights well
-    Passthrough,  // no tonemapping (HDR displays)
+    None,
+    Reinhard,
+    Aces,
+    Exposure(f32),
+}
+
+impl Renderer {
+    pub fn set_post_stack(&mut self, stack: Option<PostStack>);
+    pub fn post_stack(&self) -> Option<&PostStack>;
+    pub fn post_stack_mut(&mut self) -> Option<&mut PostStack>;
 }
 ```
 
@@ -1684,10 +1700,10 @@ impl KeyboardState {
 
 ```toml
 [dependencies]
-scenix = "0.6"
+scenix = "0.7"
 
 # Or with specific features:
-scenix = { version = "0.6", features = ["renderer"] }
+scenix = { version = "0.7", features = ["loader", "renderer", "post"] }
 ```
 
 ```rust
@@ -1828,7 +1844,7 @@ shaders/
 ```toml
 # scenix/Cargo.toml features
 [features]
-default  = ["std", "scene", "camera", "mesh", "material", "light", "texture", "input"]
+default  = ["std", "scene", "camera", "mesh", "material", "light", "texture"]
 std      = []                               # enables std-dependent types
 scene    = ["dep:scenix-scene"]
 camera   = ["dep:scenix-camera"]
@@ -1836,10 +1852,9 @@ mesh     = ["dep:scenix-mesh"]
 material = ["dep:scenix-material"]
 light    = ["dep:scenix-light"]
 texture  = ["dep:scenix-texture"]
-input    = ["dep:scenix-input"]
 renderer = ["dep:scenix-renderer"]
-loader   = ["dep:scenix-loader", "dep:gltf", "dep:image"]
-post     = ["dep:scenix-post"]
+loader   = ["dep:scenix-loader"]
+post     = ["dep:scenix-post", "scenix-renderer?/post"]
 raycaster = ["dep:scenix-raycaster"]
 animato  = ["dep:scenix-animato", "dep:animato"]
 helpers  = ["dep:scenix-helpers"]
@@ -1847,19 +1862,25 @@ wasm     = ["dep:scenix-wasm", "dep:wasm-bindgen", "dep:web-sys"]
 serde    = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde",
             "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde",
             "scenix-material?/serde", "scenix-light?/serde", "scenix-texture?/serde",
-            "scenix-renderer?/serde"]
+            "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde"]
 ```
 
 **Minimum useful combination** — scene graph and authoring data only, zero GPU:
 
 ```toml
-scenix = { version = "0.6", default-features = false, features = ["scene", "camera", "mesh", "material", "light", "texture"] }
+scenix = { version = "0.7", default-features = false, features = ["scene", "camera", "mesh", "material", "light", "texture"] }
 ```
 
 **Renderer opt-in** — add the `wgpu` layer only when an application needs GPU rendering:
 
 ```toml
-scenix = { version = "0.6", features = ["renderer"] }
+scenix = { version = "0.7", features = ["renderer"] }
+```
+
+**Loader + post opt-in** — load CPU assets and enable renderer post effects:
+
+```toml
+scenix = { version = "0.7", features = ["loader", "renderer", "post"] }
 ```
 
 ---
@@ -2220,11 +2241,13 @@ impl MyApp {
 | `scenix-scene` | ✅ | Uses `alloc` for graph storage |
 | `scenix-input` | ✅ | Pure data types |
 | CPU authoring crates | ✅ | `scenix-camera`, `scenix-mesh`, `scenix-material`, `scenix-light`, and `scenix-texture` compile without default features |
+| `scenix-loader` | ❌ | Requires `std` and parser/decoder crates |
 | `scenix-renderer` | ❌ | Requires `std` + `wgpu` |
+| `scenix-post` | ❌ | Requires `std` + `wgpu` |
 
 ---
 
-*Document version: 0.6.0 — covers architecture through scenix 1.0.0*
+*Document version: 0.7.0 — covers architecture through scenix 1.0.0*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
-*Total crates: 17 planned; 10 shipped through v0.6.0*
+*Total crates: 17 planned; 12 shipped through v0.7.0*

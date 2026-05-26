@@ -18,8 +18,14 @@ pub enum ScenixError {
 pub enum LoadError {
     /// The input format is unsupported.
     UnsupportedFormat,
+    /// The source uses a known format feature that scenix does not support yet.
+    UnsupportedFeature,
     /// The input bytes or text could not be parsed.
     Parse,
+    /// The input could not be decoded.
+    Decode,
+    /// An IO or network request failed.
+    Io,
     /// The requested asset was not found.
     NotFound,
 }
@@ -62,7 +68,10 @@ impl fmt::Display for LoadError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnsupportedFormat => f.write_str("unsupported format"),
+            Self::UnsupportedFeature => f.write_str("unsupported asset feature"),
             Self::Parse => f.write_str("parse failed"),
+            Self::Decode => f.write_str("decode failed"),
+            Self::Io => f.write_str("io failed"),
             Self::NotFound => f.write_str("asset not found"),
         }
     }

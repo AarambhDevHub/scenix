@@ -37,8 +37,11 @@ jobs:
       - name: Test no_std crates
         run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture --no-default-features
 
+      - name: Test loader all features
+        run: cargo test -p scenix-loader --all-features
+
   renderer-gpu:
-    name: Renderer GPU smoke (lavapipe)
+    name: Renderer and post GPU smoke (lavapipe)
     runs-on: ubuntu-latest
 
     env:
@@ -58,8 +61,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mesa-vulkan-drivers vulkan-tools
 
-      - name: Test renderer GPU path
-        run: cargo test -p scenix-renderer --all-features
+      - name: Test renderer and post GPU paths
+        run: cargo test -p scenix-renderer -p scenix-post --all-features
 
   lint:
     name: Lint and docs

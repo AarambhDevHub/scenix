@@ -85,6 +85,20 @@ fn facade_exports_foundation_api() {
         assert!(matches!(mode, scenix::RenderTargetMode::Headless));
     }
 
+    #[cfg(feature = "loader")]
+    {
+        let loader = scenix::GltfLoader::new();
+        assert!(loader.options().decode_images);
+    }
+
+    #[cfg(feature = "post")]
+    {
+        let stack = scenix::PostStack::new()
+            .with_bloom(scenix::BloomConfig::default())
+            .with_tonemap(scenix::ToneMapper::Aces);
+        assert_eq!(stack.len(), 2);
+    }
+
     assert_eq!(Mat4::IDENTITY.to_cols_array()[0], 1.0);
 }
 
