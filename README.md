@@ -276,14 +276,22 @@ cargo llvm-cov --workspace --all-features
 
 ## Documentation
 
+- [Developer docs](./docs/README.md)
 - [Architecture](./ARCHITECTURE.md)
 - [Roadmap](./ROADMAP.md)
 - [Changelog](./CHANGELOG.md)
 - [Getting started](./docs/getting-started.md)
-- [Concepts](./docs/concepts.md)
-- [Materials guide](./docs/materials-guide.md)
-- [Platform guide](./docs/platform-guide.md)
-- [Benchmarks](./docs/benchmarks.md)
+- [Installation](./docs/installation.md)
+- [Quick start](./docs/quick-start.md)
+- [Concepts](./docs/concepts/README.md)
+- [Guides](./docs/guides/create-your-first-scene.md)
+- [API reference](./docs/api/facade-crate.md)
+- [Examples](./docs/examples/README.md)
+- [Recipes](./docs/recipes/README.md)
+- [Performance](./docs/performance/README.md)
+- [Deployment](./docs/deployment/README.md)
+- [Migration](./docs/migration/from-0.9-to-1.0.md)
+- [Reference](./docs/reference/feature-matrix.md)
 - [v1.0.0 release notes](./docs/release-v1.0.0.md)
 
 ## Known Limitations
