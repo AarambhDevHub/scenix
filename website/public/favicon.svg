@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Scenix">
+  <rect width="64" height="64" rx="14" fill="#09111f"/>
+  <path d="M14 42 32 12l18 30H14Z" fill="#66d9ef"/>
+  <path d="M22 42h20L32 25 22 42Z" fill="#f7c948"/>
+</svg>

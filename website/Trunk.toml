@@ -1,0 +1,7 @@
+[build]
+target = "index.html"
+dist = "dist"
+public_url = "/scenix/"
+
+[watch]
+watch = ["src", "public", "index.html"]

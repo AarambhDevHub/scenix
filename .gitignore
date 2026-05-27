@@ -24,6 +24,7 @@ coverage/
 # wasm-pack
 pkg/
 wasm-pack.log
+website/dist/
 
 # npm (wasm examples)
 node_modules/

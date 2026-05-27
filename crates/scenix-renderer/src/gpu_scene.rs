@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use scenix_core::{Color, LightId, MaterialId, MeshId, TextureId, ValidationError};
 use scenix_light::{AmbientLight, DirectionalLight, PointLight, SpotLight};
-use scenix_material::{LambertMaterial, Material, PbrMaterial, PipelineKey, UnlitMaterial};
+use scenix_material::{
+    LambertMaterial, Material, NormalMaterial, PbrMaterial, PhysicalMaterial, PipelineKey,
+    ToonMaterial, UnlitMaterial, WireframeMaterial,
+};
 use scenix_math::{Aabb, Mat4, Vec2, Vec3, Vec4};
 use scenix_mesh::Geometry;
 use scenix_texture::{AddressMode, CompareFunction, FilterMode, Sampler, Texture2D, TextureFormat};
@@ -111,10 +114,18 @@ impl GpuMesh {
 pub enum RendererMaterial {
     /// Metallic-roughness material.
     Pbr(PbrMaterial),
+    /// Advanced physical material.
+    Physical(PhysicalMaterial),
     /// Constant-color unlit material.
     Unlit(UnlitMaterial),
     /// Diffuse Lambert material.
     Lambert(LambertMaterial),
+    /// Cel-shaded material.
+    Toon(ToonMaterial),
+    /// Wireframe/debug preview material.
+    Wireframe(WireframeMaterial),
+    /// Normal visualization material.
+    Normal(NormalMaterial),
 }
 
 impl RendererMaterial {
@@ -123,8 +134,12 @@ impl RendererMaterial {
     pub fn pipeline_key(&self) -> PipelineKey {
         match self {
             Self::Pbr(material) => material.pipeline_key(),
+            Self::Physical(material) => material.pipeline_key(),
             Self::Unlit(material) => material.pipeline_key(),
             Self::Lambert(material) => material.pipeline_key(),
+            Self::Toon(material) => material.pipeline_key(),
+            Self::Wireframe(material) => material.pipeline_key(),
+            Self::Normal(material) => material.pipeline_key(),
         }
     }
 
@@ -133,8 +148,43 @@ impl RendererMaterial {
     pub fn is_transparent(&self) -> bool {
         match self {
             Self::Pbr(material) => material.is_transparent(),
+            Self::Physical(material) => material.is_transparent(),
             Self::Unlit(material) => material.is_transparent(),
             Self::Lambert(material) => material.is_transparent(),
+            Self::Toon(material) => material.is_transparent(),
+            Self::Wireframe(material) => material.is_transparent(),
+            Self::Normal(material) => material.is_transparent(),
+        }
+    }
+
+    /// Returns the base preview color used by the stable v1 renderer path.
+    #[inline]
+    pub fn preview_color(&self) -> Color {
+        match self {
+            Self::Pbr(material) => material.albedo,
+            Self::Physical(material) => material.base.albedo,
+            Self::Unlit(material) => material.color,
+            Self::Lambert(material) => material.color,
+            Self::Toon(material) => material.color,
+            Self::Wireframe(material) => Color {
+                a: material.opacity,
+                ..material.color
+            },
+            Self::Normal(_) => Color::WHITE,
+        }
+    }
+
+    /// Returns a compact shader-family code for the shared v1 preview shader.
+    #[inline]
+    pub fn preview_shader_code(&self) -> f32 {
+        match self {
+            Self::Pbr(_) => 0.0,
+            Self::Physical(_) => 1.0,
+            Self::Unlit(_) => 2.0,
+            Self::Lambert(_) => 3.0,
+            Self::Toon(_) => 4.0,
+            Self::Wireframe(_) => 5.0,
+            Self::Normal(_) => 6.0,
         }
     }
 }
@@ -301,6 +351,15 @@ impl GpuScene {
         self.register_material(material_id, RendererMaterial::Pbr(material.clone()))
     }
 
+    /// Registers a physical material.
+    pub fn register_physical_material(
+        &mut self,
+        material_id: MaterialId,
+        material: &PhysicalMaterial,
+    ) -> Result<(), ValidationError> {
+        self.register_material(material_id, RendererMaterial::Physical(material.clone()))
+    }
+
     /// Registers an unlit material.
     pub fn register_unlit_material(
         &mut self,
@@ -317,6 +376,33 @@ impl GpuScene {
         material: &LambertMaterial,
     ) -> Result<(), ValidationError> {
         self.register_material(material_id, RendererMaterial::Lambert(material.clone()))
+    }
+
+    /// Registers a toon material.
+    pub fn register_toon_material(
+        &mut self,
+        material_id: MaterialId,
+        material: &ToonMaterial,
+    ) -> Result<(), ValidationError> {
+        self.register_material(material_id, RendererMaterial::Toon(material.clone()))
+    }
+
+    /// Registers a wireframe preview material.
+    pub fn register_wireframe_material(
+        &mut self,
+        material_id: MaterialId,
+        material: &WireframeMaterial,
+    ) -> Result<(), ValidationError> {
+        self.register_material(material_id, RendererMaterial::Wireframe(*material))
+    }
+
+    /// Registers a normal visualization material.
+    pub fn register_normal_material(
+        &mut self,
+        material_id: MaterialId,
+        material: &NormalMaterial,
+    ) -> Result<(), ValidationError> {
+        self.register_material(material_id, RendererMaterial::Normal(*material))
     }
 
     /// Registers a renderer material.

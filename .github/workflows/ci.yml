@@ -11,6 +11,38 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  lint-docs-package:
+    name: Lint, docs, package
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-features -- -D warnings
+
+      - name: Docs
+        run: cargo doc --workspace --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+
+      - name: Cargo package check
+        run: cargo package --workspace --no-verify
+
+      - name: Bench compile
+        run: cargo bench --workspace --no-run
+
   test:
     name: Test (${{ matrix.rust }})
     runs-on: ubuntu-latest
@@ -35,8 +67,8 @@ jobs:
       - name: Test all features
         run: cargo test --workspace --all-features
 
-      - name: Test no_std crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers --no-default-features
+      - name: Test no-default CPU crates
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
 
       - name: Test loader all features
         run: cargo test -p scenix-loader --all-features
@@ -67,6 +99,49 @@ jobs:
       - name: Check wasm viewer example
         run: cargo check --manifest-path examples/wasm_viewer/Cargo.toml --target wasm32-unknown-unknown
 
+  website:
+    name: Website build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Trunk
+        uses: jetli/trunk-action@v0.5.0
+        with:
+          version: "0.21.14"
+
+      - name: Build website
+        working-directory: website
+        run: trunk build --release --public-url /scenix/
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Coverage
+        run: cargo llvm-cov --workspace --all-features
+
   renderer-gpu:
     name: Renderer and post GPU smoke (lavapipe)
     runs-on: ubuntu-latest
@@ -90,43 +165,3 @@ jobs:
 
       - name: Test renderer and post GPU paths
         run: cargo test -p scenix-renderer -p scenix-post --all-features
-
-  lint:
-    name: Lint and docs
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Check formatting
-        run: cargo fmt --check
-
-      - name: Clippy
-        run: cargo clippy --workspace --all-features -- -D warnings
-
-      - name: Docs
-        run: cargo doc --workspace --all-features --no-deps
-        env:
-          RUSTDOCFLAGS: "-D warnings"
-
-  benches:
-    name: Bench compile
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Check benches compile
-        run: cargo bench --workspace --no-run

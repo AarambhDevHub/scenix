@@ -1,0 +1,26 @@
+[package]
+name = "scenix-website"
+version = "1.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+console_error_panic_hook = "0.1"
+js-sys = "0.3"
+leptos = { version = "0.8", default-features = false, features = ["csr"] }
+scenix = { path = "../crates/scenix", default-features = false, features = ["std", "wasm"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Element",
+    "Event",
+    "EventTarget",
+    "HtmlCanvasElement",
+    "KeyboardEvent",
+    "PointerEvent",
+    "Window",
+    "WheelEvent",
+] }
+
+[workspace]

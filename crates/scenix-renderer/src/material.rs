@@ -1,5 +1,8 @@
 use scenix_core::Color;
-use scenix_material::{LambertMaterial, Material, PbrMaterial, UnlitMaterial};
+use scenix_material::{
+    LambertMaterial, Material, NormalMaterial, PbrMaterial, PhysicalMaterial, ToonMaterial,
+    UnlitMaterial, WireframeMaterial,
+};
 use scenix_math::Vec3;
 
 use crate::TextureStore;
@@ -116,6 +119,69 @@ impl GpuMaterial for LambertMaterial {
             1.0,
             self.alpha_cutoff(),
             2.0,
+            self.pipeline_key().feature_bits,
+        );
+        bytemuck::bytes_of(&uniform).to_vec()
+    }
+}
+
+impl GpuMaterial for PhysicalMaterial {
+    fn to_uniform_bytes(&self) -> Vec<u8> {
+        let uniform = MaterialUniform::new(
+            self.base.albedo,
+            self.base.emissive,
+            self.base.metallic,
+            self.base.roughness,
+            self.alpha_cutoff(),
+            3.0,
+            self.pipeline_key().feature_bits,
+        );
+        bytemuck::bytes_of(&uniform).to_vec()
+    }
+}
+
+impl GpuMaterial for ToonMaterial {
+    fn to_uniform_bytes(&self) -> Vec<u8> {
+        let uniform = MaterialUniform::new(
+            self.color,
+            Vec3::ZERO,
+            0.0,
+            1.0,
+            self.alpha_cutoff(),
+            4.0,
+            self.pipeline_key().feature_bits,
+        );
+        bytemuck::bytes_of(&uniform).to_vec()
+    }
+}
+
+impl GpuMaterial for WireframeMaterial {
+    fn to_uniform_bytes(&self) -> Vec<u8> {
+        let uniform = MaterialUniform::new(
+            Color {
+                a: self.opacity,
+                ..self.color
+            },
+            Vec3::ZERO,
+            0.0,
+            1.0,
+            self.alpha_cutoff(),
+            5.0,
+            self.pipeline_key().feature_bits,
+        );
+        bytemuck::bytes_of(&uniform).to_vec()
+    }
+}
+
+impl GpuMaterial for NormalMaterial {
+    fn to_uniform_bytes(&self) -> Vec<u8> {
+        let uniform = MaterialUniform::new(
+            Color::WHITE,
+            Vec3::ZERO,
+            0.0,
+            1.0,
+            self.alpha_cutoff(),
+            6.0,
             self.pipeline_key().feature_bits,
         );
         bytemuck::bytes_of(&uniform).to_vec()

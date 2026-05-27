@@ -1039,7 +1039,7 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "scenix"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-animato",
  "scenix-camera",
@@ -1061,7 +1061,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-animato"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "animato",
  "scenix-camera",
@@ -1073,7 +1073,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-camera"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-core",
  "scenix-input",
@@ -1082,14 +1082,14 @@ dependencies = [
 
 [[package]]
 name = "scenix-core"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-math",
 ]
 
 [[package]]
 name = "scenix-helpers"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-camera",
  "scenix-core",
@@ -1099,14 +1099,14 @@ dependencies = [
 
 [[package]]
 name = "scenix-input"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-math",
 ]
 
 [[package]]
 name = "scenix-light"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1114,7 +1114,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-loader"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "gltf",
  "image",
@@ -1133,7 +1133,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-material"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1141,11 +1141,11 @@ dependencies = [
 
 [[package]]
 name = "scenix-math"
-version = "0.9.0"
+version = "1.0.0"
 
 [[package]]
 name = "scenix-mesh"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1153,7 +1153,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-post"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "bytemuck",
  "scenix-core",
@@ -1163,7 +1163,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-raycaster"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-camera",
  "scenix-core",
@@ -1174,7 +1174,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-renderer"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "bytemuck",
  "raw-window-handle",
@@ -1192,7 +1192,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-scene"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1201,24 +1201,27 @@ dependencies = [
 
 [[package]]
 name = "scenix-texture"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix-core",
 ]
 
 [[package]]
 name = "scenix-wasm"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
+ "scenix-animato",
  "scenix-camera",
  "scenix-core",
+ "scenix-helpers",
  "scenix-input",
  "scenix-light",
  "scenix-material",
  "scenix-math",
  "scenix-mesh",
+ "scenix-raycaster",
  "scenix-renderer",
  "scenix-scene",
  "wasm-bindgen",
@@ -1228,7 +1231,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-wasm-viewer"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "scenix",
  "wasm-bindgen",

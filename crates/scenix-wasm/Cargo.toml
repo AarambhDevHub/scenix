@@ -22,6 +22,9 @@ std = [
     "scenix-material/std",
     "scenix-math/std",
     "scenix-mesh/std",
+    "scenix-helpers/std",
+    "scenix-raycaster/std",
+    "scenix-animato/std",
     "scenix-renderer/std",
     "scenix-scene/std",
 ]
@@ -33,6 +36,9 @@ serde = [
     "scenix-material/serde",
     "scenix-math/serde",
     "scenix-mesh/serde",
+    "scenix-helpers/serde",
+    "scenix-raycaster/serde",
+    "scenix-animato/serde",
     "scenix-renderer/serde",
     "scenix-scene/serde",
 ]
@@ -47,6 +53,9 @@ scenix-light = { workspace = true }
 scenix-material = { workspace = true }
 scenix-math = { workspace = true }
 scenix-mesh = { workspace = true }
+scenix-helpers = { workspace = true }
+scenix-raycaster = { workspace = true }
+scenix-animato = { workspace = true }
 scenix-renderer = { workspace = true }
 scenix-scene = { workspace = true }
 wasm-bindgen = { workspace = true }

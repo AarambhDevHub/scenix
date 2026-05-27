@@ -101,7 +101,7 @@ A single `src/` crate for a 3D library becomes unmanageable fast. scenix solves 
 - **Clear ownership.** Each crate has one job. A contributor working on PBR materials only needs to understand `scenix-material`.
 - **Granular dependencies.** A user who only needs a scene graph adds `scenix-scene`. They never download `wgpu` or `gltf`.
 - **Parallel compilation.** Cargo compiles independent crates in parallel.
-- **Separate versioning.** `scenix-post` can be `0.1.0` while `scenix-math` reaches `1.0.0`.
+- **Separate ownership.** Every crate ships at the same stable workspace version, but each crate keeps its own dependency surface and implementation boundary.
 - **Optional GPU.** The math and scene layers are pure Rust — GPU crates are opt-in.
 
 ---
@@ -121,8 +121,9 @@ scenix/
 │
 ├── .github/
 │   ├── workflows/
-│   │   ├── ci.yml                      ← lint, test, no_std check, WASM build
-│   │   └── publish.yml                 ← cargo publish on version tag
+│   │   ├── ci.yml                      ← lint, test, no_std, WASM, docs, coverage, package, benches
+│   │   ├── pages.yml                   ← Leptos/Trunk GitHub Pages deployment
+│   │   └── publish.yml                 ← tag-driven cargo publish and GitHub Release
 │   └── ISSUE_TEMPLATE/
 │       ├── bug_report.md
 │       └── feature_request.md
@@ -365,6 +366,15 @@ scenix/
 │       ├── src/lib.rs
 │       └── www/index.html
 │
+├── website/                            ← Leptos CSR site deployed at /scenix/
+│   ├── Cargo.toml                      ← standalone workspace to isolate website deps
+│   ├── Trunk.toml
+│   ├── index.html
+│   ├── public/
+│   └── src/
+│
+├── docs/                               ← stable v1 user docs and release notes
+│
 ├── benches/
 │   ├── scene_graph_bench.rs            ← 10K node graph traversal + transform propagation
 │   ├── render_bench.rs                 ← frame time with 1K / 10K / 100K triangles
@@ -380,6 +390,16 @@ scenix/
     ├── loader_gltf.rs                  ← round-trip load of reference GLTF assets
     └── raycaster_correctness.rs        ← ray-triangle intersection precision
 ```
+
+## v1.0.0 Stable Contract
+
+The stable API contract keeps scenix modular:
+
+- default facade features are CPU authoring plus BVH raycasting and helper geometry;
+- loader, renderer, post-processing, Animato, and WASM paths remain optional;
+- scene data stays renderer-agnostic and GPU resources stay renderer-owned;
+- public API changes should be additive, with deprecations before removals;
+- the website is a static Leptos CSR app built by Trunk and deployed to GitHub Pages at `/scenix/`.
 
 ### Root `Cargo.toml`
 
@@ -407,7 +427,7 @@ members = [
 ]
 
 [workspace.package]
-version      = "0.9.0"
+version      = "1.0.0"
 edition      = "2024"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/AarambhDevHub/scenix"
@@ -416,22 +436,22 @@ rust-version = "1.89"
 
 [workspace.dependencies]
 # internal crates — version pinned to workspace
-scenix-math       = { path = "crates/scenix-math",       version = "0.9" }
-scenix-core       = { path = "crates/scenix-core",       version = "0.9" }
-scenix-scene      = { path = "crates/scenix-scene",      version = "0.9" }
-scenix-camera     = { path = "crates/scenix-camera",     version = "0.9" }
-scenix-mesh       = { path = "crates/scenix-mesh",       version = "0.9" }
-scenix-material   = { path = "crates/scenix-material",   version = "0.9" }
-scenix-light      = { path = "crates/scenix-light",      version = "0.9" }
-scenix-texture    = { path = "crates/scenix-texture",    version = "0.9" }
-scenix-loader     = { path = "crates/scenix-loader",     version = "0.9" }
-scenix-post       = { path = "crates/scenix-post",       version = "0.9" }
-scenix-renderer   = { path = "crates/scenix-renderer",   version = "0.9" }
-scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "0.9" }
-scenix-animato    = { path = "crates/scenix-animato",    version = "0.9" }
-scenix-wasm       = { path = "crates/scenix-wasm",       version = "0.9" }
-scenix-helpers    = { path = "crates/scenix-helpers",    version = "0.9" }
-scenix-input      = { path = "crates/scenix-input",      version = "0.9" }
+scenix-math       = { path = "crates/scenix-math",       version = "1" }
+scenix-core       = { path = "crates/scenix-core",       version = "1" }
+scenix-scene      = { path = "crates/scenix-scene",      version = "1" }
+scenix-camera     = { path = "crates/scenix-camera",     version = "1" }
+scenix-mesh       = { path = "crates/scenix-mesh",       version = "1" }
+scenix-material   = { path = "crates/scenix-material",   version = "1" }
+scenix-light      = { path = "crates/scenix-light",      version = "1" }
+scenix-texture    = { path = "crates/scenix-texture",    version = "1" }
+scenix-loader     = { path = "crates/scenix-loader",     version = "1" }
+scenix-post       = { path = "crates/scenix-post",       version = "1" }
+scenix-renderer   = { path = "crates/scenix-renderer",   version = "1" }
+scenix-raycaster  = { path = "crates/scenix-raycaster",  version = "1" }
+scenix-animato    = { path = "crates/scenix-animato",    version = "1" }
+scenix-wasm       = { path = "crates/scenix-wasm",       version = "1" }
+scenix-helpers    = { path = "crates/scenix-helpers",    version = "1" }
+scenix-input      = { path = "crates/scenix-input",      version = "1" }
 
 # external crates — shared version pins
 wgpu             = { version = "29.0.3" }
@@ -1524,7 +1544,7 @@ Memory: ~48 bytes per node (AABB + child indices)
 
 **Depends on:** `scenix-math`, `scenix-core`, `scenix-scene`, `scenix-camera`, `scenix-material`, `animato = "1.4.0"`
 
-**Status in v0.9.0:** shipped as an optional facade feature. The bridge uses local `AnimVec3`, `AnimQuat`, and `AnimColor` wrappers so scenix math/color types can participate in Animato interpolation without changing the underlying CPU crates.
+**Status in v1.0.0:** shipped as an optional facade feature. The bridge uses local `AnimVec3`, `AnimQuat`, and `AnimColor` wrappers so scenix math/color types can participate in Animato interpolation without changing the underlying CPU crates.
 
 ```rust
 pub struct NodeAnimator {
@@ -1591,7 +1611,7 @@ driver.add_node(NodeAnimator::new(
 
 **Depends on:** `scenix-renderer`, `scenix-scene`, `scenix-camera`, `scenix-input`, `wasm-bindgen`, `web-sys`
 
-**Status in v0.9.0:** shipped as an optional facade feature. The example intentionally uses a generated cube scene and does not fetch glTF or network assets in the browser.
+**Status in v1.0.0:** shipped as an optional facade feature. The browser wrapper powers the generated "Scenix Engine Lab" website demo with cube, sphere, torus, floor, helper visuals, DOM input, raycast selection, animation toggles, and no network asset loading.
 
 ```rust
 #[wasm_bindgen]
@@ -1725,10 +1745,10 @@ impl KeyboardState {
 
 ```toml
 [dependencies]
-scenix = "0.9"
+scenix = "1"
 
 # Or with specific features:
-scenix = { version = "0.9", features = ["loader", "renderer", "post"] }
+scenix = { version = "1", features = ["loader", "renderer", "post"] }
 ```
 
 ```rust
@@ -1895,26 +1915,26 @@ serde    = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde",
 **Minimum useful combination** — scene graph and authoring data only, zero GPU:
 
 ```toml
-scenix = { version = "0.9", default-features = false, features = ["scene", "camera", "mesh", "material", "light", "texture", "raycaster", "helpers"] }
+scenix = { version = "1", default-features = false, features = ["scene", "camera", "mesh", "material", "light", "texture", "raycaster", "helpers"] }
 ```
 
 **Renderer opt-in** — add the `wgpu` layer only when an application needs GPU rendering:
 
 ```toml
-scenix = { version = "0.9", features = ["renderer"] }
+scenix = { version = "1", features = ["renderer"] }
 ```
 
 **Loader + post opt-in** — load CPU assets and enable renderer post effects:
 
 ```toml
-scenix = { version = "0.9", features = ["loader", "renderer", "post"] }
+scenix = { version = "1", features = ["loader", "renderer", "post"] }
 ```
 
 **Integration opt-in** — add Animato or browser wrappers without changing the default CPU authoring set:
 
 ```toml
-scenix = { version = "0.9", features = ["animato"] }
-scenix = { version = "0.9", features = ["wasm"] }
+scenix = { version = "1", features = ["animato"] }
+scenix = { version = "1", features = ["wasm"] }
 ```
 
 ---
@@ -2284,7 +2304,7 @@ impl MyApp {
 
 ---
 
-*Document version: 0.9.0 — covers architecture through scenix 1.0.0*
+*Document version: 1.0.0 — covers architecture through scenix 1.0.0*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
-*Total crates: 17 planned; 17 shipped through v0.9.0*
+*Total crates: 17 planned; 17 shipped through v1.0.0*

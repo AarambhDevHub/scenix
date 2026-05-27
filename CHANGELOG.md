@@ -7,6 +7,43 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-27
+
+### Added
+
+- Added the stable v1 documentation set under `docs/`, including getting
+  started, concepts, materials, platform, benchmark, and release-note guides.
+- Added a standalone Leptos CSR website under `website/` with a generated
+  Scenix Engine Lab demo, controls, crate map, examples, SEO metadata, and
+  GitHub Pages deployment support.
+- Added the remaining architecture examples: physical material, toon shading,
+  instancing, LOD, morph targets, fog, sprite particles, and environment maps.
+- Added GitHub Pages, coverage, package-check, website-build, and release-note
+  workflow coverage for the stable release.
+
+### Changed
+
+- Bumped all workspace crates and internal dependency requirements to `1.0.0`.
+- Stabilized the renderer frame path around camera view-projection matrices,
+  per-draw world matrices, reusable uniform buffers, material preview uniforms,
+  and cached pipeline layouts.
+- Expanded renderer material registration to cover PBR, Physical, Unlit,
+  Lambert, Toon, Wireframe/debug, and Normal preview materials.
+- Optimized scene transform propagation by deduplicating dirty roots and
+  avoiding child-vector clones during subtree traversal.
+- Expanded the browser wrapper with generated demo content, toggles, selection
+  state, FPS/material getters, and non-panicking fallback behavior for the site.
+- Rewrote README, architecture notes, roadmap, publish automation, and release
+  notes for the stable v1 API contract.
+
+### Migration Notes
+
+- Replace `0.9` dependency requirements with `1`.
+- Keep explicit feature flags for loader, renderer, post, Animato, and WASM
+  integrations; those heavy paths remain optional.
+- Renderer users can register advanced preview/debug materials through the new
+  stable `register_*_material` methods.
+
 ## [0.9.0] - 2026-05-26
 
 ### Added
@@ -241,7 +278,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/AarambhDevHub/scenix/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/AarambhDevHub/scenix/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/AarambhDevHub/scenix/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/AarambhDevHub/scenix/compare/v0.6.0...v0.7.0

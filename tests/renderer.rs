@@ -1,6 +1,9 @@
 use scenix_camera::PerspectiveCamera;
 use scenix_core::{LightId, MaterialId, MeshId, TextureId, ValidationError};
-use scenix_material::{AlphaMode, Material, PbrMaterial, PipelineKey, UnlitMaterial};
+use scenix_material::{
+    AlphaMode, Material, NormalMaterial, PbrMaterial, PhysicalMaterial, PipelineKey, ToonMaterial,
+    UnlitMaterial, WireframeMaterial,
+};
 use scenix_math::{Aabb, Mat4, Vec3};
 use scenix_mesh::{Geometry, box_geometry};
 use scenix_renderer::{
@@ -174,6 +177,47 @@ fn material_uniform_bytes_are_stable_size() {
         core::mem::size_of::<MaterialUniform>()
     );
     assert_eq!(pbr.pipeline_key().shader, scenix_material::ShaderKind::Pbr);
+}
+
+#[test]
+fn stable_renderer_material_variants_register_and_emit_uniforms() {
+    let mut gpu_scene = GpuScene::new();
+    let physical = PhysicalMaterial::new();
+    let mut toon = ToonMaterial::new();
+    toon.color = scenix_core::Color::from_hex(0xFFCC66);
+    let wireframe = WireframeMaterial::new();
+    let normal = NormalMaterial::new();
+
+    gpu_scene
+        .register_physical_material(MaterialId::new(1), &physical)
+        .unwrap();
+    gpu_scene
+        .register_toon_material(MaterialId::new(2), &toon)
+        .unwrap();
+    gpu_scene
+        .register_wireframe_material(MaterialId::new(3), &wireframe)
+        .unwrap();
+    gpu_scene
+        .register_normal_material(MaterialId::new(4), &normal)
+        .unwrap();
+
+    assert_eq!(gpu_scene.material_count(), 4);
+    assert_eq!(
+        physical.to_uniform_bytes().len(),
+        core::mem::size_of::<MaterialUniform>()
+    );
+    assert_eq!(
+        toon.to_uniform_bytes().len(),
+        core::mem::size_of::<MaterialUniform>()
+    );
+    assert_eq!(
+        wireframe.to_uniform_bytes().len(),
+        core::mem::size_of::<MaterialUniform>()
+    );
+    assert_eq!(
+        normal.to_uniform_bytes().len(),
+        core::mem::size_of::<MaterialUniform>()
+    );
 }
 
 #[test]

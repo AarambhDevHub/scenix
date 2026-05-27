@@ -3,7 +3,8 @@ name: Publish
 on:
   push:
     tags:
-      - "v*"
+      - "v1.0.0"
+      - "v*.*.*"
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,6 +14,7 @@ jobs:
   verify:
     name: Pre-publish verification
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -29,11 +31,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mesa-vulkan-drivers vulkan-tools
 
+      - name: Install Trunk
+        uses: jetli/trunk-action@v0.5.0
+        with:
+          version: "0.21.14"
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-features -- -D warnings
+
       - name: Test all features
         run: cargo test --workspace --all-features
 
-      - name: Test no_std crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers --no-default-features
+      - name: Test no-default CPU crates
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
 
       - name: Test loader all features
         run: cargo test -p scenix-loader --all-features
@@ -50,42 +63,40 @@ jobs:
       - name: Check wasm viewer example
         run: cargo check --manifest-path examples/wasm_viewer/Cargo.toml --target wasm32-unknown-unknown
 
+      - name: Build website
+        working-directory: website
+        run: trunk build --release --public-url /scenix/
+
       - name: Test renderer and post GPU paths
         run: cargo test -p scenix-renderer -p scenix-post --all-features
         env:
           SCENIX_RUN_GPU_TESTS: "1"
           WGPU_BACKEND: vulkan
 
-      - name: Clippy
-        run: cargo clippy --workspace --all-features -- -D warnings
-
-      - name: Check formatting
-        run: cargo fmt --check
-
       - name: Build docs
         run: cargo doc --workspace --all-features --no-deps
         env:
           RUSTDOCFLAGS: "-D warnings"
 
-      # - name: Publish dry run
-      #   run: |
-      #     cargo publish -p scenix-math --dry-run --no-verify
-      #     cargo publish -p scenix-core --dry-run --no-verify
-      #     cargo publish -p scenix-input --dry-run --no-verify
-      #     cargo publish -p scenix-scene --dry-run --no-verify
-      #     cargo publish -p scenix-camera --dry-run --no-verify
-      #     cargo publish -p scenix-mesh --dry-run --no-verify
-      #     cargo publish -p scenix-material --dry-run --no-verify
-      #     cargo publish -p scenix-light --dry-run --no-verify
-      #     cargo publish -p scenix-texture --dry-run --no-verify
-      #     cargo publish -p scenix-loader --dry-run --no-verify
-      #     cargo publish -p scenix-post --dry-run --no-verify
-      #     cargo publish -p scenix-renderer --dry-run --no-verify
-      #     cargo publish -p scenix-raycaster --dry-run --no-verify
-      #     cargo publish -p scenix-helpers --dry-run --no-verify
-      #     cargo publish -p scenix-animato --dry-run --no-verify
-      #     cargo publish -p scenix-wasm --dry-run --no-verify
-      #     cargo publish -p scenix --dry-run --no-verify
+      - name: Publish dry run
+        run: |
+          cargo publish -p scenix-math --dry-run --no-verify
+          cargo publish -p scenix-core --dry-run --no-verify
+          cargo publish -p scenix-input --dry-run --no-verify
+          cargo publish -p scenix-scene --dry-run --no-verify
+          cargo publish -p scenix-camera --dry-run --no-verify
+          cargo publish -p scenix-mesh --dry-run --no-verify
+          cargo publish -p scenix-material --dry-run --no-verify
+          cargo publish -p scenix-light --dry-run --no-verify
+          cargo publish -p scenix-texture --dry-run --no-verify
+          cargo publish -p scenix-loader --dry-run --no-verify
+          cargo publish -p scenix-post --dry-run --no-verify
+          cargo publish -p scenix-renderer --dry-run --no-verify
+          cargo publish -p scenix-raycaster --dry-run --no-verify
+          cargo publish -p scenix-helpers --dry-run --no-verify
+          cargo publish -p scenix-animato --dry-run --no-verify
+          cargo publish -p scenix-wasm --dry-run --no-verify
+          cargo publish -p scenix --dry-run --no-verify
 
   publish:
     name: Publish to crates.io
@@ -98,17 +109,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-publish-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-publish-
-            ${{ runner.os }}-cargo-
+      - uses: Swatinem/rust-cache@v2
 
       - name: Publish crates in dependency order
         env:
@@ -168,125 +169,16 @@ jobs:
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [publish]
+    needs: publish
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract version from tag
-        id: version
-        run: |
-          echo "TAG=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.TAG }}
-          name: "scenix ${{ steps.version.outputs.TAG }}"
-          body: |
-            ## scenix ${{ steps.version.outputs.TAG }}
-
-            ### Install
-
-            ```toml
-            [dependencies]
-            scenix = { version = "${{ steps.version.outputs.VERSION }}", features = ["loader", "renderer", "post", "animato", "wasm"] }
-            ```
-
-            ### Highlights
-
-            - New optional `scenix-animato` crate bridges Animato 1.4.0 tweens and springs into scenix scene nodes, cameras, PBR materials, and skeleton pose arrays.
-            - New optional `scenix-wasm` crate wraps the renderer for browser canvases, forwards DOM input into scenix input state, and includes a generated cube scene path.
-            - The facade keeps v0.8 CPU authoring defaults unchanged; enable integration explicitly with `features = ["animato"]` or `features = ["wasm"]`.
-            - WASM checks now compile the browser wrapper and standalone generated-scene example for `wasm32-unknown-unknown`.
-            - Loader, renderer, post, raycaster, and helper APIs remain compatible with v0.8 behavior.
-
-            ### Crates published to crates.io
-
-            | Crate | Version | Description |
-            |-------|---------|-------------|
-            | [`scenix-math`](https://crates.io/crates/scenix-math) | `${{ steps.version.outputs.VERSION }}` | Custom no_std 3D math primitives |
-            | [`scenix-core`](https://crates.io/crates/scenix-core) | `${{ steps.version.outputs.VERSION }}` | Shared IDs, colors, errors, and traits |
-            | [`scenix-input`](https://crates.io/crates/scenix-input) | `${{ steps.version.outputs.VERSION }}` | Platform-agnostic input state types |
-            | [`scenix-scene`](https://crates.io/crates/scenix-scene) | `${{ steps.version.outputs.VERSION }}` | GPU-free scene graph and traversal APIs |
-            | [`scenix-camera`](https://crates.io/crates/scenix-camera) | `${{ steps.version.outputs.VERSION }}` | GPU-free cameras, frustums, and controllers |
-            | [`scenix-mesh`](https://crates.io/crates/scenix-mesh) | `${{ steps.version.outputs.VERSION }}` | CPU-side geometry, primitive generation, instancing, and batching |
-            | [`scenix-material`](https://crates.io/crates/scenix-material) | `${{ steps.version.outputs.VERSION }}` | GPU-free material descriptions and pipeline keys |
-            | [`scenix-light`](https://crates.io/crates/scenix-light) | `${{ steps.version.outputs.VERSION }}` | GPU-free lights, shadow configuration, and light probes |
-            | [`scenix-texture`](https://crates.io/crates/scenix-texture) | `${{ steps.version.outputs.VERSION }}` | CPU-side texture data, samplers, atlases, and mipmaps |
-            | [`scenix-loader`](https://crates.io/crates/scenix-loader) | `${{ steps.version.outputs.VERSION }}` | CPU-side glTF, OBJ, STL, image, KTX2, HDR, and cache loaders |
-            | [`scenix-post`](https://crates.io/crates/scenix-post) | `${{ steps.version.outputs.VERSION }}` | Optional wgpu post-processing stack and full-screen effects |
-            | [`scenix-renderer`](https://crates.io/crates/scenix-renderer) | `${{ steps.version.outputs.VERSION }}` | Optional wgpu renderer, resource registries, targets, passes, and pipeline cache |
-            | [`scenix-raycaster`](https://crates.io/crates/scenix-raycaster) | `${{ steps.version.outputs.VERSION }}` | BVH scene picking and exact CPU mesh intersections |
-            | [`scenix-helpers`](https://crates.io/crates/scenix-helpers) | `${{ steps.version.outputs.VERSION }}` | Debug line helpers for grids, axes, bounds, cameras, lights, and skeletons |
-            | [`scenix-animato`](https://crates.io/crates/scenix-animato) | `${{ steps.version.outputs.VERSION }}` | Optional Animato 1.4 bridge for nodes, cameras, materials, and skeleton poses |
-            | [`scenix-wasm`](https://crates.io/crates/scenix-wasm) | `${{ steps.version.outputs.VERSION }}` | Optional browser canvas renderer wrapper and DOM input mapping helpers |
-            | [`scenix`](https://crates.io/crates/scenix) | `${{ steps.version.outputs.VERSION }}` | Facade crate with default CPU authoring, raycaster/helper APIs, and optional loader/GPU/integration APIs |
-
-            ### Animation + WASM example
-
-            ```rust
-            use std::collections::BTreeMap;
-            use scenix::{
-                CameraId, CameraStores, MaterialId, NodeAnimationTarget, NodeAnimator,
-                PerspectiveCamera, PbrMaterial, ScalarTrack, SceneGraph, SceneNode,
-                ScenixAnimationDriver, Vec3, Vec3Track,
-            };
-
-            # fn run() -> Result<(), scenix::ValidationError> {
-            let mut scene = SceneGraph::new();
-            let node = scene.add(SceneNode::new("animated"));
-
-            let camera_id = CameraId::new(1);
-            let mut perspective = BTreeMap::from([(
-                camera_id,
-                PerspectiveCamera::new(60.0, 1.0, 0.1, 100.0),
-            )]);
-            let mut orthographic = BTreeMap::new();
-            let material_id = MaterialId::new(1);
-            let mut materials = BTreeMap::from([(material_id, PbrMaterial::new())]);
-            let mut skeletons = Vec::new();
-
-            let mut driver = ScenixAnimationDriver::new();
-            driver.add_node(NodeAnimator::new(
-                node,
-                NodeAnimationTarget::Translation(Vec3Track::tween(
-                    Vec3::ZERO,
-                    Vec3::new(1.0, 0.0, 0.0),
-                    0.25,
-                )),
-            ));
-
-            let mut cameras = CameraStores {
-                perspective: &mut perspective,
-                orthographic: &mut orthographic,
-            };
-            driver.tick(0.25, &mut scene, &mut cameras, &mut materials, &mut skeletons)?;
-
-            # Ok(())
-            # }
-
-            // Browser:
-            // let renderer = scenix::WebRenderer::new(canvas).await?;
-            // renderer.tick(timestamp_ms)?;
-            ```
-
-            ### Verification
-
-            - `cargo test --workspace --all-features`
-            - `cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers --no-default-features`
-            - `cargo test -p scenix-loader --all-features`
-            - `cargo test -p scenix-raycaster -p scenix-helpers --all-features`
-            - `cargo test -p scenix-animato --all-features`
-            - `cargo check -p scenix-wasm --target wasm32-unknown-unknown --all-features`
-            - `cargo check --manifest-path examples/wasm_viewer/Cargo.toml --target wasm32-unknown-unknown`
-            - `SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer -p scenix-post --all-features`
-            - `cargo clippy --workspace --all-features -- -D warnings`
-            - `cargo fmt --check`
-            - `cargo doc --workspace --all-features --no-deps`
-            - `cargo publish --dry-run` for every crate before publish
-          draft: false
-          prerelease: false
+          tag_name: ${{ github.ref_name }}
+          name: "scenix ${{ github.ref_name }}"
+          body_path: docs/release-v1.0.0.md

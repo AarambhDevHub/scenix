@@ -1,145 +1,161 @@
 # scenix
 
-> Italian: scenix - scene, the stage on which everything appears.
+> Modular Rust-native 3D scenes for native and WASM apps.
 
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix v0.9.0 is the Integration release. It adds optional Animato 1.4.0 animation bridges and a browser/WASM renderer wrapper while keeping the default facade focused on CPU authoring, raycasting, and helper geometry.
+scenix `1.0.0` is the first stable release. The public API is frozen around small focused crates: CPU authoring stays lightweight by default, while loading, GPU rendering, post-processing, Animato integration, and browser support remain opt-in.
 
-This release ships:
+## Install
 
-- `scenix-math`: vectors, matrices, quaternions, transforms, rays, bounds, planes, and coordinate helpers.
-- `scenix-core`: typed IDs, color, errors, and shared traits.
-- `scenix-input`: pointer and keyboard state.
-- `scenix-scene`: scene node hierarchy, transform propagation, traversal, fog, sprites, and LOD helpers.
-- `scenix-camera`: perspective, orthographic, and cube cameras, frustums, screen rays, orbit controls, and fly controls.
-- `scenix-mesh`: geometry buffers, primitive generation, morph targets, instancing, and batching helpers.
-- `scenix-material`: GPU-free material traits, pipeline keys, PBR, physical, toon, line, point, and custom shader materials.
-- `scenix-light`: GPU-free light types, shadow configuration, and raw-sample spherical-harmonics light probes.
-- `scenix-texture`: raw CPU texture data, samplers, atlases, video-frame updates, and RGBA8 mipmap generation.
-- `scenix-loader`: optional glTF/GLB, OBJ/MTL, STL, PNG/JPEG/WebP, KTX2, HDR/EXR, and path-cache loaders that output CPU-side scenix data.
-- `scenix-renderer`: optional `wgpu` renderer with headless/surface targets, renderer-owned registries, G-buffer/shadow targets, culling/sorting helpers, and pipeline caching.
-- `scenix-post`: optional `wgpu` full-screen post stack with bloom, SSAO, tonemap, FXAA, TAA, SMAA, depth of field, fog, outline, and motion blur passes.
-- `scenix-raycaster`: BVH-accelerated CPU picking with exact mesh intersections and camera-ray helpers.
-- `scenix-helpers`: CPU debug `LineGeometry` for grids, axes, bounds, arrows, lights, cameras, and skeletons.
-- `scenix-animato`: optional Animato 1.4.0 bridge for node, camera, PBR material, and skeleton pose animation.
-- `scenix-wasm`: optional browser canvas renderer wrapper, DOM input mapping helpers, and generated-scene setup.
-- `scenix`: facade crate re-exporting CPU APIs by default, loader APIs behind `features = ["loader"]`, GPU APIs behind `features = ["renderer", "post"]`, and integration APIs behind `features = ["animato", "wasm"]`.
-
-## Installation
-
-Most users should start with the facade crate:
+Most applications start with the facade crate:
 
 ```toml
 [dependencies]
-scenix = "0.9"
+scenix = "1"
 ```
 
-Enable CPU asset loading:
+Enable optional systems only when needed:
 
 ```toml
 [dependencies]
-scenix = { version = "0.9", features = ["loader"] }
+scenix = { version = "1", features = ["loader"] }
+scenix = { version = "1", features = ["renderer", "post"] }
+scenix = { version = "1", features = ["animato"] }
+scenix = { version = "1", features = ["wasm"] }
 ```
 
-Enable GPU rendering and post-processing:
+Focused crates can be used directly:
 
 ```toml
 [dependencies]
-scenix = { version = "0.9", features = ["renderer", "post"] }
+scenix-math = "1"
+scenix-core = "1"
+scenix-input = "1"
+scenix-scene = "1"
+scenix-camera = "1"
+scenix-mesh = "1"
+scenix-material = "1"
+scenix-light = "1"
+scenix-texture = "1"
+scenix-loader = "1"
+scenix-renderer = "1"
+scenix-post = "1"
+scenix-raycaster = "1"
+scenix-helpers = "1"
+scenix-animato = "1"
+scenix-wasm = "1"
 ```
 
-Enable Animato or browser integration:
+For `no_std` CPU authoring:
 
 ```toml
 [dependencies]
-scenix = { version = "0.9", features = ["animato"] }
-scenix-wasm = "0.9"
+scenix-math = { version = "1", default-features = false, features = ["libm"] }
+scenix-core = { version = "1", default-features = false }
+scenix-input = { version = "1", default-features = false }
+scenix-scene = { version = "1", default-features = false }
+scenix-camera = { version = "1", default-features = false }
+scenix-mesh = { version = "1", default-features = false }
+scenix-material = { version = "1", default-features = false }
+scenix-light = { version = "1", default-features = false }
+scenix-texture = { version = "1", default-features = false }
+scenix-raycaster = { version = "1", default-features = false }
+scenix-helpers = { version = "1", default-features = false }
 ```
 
-Use focused crates directly when you only need one layer:
+`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and `scenix-wasm` are optional `std` paths. The Animato bridge uses `animato = "1.4.0"`.
 
-```toml
-[dependencies]
-scenix-math = "0.9"
-scenix-core = "0.9"
-scenix-input = "0.9"
-scenix-scene = "0.9"
-scenix-camera = "0.9"
-scenix-mesh = "0.9"
-scenix-material = "0.9"
-scenix-light = "0.9"
-scenix-texture = "0.9"
-scenix-loader = "0.9"
-scenix-renderer = "0.9"
-scenix-post = "0.9"
-scenix-raycaster = "0.9"
-scenix-helpers = "0.9"
-scenix-animato = "0.9"
-scenix-wasm = "0.9"
-```
+## Feature Flags
 
-For `no_std`-capable CPU crates:
-
-```toml
-[dependencies]
-scenix-math = { version = "0.9", default-features = false, features = ["libm"] }
-scenix-core = { version = "0.9", default-features = false }
-scenix-input = { version = "0.9", default-features = false }
-scenix-scene = { version = "0.9", default-features = false }
-scenix-camera = { version = "0.9", default-features = false }
-scenix-mesh = { version = "0.9", default-features = false }
-scenix-material = { version = "0.9", default-features = false }
-scenix-light = { version = "0.9", default-features = false }
-scenix-texture = { version = "0.9", default-features = false }
-scenix-raycaster = { version = "0.9", default-features = false }
-scenix-helpers = { version = "0.9", default-features = false }
-```
-
-`scenix-loader`, `scenix-renderer`, `scenix-post`, and `scenix-wasm` are `std` crates. `scenix-animato` is optional and bridges the `animato = "1.4.0"` facade crate.
+| Feature | Default | Description |
+| --- | --- | --- |
+| `std` | yes | Standard-library support for CPU crates. |
+| `scene`, `camera`, `mesh`, `material`, `light`, `texture` | yes | CPU authoring crates. |
+| `raycaster`, `helpers` | yes | BVH picking and debug line helper data. |
+| `loader` | no | glTF/GLB, OBJ/MTL, STL, image, KTX2, HDR/EXR loading. |
+| `renderer` | no | `wgpu` renderer with surface/headless targets. |
+| `post` | no | Full-screen post-processing stack; use with `renderer`. |
+| `animato` | no | Animato 1.4.0 tracks and scene/camera/material drivers. |
+| `wasm` | no | Browser canvas wrapper and generated WebGPU demo scene. |
+| `serde` | no | Serialization support where the focused crate supports it. |
 
 ## Quick Start
 
-### Load glTF And Render Headless
-
 ```rust
-use scenix::{GltfLoader, PerspectiveCamera, Renderer, RendererConfig, Vec3};
+use std::collections::BTreeMap;
+use scenix::{
+    CameraId, CameraStores, Geometry, MaterialId, MeshId, NodeAnimationTarget, NodeAnimator,
+    PbrMaterial, PerspectiveCamera, SceneGraph, SceneNode, ScenixAnimationDriver, Vec3,
+    Vec3Track, box_geometry,
+};
 
-# async fn run() -> Result<(), scenix::ScenixError> {
-let asset = GltfLoader::new().load_file("path/to/scene.gltf")?;
-let mut renderer = Renderer::headless(RendererConfig::new(256, 256)).await?;
+# fn run() -> Result<(), scenix::ValidationError> {
+let mesh_id = MeshId::new(1);
+let material_id = MaterialId::new(1);
 
-for (mesh_id, geometry) in &asset.meshes {
-    renderer.register_mesh(*mesh_id, geometry)?;
-}
-for (material_id, material) in &asset.materials {
-    renderer.register_pbr_material(*material_id, material)?;
-}
+let mut meshes = BTreeMap::<MeshId, Geometry>::new();
+meshes.insert(mesh_id, box_geometry(1.0, 1.0, 1.0, 1, 1, 1));
 
-let camera = PerspectiveCamera::new(60.0, 1.0, 0.1, 100.0)
-    .position(Vec3::new(0.0, 0.0, 4.0))
-    .target(Vec3::ZERO);
-let stats = renderer.render(&asset.scene, &camera)?;
+let mut scene = SceneGraph::new();
+let cube = scene.add(SceneNode::mesh("cube", mesh_id, material_id));
 
-assert!(stats.visible_meshes > 0);
+let mut driver = ScenixAnimationDriver::new();
+driver.add_node(NodeAnimator::new(
+    cube,
+    NodeAnimationTarget::Translation(Vec3Track::tween(
+        Vec3::ZERO,
+        Vec3::new(1.0, 0.0, 0.0),
+        0.5,
+    )),
+));
+
+let camera_id = CameraId::new(1);
+let mut perspective = BTreeMap::from([(
+    camera_id,
+    PerspectiveCamera::new(60.0, 1.0, 0.1, 100.0)
+        .position(Vec3::new(0.0, 0.0, 4.0))
+        .target(Vec3::ZERO),
+)]);
+let mut orthographic = BTreeMap::new();
+let mut cameras = CameraStores {
+    perspective: &mut perspective,
+    orthographic: &mut orthographic,
+};
+let mut materials = BTreeMap::from([(material_id, PbrMaterial::new())]);
+let mut skeletons = Vec::new();
+
+driver.tick(0.5, &mut scene, &mut cameras, &mut materials, &mut skeletons)?;
+scene.update_world_transforms();
 # Ok(())
 # }
 ```
 
-### Post-Processing Stack
+### Headless Rendering
 
 ```rust
-use scenix::{BloomConfig, FxaaConfig, PostStack, Renderer, RendererConfig, ToneMapper};
+use scenix::{Renderer, RendererConfig, PerspectiveCamera, Vec3};
 
-# async fn run() -> Result<(), scenix::ScenixError> {
+# async fn run(scene: &scenix::SceneGraph) -> Result<(), scenix::ScenixError> {
 let mut renderer = Renderer::headless(RendererConfig::new(256, 256)).await?;
-renderer.set_post_stack(Some(
-    PostStack::new()
-        .with_bloom(BloomConfig::default())
-        .with_tonemap(ToneMapper::Aces)
-        .with_fxaa(FxaaConfig::default()),
-));
+let camera = PerspectiveCamera::new(60.0, 1.0, 0.1, 100.0)
+    .position(Vec3::new(0.0, 0.0, 5.0))
+    .target(Vec3::ZERO);
+let stats = renderer.render(scene, &camera)?;
+assert!(stats.frame_index > 0);
+# Ok(())
+# }
+```
+
+### Loading Assets
+
+```rust
+use scenix::GltfLoader;
+
+# fn run() -> Result<(), scenix::ScenixError> {
+let asset = GltfLoader::new().load_file("scene.gltf")?;
+assert!(!asset.meshes.is_empty());
 # Ok(())
 # }
 ```
@@ -155,8 +171,10 @@ use scenix::{
 
 let mesh_id = MeshId::new(1);
 let material_id = MaterialId::new(1);
-let mut meshes = BTreeMap::<MeshId, Geometry>::new();
-meshes.insert(mesh_id, box_geometry(1.0, 1.0, 1.0, 1, 1, 1));
+let meshes = BTreeMap::<MeshId, Geometry>::from([(
+    mesh_id,
+    box_geometry(1.0, 1.0, 1.0, 1, 1, 1),
+)]);
 
 let mut scene = SceneGraph::new();
 scene.add(SceneNode::mesh("cube", mesh_id, material_id));
@@ -169,173 +187,82 @@ let ray = Raycaster::from_camera_ndc(&camera, Vec2::ZERO);
 
 let mut raycaster = Raycaster::new();
 raycaster.build_bvh(&scene, &meshes).unwrap();
-let hit = raycaster.cast_ray(ray, &scene, &meshes);
-
-assert!(hit.is_some());
+assert!(raycaster.cast_ray(ray, &scene, &meshes).is_some());
 ```
 
-### Animato Integration
+## Workspace
 
-```rust
-use std::collections::BTreeMap;
-use scenix::{
-    CameraId, CameraStores, MaterialId, NodeAnimationTarget, NodeAnimator,
-    PerspectiveCamera, PbrMaterial, SceneGraph, SceneNode, ScenixAnimationDriver,
-    Vec3, Vec3Track,
-};
+| Crate | Role |
+| --- | --- |
+| `scenix` | Facade crate with stable v1 feature flags. |
+| `scenix-math` | `no_std` vectors, matrices, quaternions, transforms, rays, and bounds. |
+| `scenix-core` | IDs, colors, errors, and shared traits. |
+| `scenix-input` | Platform-neutral pointer and keyboard state. |
+| `scenix-scene` | Scene graph, transforms, traversal, fog, sprites, and LOD helpers. |
+| `scenix-camera` | Perspective, orthographic, cube cameras, frustums, and controllers. |
+| `scenix-mesh` | Geometry buffers, primitives, instancing, batching, and morph targets. |
+| `scenix-material` | GPU-free material descriptions and pipeline keys. |
+| `scenix-light` | Lights, shadow settings, and light probes. |
+| `scenix-texture` | CPU textures, samplers, atlases, video updates, and mipmaps. |
+| `scenix-loader` | Optional CPU asset loaders and asset cache. |
+| `scenix-renderer` | Optional `wgpu` renderer and resource registries. |
+| `scenix-post` | Optional `wgpu` post-processing effects. |
+| `scenix-raycaster` | BVH scene picking and exact mesh intersections. |
+| `scenix-helpers` | Debug `LineGeometry` generators. |
+| `scenix-animato` | Optional Animato 1.4.0 bridge. |
+| `scenix-wasm` | Optional browser canvas wrapper. |
 
-let mut scene = SceneGraph::new();
-let node = scene.add(SceneNode::new("animated"));
-let mut driver = ScenixAnimationDriver::new();
-driver.add_node(NodeAnimator::new(
-    node,
-    NodeAnimationTarget::Translation(Vec3Track::tween(Vec3::ZERO, Vec3::new(1.0, 0.0, 0.0), 0.25)),
-));
+## Examples
 
-let camera_id = CameraId::new(1);
-let mut perspective = BTreeMap::from([(camera_id, PerspectiveCamera::default())]);
-let mut orthographic = BTreeMap::new();
-let mut cameras = CameraStores { perspective: &mut perspective, orthographic: &mut orthographic };
-let mut materials = BTreeMap::from([(MaterialId::new(1), PbrMaterial::new())]);
-let mut skeletons = Vec::new();
-
-driver.tick(0.25, &mut scene, &mut cameras, &mut materials, &mut skeletons).unwrap();
-assert_eq!(scene.get(node).unwrap().transform.translation, Vec3::X);
-```
-
-### WASM Viewer
-
-```rust
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-pub async fn start(canvas: web_sys::HtmlCanvasElement) -> Result<scenix::WebRenderer, JsValue> {
-    scenix::set_panic_hook();
-    scenix::WebRenderer::new(canvas).await
-}
-```
-
-The standalone example lives in `examples/wasm_viewer` and compiles with:
+The facade crate registers the example set from [ARCHITECTURE.md](./ARCHITECTURE.md):
 
 ```sh
+cargo run -p scenix --example hello_cube --features renderer
+cargo run -p scenix --example pbr_sphere --features renderer
+cargo run -p scenix --example physical_material --features renderer
+cargo run -p scenix --example toon_shading --features renderer
+cargo run -p scenix --example gltf_scene --features "loader renderer"
+cargo run -p scenix --example shadow_demo --features renderer
+cargo run -p scenix --example raycasting
+cargo run -p scenix --example post_processing --features "renderer post"
+cargo run -p scenix --example instanced_mesh
+cargo run -p scenix --example animato_integration --features animato
+cargo run -p scenix --example orbit_camera
+cargo run -p scenix --example lod_demo
+cargo run -p scenix --example morph_targets
+cargo run -p scenix --example fog_demo
+cargo run -p scenix --example helpers_demo
+cargo run -p scenix --example sprite_particles
+cargo run -p scenix --example environment_map
+```
+
+The browser example lives in `examples/wasm_viewer`:
+
+```sh
+rustup target add wasm32-unknown-unknown
 cargo check --manifest-path examples/wasm_viewer/Cargo.toml --target wasm32-unknown-unknown
 ```
 
-### Debug Helpers
+## Website
 
-```rust
-use scenix::{AxesHelper, BoundingBoxHelper, Color, GridHelper, LineGeometry, Aabb, Vec3};
+The static website is a standalone Leptos CSR app in `website/`. It is intentionally outside the main workspace so website dependencies do not affect normal library users.
 
-let mut lines = LineGeometry::new();
-lines.merge(&GridHelper::new(10.0, 10).to_geometry());
-lines.merge(&AxesHelper::new(2.0).to_geometry());
-lines.merge(
-    &BoundingBoxHelper::new(Aabb::new(-Vec3::ONE, Vec3::ONE), Color::WHITE).to_geometry(),
-);
-
-lines.validate().unwrap();
-assert_eq!(lines.segment_count(), 37);
+```sh
+cd website
+trunk serve
+trunk build --release --public-url /scenix/
 ```
 
-### Texture And Camera
+GitHub Pages deployment is handled by `.github/workflows/pages.yml`, which builds `website/dist` with Trunk and deploys it at `/scenix/`. The demo uses `scenix-wasm` and falls back cleanly when WebGPU or WebAssembly is unavailable.
 
-```rust
-use scenix::{PerspectiveCamera, Texture2D, TextureFormat, Vec2, Vec3, mipmap};
-
-let pixels = vec![
-    255, 0, 0, 255, 0, 255, 0, 255,
-    0, 0, 255, 255, 255, 255, 255, 255,
-];
-let mip_chain = mipmap::generate(&pixels, 2, 2).unwrap();
-let texture = Texture2D::from_mips(2, 2, TextureFormat::Rgba8UnormSrgb, mip_chain).unwrap();
-
-let camera = PerspectiveCamera::new(60.0, 16.0 / 9.0, 0.1, 100.0)
-    .position(Vec3::new(0.0, 0.0, 5.0))
-    .target(Vec3::ZERO);
-let ray = camera.screen_to_ray(Vec2::ZERO);
-
-assert_eq!(texture.mip_levels, 2);
-assert!(ray.direction.z < 0.0);
-```
-
-## Feature Flags
-
-| Feature | Default | Description |
-|---------|---------|-------------|
-| `std` | yes | Enables standard-library conveniences for CPU crates. |
-| `scene` | yes | Enables `scenix-scene` graph APIs from the facade crate. |
-| `camera` | yes | Enables cameras, frustums, and controllers from the facade crate. |
-| `mesh` | yes | Enables geometry and primitive APIs from the facade crate. |
-| `material` | yes | Enables GPU-free material types and pipeline keys from the facade crate. |
-| `light` | yes | Enables GPU-free light types, shadow config, and light probes from the facade crate. |
-| `texture` | yes | Enables raw texture, sampler, atlas, video, and mipmap APIs from the facade crate. |
-| `raycaster` | yes | Enables BVH scene picking and exact mesh ray intersection APIs. |
-| `helpers` | yes | Enables debug `LineGeometry` helpers for grids, axes, bounds, cameras, lights, and skeletons. |
-| `animato` | no | Enables optional Animato 1.4.0 animation bridge APIs. |
-| `wasm` | no | Enables optional browser renderer wrapper and DOM input helpers. |
-| `loader` | no | Enables optional `scenix-loader` asset loading APIs from the facade crate. |
-| `renderer` | no | Enables optional `scenix-renderer`/`wgpu` APIs from the facade crate. |
-| `post` | no | Enables optional `scenix-post` APIs and renderer post-stack integration. |
-| `libm` | no | Uses `libm` for portable `no_std` trigonometry in `scenix-math`. |
-| `serde` | no | Derives `Serialize` and `Deserialize` for public data types. |
-| `approx` | no | Implements `approx` traits for math types. |
-| `gpu` | no | Enables the `GpuUpload` trait in `scenix-core`. |
-
-## Workspace Layout
-
-```text
-scenix/
-├── crates/
-│   ├── scenix-math/
-│   ├── scenix-core/
-│   ├── scenix-input/
-│   ├── scenix-scene/
-│   ├── scenix-camera/
-│   ├── scenix-mesh/
-│   ├── scenix-material/
-│   ├── scenix-light/
-│   ├── scenix-texture/
-│   ├── scenix-loader/
-│   ├── scenix-renderer/
-│   ├── scenix-post/
-│   ├── scenix-raycaster/
-│   ├── scenix-helpers/
-│   ├── scenix-animato/
-│   ├── scenix-wasm/
-│   └── scenix/
-├── examples/
-│   ├── animato_integration.rs
-│   ├── wasm_viewer/
-│   ├── raycasting.rs
-│   ├── helpers_demo.rs
-│   ├── gltf_scene.rs
-│   ├── post_processing.rs
-│   ├── hello_cube.rs
-│   ├── pbr_sphere.rs
-│   ├── shadow_demo.rs
-│   ├── textures_and_camera.rs
-│   └── orbit_camera.rs
-├── benches/
-│   ├── loader_bench.rs
-│   ├── post_bench.rs
-│   ├── bvh_bench.rs
-│   ├── helpers_bench.rs
-│   ├── animato_bridge_bench.rs
-│   └── render_bench.rs
-├── ARCHITECTURE.md
-├── ROADMAP.md
-├── CHANGELOG.md
-└── README.md
-```
-
-## Running Checks
+## Development Checks
 
 ```sh
 cargo fmt --check
 cargo clippy --workspace --all-features -- -D warnings
 cargo test --workspace
 cargo test --workspace --all-features
-cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers --no-default-features
+cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
 cargo test -p scenix-loader --all-features
 cargo test -p scenix-raycaster -p scenix-helpers --all-features
 cargo test -p scenix-animato --all-features
@@ -344,19 +271,31 @@ cargo check --manifest-path examples/wasm_viewer/Cargo.toml --target wasm32-unkn
 SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer -p scenix-post --all-features
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo bench --workspace --no-run
+cargo llvm-cov --workspace --all-features
 ```
 
-## Roadmap
+## Documentation
 
-The long-term design remains the full scenix workspace described in [ARCHITECTURE.md](./ARCHITECTURE.md). Version `0.9.0` adds Animato and browser integration. The next milestone is `v1.0.0` Stable.
+- [Architecture](./ARCHITECTURE.md)
+- [Roadmap](./ROADMAP.md)
+- [Changelog](./CHANGELOG.md)
+- [Getting started](./docs/getting-started.md)
+- [Concepts](./docs/concepts.md)
+- [Materials guide](./docs/materials-guide.md)
+- [Platform guide](./docs/platform-guide.md)
+- [Benchmarks](./docs/benchmarks.md)
+- [v1.0.0 release notes](./docs/release-v1.0.0.md)
 
-See [ROADMAP.md](./ROADMAP.md) for the full versioned plan.
+## Known Limitations
+
+- The renderer is stable for generated scenes, headless/surface rendering, material preview paths, and examples. Advanced physical shading is intentionally documented as a preview contract rather than a film-grade renderer.
+- Loader APIs produce CPU-side scenix data; GPU upload stays explicit through `Renderer` registration.
+- The website demo does not vendor large model assets.
+- GPU tests require a Vulkan-capable device or Mesa lavapipe.
 
 ## License
 
 Licensed under either of:
 
-- [MIT License](./LICENSE-MIT)
-- [Apache License, Version 2.0](./LICENSE-APACHE)
-
-at your option.
+- Apache License, Version 2.0
+- MIT license

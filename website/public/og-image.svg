@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#09111f"/>
+  <circle cx="930" cy="150" r="90" fill="#66d9ef" opacity=".18"/>
+  <path d="M150 470 365 110l215 360H150Z" fill="#66d9ef"/>
+  <path d="M245 470h240L365 265 245 470Z" fill="#f7c948"/>
+  <text x="650" y="285" fill="#f8fafc" font-size="92" font-family="Inter,Arial,sans-serif" font-weight="700">Scenix</text>
+  <text x="650" y="365" fill="#cbd5e1" font-size="34" font-family="Inter,Arial,sans-serif">Modular Rust-native 3D scenes</text>
+</svg>

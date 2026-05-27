@@ -209,7 +209,9 @@ impl SceneGraph {
 
     /// Updates cached world transforms for dirty subtrees.
     pub fn update_world_transforms(&mut self) {
-        let dirty_roots = mem::take(&mut self.dirty_roots);
+        let mut dirty_roots = mem::take(&mut self.dirty_roots);
+        dirty_roots.sort_unstable();
+        dirty_roots.dedup();
         for id in dirty_roots {
             if let Some(root) = self.highest_dirty_ancestor(id) {
                 self.update_subtree(root);
@@ -338,30 +340,32 @@ impl SceneGraph {
     }
 
     fn update_subtree(&mut self, root: NodeId) {
-        let parent_world = self
-            .get_record(root)
-            .and_then(|record| record.parent)
-            .and_then(|parent| self.get_record(parent))
-            .map_or(Mat4::IDENTITY, |record| record.world_matrix);
-
-        let mut stack = Vec::from([(root, parent_world)]);
-        while let Some((id, parent_matrix)) = stack.pop() {
+        let mut stack = Vec::from([root]);
+        while let Some(id) = stack.pop() {
             let Some(key) = self.key(id) else {
                 continue;
             };
-            let Some(record) = self.nodes.get_mut(key) else {
-                continue;
-            };
+            let parent_matrix = self
+                .nodes
+                .get(key)
+                .and_then(|record| record.parent)
+                .and_then(|parent| self.get_record(parent))
+                .map_or(Mat4::IDENTITY, |record| record.world_matrix);
 
-            if record.dirty {
-                record.world_matrix = parent_matrix * record.node.transform.to_mat4();
-                record.dirty = false;
+            {
+                let Some(record) = self.nodes.get_mut(key) else {
+                    continue;
+                };
+                if record.dirty {
+                    record.world_matrix = parent_matrix * record.node.transform.to_mat4();
+                    record.dirty = false;
+                }
             }
 
-            let world_matrix = record.world_matrix;
-            let children = record.children.clone();
-            for child in children.into_iter().rev() {
-                stack.push((child, world_matrix));
+            if let Some(record) = self.nodes.get(key) {
+                for index in (0..record.children.len()).rev() {
+                    stack.push(record.children[index]);
+                }
             }
         }
     }

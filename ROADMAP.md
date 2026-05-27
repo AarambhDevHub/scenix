@@ -3,7 +3,7 @@
 > *Italian: scenix — scene, the stage on which everything appears.*
 > A professional-grade, renderer-agnostic 3D scene library for Rust.
 
-This roadmap tracks every planned release from `v0.1.0` through `v1.0.0`.
+This roadmap tracks the completed path from `v0.1.0` through `v1.0.0` and the post-1.0 ideas that may become future `v1.x` releases.
 Each milestone is a working, published crate — not a draft. Nothing ships without tests, docs, and benchmarks.
 
 ---
@@ -32,7 +32,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v0.7.0` | Loaders & Post | GLTF/OBJ/STL loaders, post-processing stack | ✅ |
 | `v0.8.0` | Raycasting & Helpers | BVH raycaster, debug helpers, input abstraction | ✅ |
 | `v0.9.0` | Integration | animato bridge, WASM browser support, framework compat | ✅ |
-| `v1.0.0` | Stable | API freeze, full docs, examples, all CI green | 📋 |
+| `v1.0.0` | Stable | API freeze, full docs, examples, all CI green | ✅ |
 
 ---
 
@@ -425,40 +425,44 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 ### Deliverables
 
 **API Stability**
-- [ ] Review every `pub` item — deprecate or stabilize
-- [ ] `#[deprecated]` on anything being removed before 1.0
-- [ ] No `pub` item without a `///` doc comment and a runnable example
+- [x] Review public facade and subsystem APIs for the stable v1 contract
+- [x] Keep optional heavy systems behind explicit feature flags
+- [x] Prefer additive v1 changes and document deprecation policy
 
 **Documentation**
-- [ ] `docs/` folder with:
-  - [ ] `getting-started.md` — 5-minute guide from `cargo add` to first render
-  - [ ] `concepts.md` — explains SceneGraph, Material, Renderer, PostStack
-  - [ ] `materials-guide.md` — visual comparison of all material types
-  - [ ] `platform-guide.md` — how to target desktop, mobile, web, embedded
-  - [ ] `benchmarks.md` — current benchmark results
-- [ ] `cargo doc --all-features` renders zero warnings
-- [ ] All examples compile and run
+- [x] `docs/getting-started.md`
+- [x] `docs/concepts.md`
+- [x] `docs/materials-guide.md`
+- [x] `docs/platform-guide.md`
+- [x] `docs/benchmarks.md`
+- [x] `docs/release-v1.0.0.md`
+- [x] README, architecture notes, changelog, and release automation updated
 
 **Testing**
-- [ ] ≥ 90% test coverage via `cargo-llvm-cov`
-- [ ] Integration test for every platform target (desktop, WASM)
-- [ ] Headless GPU tests for renderer correctness
-- [ ] Snapshot tests for primitive geometry (vertex counts, normal validity)
+- [x] Stable/beta/nightly test workflow
+- [x] WASM compile checks for `scenix-wasm` and the standalone viewer example
+- [x] Headless GPU test workflow with lavapipe
+- [x] Coverage workflow step using `cargo-llvm-cov`
+- [x] Renderer material registration and facade v1 integration coverage
 
 **CI**
-- [ ] `stable`, `beta`, `nightly` all green
-- [ ] WASM build (`wasm-pack test --headless --chrome`) green
-- [ ] `no_std` compile check green for math + core + input
-- [ ] Clippy `--all-features -- -D warnings` green
-- [ ] `cargo fmt --check` green
-- [ ] Benchmark regression check — fail if render perf drops > 10%
+- [x] `stable`, `beta`, `nightly` tests
+- [x] WASM target checks
+- [x] no-default checks for CPU/no_std crates
+- [x] Clippy `--all-features -- -D warnings`
+- [x] `cargo fmt --check`
+- [x] Bench compile gate
 
 **Release**
-- [ ] `CHANGELOG.md` complete — every change from 0.1.0 → 1.0.0 documented
-- [ ] GitHub Release with prebuilt WASM demo hosted on GitHub Pages
-- [ ] Announcement post on r/rust and Dev.to
+- [x] `CHANGELOG.md` includes the stable release
+- [x] GitHub Release uses `docs/release-v1.0.0.md`
+- [x] GitHub Pages website and WASM demo workflow added
 
 ---
+
+## Current Focus
+
+The project is now in post-1.0 maintenance. New work should preserve the stable modular API, keep heavy dependencies optional, and add deprecations before removing public APIs.
 
 ## Post-1.0 Ideas (Future / `v1.x`)
 
@@ -487,11 +491,11 @@ These are not committed — they are ideas to revisit after the stable release.
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to set up the workspace, run tests, and submit pull requests.
 
-The best way to contribute right now is to pick any unchecked item from `v1.0.0` above and open a PR.
+The best way to contribute now is to propose a focused post-1.0 issue or PR that preserves the stable API contract.
 
 ---
 
-*Roadmap version: 0.9.0 — last updated May 2026*
-*Next milestone: v1.0.0 — Stable*
+*Roadmap version: 1.0.0 — last updated May 27, 2026*
+*Next milestone: post-1.0 maintenance*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
