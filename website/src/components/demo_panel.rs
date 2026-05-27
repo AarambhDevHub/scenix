@@ -35,12 +35,22 @@ pub fn DemoPanel() -> impl IntoView {
         <section class="demo-section" id="demo">
             <div class="demo-shell">
                 <div class="canvas-wrap">
+                    <div class="canvas-toolbar" aria-hidden="true">
+                        <span>"Scenix Engine Lab"</span>
+                        <span>"interactive preview"</span>
+                    </div>
                     <canvas id="scenix-canvas" aria-label="Scenix Engine Lab live 3D demo"></canvas>
                     <FallbackPanel status=status />
                 </div>
                 <aside class="demo-side">
-                    <p class="eyebrow">"Live 3D Demo"</p>
+                    <div class="demo-status-row">
+                        <p class="eyebrow">"Live 3D Demo"</p>
+                        <span class="status-chip">{move || status.get()}</span>
+                    </div>
                     <h2>"Scenix Engine Lab"</h2>
+                    <p class="demo-side-copy">
+                        "Drive the scene controls, pick objects in the canvas, and switch debug views without leaving the page."
+                    </p>
                     <DemoControls playing helpers wireframe bloom ssao />
                     <dl class="stats">
                         <div><dt>"FPS"</dt><dd>{move || fps.get()}</dd></div>

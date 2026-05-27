@@ -11,8 +11,9 @@ pub fn Navbar() -> impl IntoView {
             <nav aria-label="Primary navigation">
                 <a href="#demo">"Demo"</a>
                 <a href="#crates">"Crates"</a>
+                <a href="#code">"Code"</a>
                 <a href="#examples">"Examples"</a>
-                <a href="#release">"Release"</a>
+                <a class="nav-pill" href="#release">"v1.0"</a>
             </nav>
         </header>
     }
