@@ -78,25 +78,9 @@ jobs:
         env:
           RUSTDOCFLAGS: "-D warnings"
 
-      - name: Publish dry run
+      - name: Package crates
         run: |
-          cargo publish -p scenix-math --dry-run --no-verify
-          cargo publish -p scenix-core --dry-run --no-verify
-          cargo publish -p scenix-input --dry-run --no-verify
-          cargo publish -p scenix-scene --dry-run --no-verify
-          cargo publish -p scenix-camera --dry-run --no-verify
-          cargo publish -p scenix-mesh --dry-run --no-verify
-          cargo publish -p scenix-material --dry-run --no-verify
-          cargo publish -p scenix-light --dry-run --no-verify
-          cargo publish -p scenix-texture --dry-run --no-verify
-          cargo publish -p scenix-loader --dry-run --no-verify
-          cargo publish -p scenix-post --dry-run --no-verify
-          cargo publish -p scenix-renderer --dry-run --no-verify
-          cargo publish -p scenix-raycaster --dry-run --no-verify
-          cargo publish -p scenix-helpers --dry-run --no-verify
-          cargo publish -p scenix-animato --dry-run --no-verify
-          cargo publish -p scenix-wasm --dry-run --no-verify
-          cargo publish -p scenix --dry-run --no-verify
+          cargo package --workspace --no-verify
 
   publish:
     name: Publish to crates.io
@@ -121,24 +105,32 @@ jobs:
             crate="$1"
             log="publish-${crate}.log"
 
-            cargo publish -p "$crate" --dry-run
+            cargo package -p "$crate" --no-verify
 
-            set +e
-            cargo publish -p "$crate" --token "$CARGO_REGISTRY_TOKEN" 2>&1 | tee "$log"
-            status="${PIPESTATUS[0]}"
-            set -e
+            for attempt in 1 2 3 4 5; do
+              set +e
+              cargo publish -p "$crate" --token "$CARGO_REGISTRY_TOKEN" 2>&1 | tee "$log"
+              status="${PIPESTATUS[0]}"
+              set -e
 
-            if [ "$status" -eq 0 ]; then
-              return 0
-            fi
+              if [ "$status" -eq 0 ]; then
+                return 0
+              fi
 
-            if grep -Eiq "already uploaded|already exists|crate version .* is already uploaded" "$log"; then
-              echo "$crate is already published for this version; continuing."
-              return 0
-            fi
+              if grep -Eiq "already uploaded|already exists|crate version .* is already uploaded" "$log"; then
+                echo "$crate is already published for this version; continuing."
+                return 0
+              fi
 
-            echo "Publishing $crate failed." >&2
-            exit "$status"
+              if grep -Eiq "failed to select a version|no matching package named|perhaps a crate was updated and forgotten" "$log" && [ "$attempt" -lt 5 ]; then
+                echo "crates.io index has not caught up for $crate; retrying in 60 seconds."
+                sleep 60
+                continue
+              fi
+
+              echo "Publishing $crate failed." >&2
+              exit "$status"
+            done
           }
 
           for crate in \
