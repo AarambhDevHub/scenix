@@ -9,7 +9,7 @@ pub fn DemoPanel() -> impl IntoView {
     let wireframe = RwSignal::new(false);
     let bloom = RwSignal::new(false);
     let ssao = RwSignal::new(false);
-    let status = RwSignal::new(String::from("Starting WebGPU demo"));
+    let status = RwSignal::new(String::from("Starting browser demo"));
     let fps = RwSignal::new(String::from("0"));
     let selected = RwSignal::new(String::from("None"));
     let selected_id = RwSignal::new(String::from("0"));

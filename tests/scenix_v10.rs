@@ -44,4 +44,12 @@ fn stable_facade_exports_wasm_demo_helpers() {
         scenix::pointer_button_from_dom(0),
         Some(scenix::PointerButton::Left)
     );
+    assert_eq!(
+        scenix::BrowserBackendPreference::Auto,
+        scenix::BrowserBackendPreference::Auto
+    );
+    assert_eq!(
+        scenix::BrowserBackendKind::WebGl,
+        scenix::BrowserBackendKind::WebGl
+    );
 }

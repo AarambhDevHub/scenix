@@ -3,7 +3,7 @@
 > *Italian: scenix — scene, the stage on which everything appears.*
 > A professional-grade, renderer-agnostic 3D scene library for Rust.
 
-This roadmap tracks the completed path from `v0.1.0` through `v1.0.0` and the post-1.0 ideas that may become future `v1.x` releases.
+This roadmap tracks the completed path from `v0.1.0` through `v1.1.0` and the post-1.0 ideas that may become future `v1.x` releases.
 Each milestone is a working, published crate — not a draft. Nothing ships without tests, docs, and benchmarks.
 
 ---
@@ -33,6 +33,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v0.8.0` | Raycasting & Helpers | BVH raycaster, debug helpers, input abstraction | ✅ |
 | `v0.9.0` | Integration | animato bridge, WASM browser support, framework compat | ✅ |
 | `v1.0.0` | Stable | API freeze, full docs, examples, all CI green | ✅ |
+| `v1.1.0` | Browser fallback | WebGPU-to-WebGL browser fallback and updated release automation | ✅ |
 
 ---
 
@@ -435,7 +436,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 - [x] `docs/materials-guide.md`
 - [x] `docs/platform-guide.md`
 - [x] `docs/benchmarks.md`
-- [x] `docs/release-v1.0.0.md`
+- [x] `docs/release-v1.1.0.md`
 - [x] README, architecture notes, changelog, and release automation updated
 
 **Testing**
@@ -455,7 +456,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 
 **Release**
 - [x] `CHANGELOG.md` includes the stable release
-- [x] GitHub Release uses `docs/release-v1.0.0.md`
+- [x] GitHub Release uses `docs/release-v1.1.0.md`
 - [x] GitHub Pages website and WASM demo workflow added
 
 ---
@@ -495,7 +496,7 @@ The best way to contribute now is to propose a focused post-1.0 issue or PR that
 
 ---
 
-*Roadmap version: 1.0.0 — last updated May 27, 2026*
+*Roadmap version: 1.1.0 — last updated May 31, 2026*
 *Next milestone: post-1.0 maintenance*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

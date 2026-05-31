@@ -1,18 +1,19 @@
 use std::cell::RefCell;
 
 use wasm_bindgen::JsCast;
-use wasm_bindgen::JsValue;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{
     CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent, PointerEvent, WheelEvent, window,
 };
 
+type RafClosure = Closure<dyn FnMut(f64)>;
+
 thread_local! {
-    static RENDERER: RefCell<Option<scenix::WebRenderer>> = const { RefCell::new(None) };
-    static STATUS: RefCell<String> = RefCell::new(String::from("Starting WebGPU demo"));
-    static ANIMATION: RefCell<Option<Closure<dyn FnMut(f64)>>> = const { RefCell::new(None) };
-    static FALLBACK: RefCell<FallbackState> = RefCell::new(FallbackState::new());
+    static RENDERER: RefCell<Option<scenix::BrowserRenderer>> = const { RefCell::new(None) };
+    static STATUS: RefCell<String> = RefCell::new(String::from("Starting browser demo"));
+    static ANIMATION: RefCell<Option<RafClosure>> = const { RefCell::new(None) };
+    static FALLBACK: RefCell<FallbackState> = const { RefCell::new(FallbackState::new()) };
 }
 
 #[derive(Clone, Debug)]
@@ -119,7 +120,7 @@ impl FallbackState {
 }
 
 pub fn start(canvas_id: &'static str) {
-    set_status("Starting WebGPU demo");
+    set_status("Starting browser demo");
     spawn_local(async move {
         let Some(document) = window().and_then(|window| window.document()) else {
             set_status("Browser document is unavailable");
@@ -134,20 +135,19 @@ pub fn start(canvas_id: &'static str) {
             return;
         };
 
-        if should_use_canvas_fallback() {
-            start_canvas_fallback(canvas);
-            return;
-        }
-
         attach_renderer_events(&canvas);
-        match scenix::WebRenderer::new(canvas).await {
+        match scenix::BrowserRenderer::new(canvas).await {
             Ok(renderer) => {
+                let label = renderer.backend_label();
                 RENDERER.with(|slot| *slot.borrow_mut() = Some(renderer));
-                set_status("WebGPU demo running");
+                set_status(&format!("{label} demo running"));
                 start_animation_loop();
             }
             Err(error) => {
-                set_status(&format!("WebGPU/WASM init failed: {}", js_value_text(&error)));
+                set_status(&format!(
+                    "GPU init failed, using Canvas fallback: {}",
+                    js_value_text(&error)
+                ));
                 if let Some(document) = window().and_then(|window| window.document())
                     && let Some(element) = document.get_element_by_id(canvas_id)
                     && let Ok(canvas) = element.dyn_into::<HtmlCanvasElement>()
@@ -159,8 +159,8 @@ pub fn start(canvas_id: &'static str) {
     });
 }
 
-pub fn start_snapshot_loop(mut update: impl FnMut() + 'static) {
-    let closure = Closure::wrap(Box::new(move || update()) as Box<dyn FnMut()>);
+pub fn start_snapshot_loop(update: impl FnMut() + 'static) {
+    let closure = Closure::wrap(Box::new(update) as Box<dyn FnMut()>);
     if let Some(window) = window() {
         let _ = window.set_interval_with_callback_and_timeout_and_arguments_0(
             closure.as_ref().unchecked_ref(),
@@ -230,7 +230,7 @@ pub fn reset_camera() {
         fallback.angle = 0.0;
         fallback.selected = FallbackSelection::Rover;
     });
-    with_renderer(scenix::WebRenderer::reset_camera);
+    with_renderer(scenix::BrowserRenderer::reset_camera);
 }
 
 fn start_animation_loop() {
@@ -269,18 +269,6 @@ fn request_next_frame() {
             }
         });
     }
-}
-
-fn should_use_canvas_fallback() -> bool {
-    let Some(window) = window() else {
-        return true;
-    };
-    let user_agent = window.navigator().user_agent().unwrap_or_default().to_lowercase();
-    if user_agent.contains("firefox") {
-        return true;
-    }
-    let navigator = JsValue::from(window.navigator());
-    !js_sys::Reflect::has(&navigator, &JsValue::from_str("gpu")).unwrap_or(false)
 }
 
 fn draw_fallback_scene(canvas: &HtmlCanvasElement) {
@@ -605,8 +593,8 @@ fn attach_fallback_events(canvas: &HtmlCanvasElement) {
         pick_fallback(
             up_canvas.client_width().max(1) as f64,
             up_canvas.client_height().max(1) as f64,
-            event.offset_x() as f64,
-            event.offset_y() as f64,
+            event.offset_x(),
+            event.offset_y(),
         );
     }) as Box<dyn FnMut(_)>);
     let _ = canvas.add_event_listener_with_callback("pointerup", up_closure.as_ref().unchecked_ref());
@@ -647,7 +635,7 @@ fn attach_keyboard_events() {
     }
 }
 
-fn with_renderer(mut f: impl FnMut(&mut scenix::WebRenderer)) {
+fn with_renderer(mut f: impl FnMut(&mut scenix::BrowserRenderer)) {
     RENDERER.with(|slot| {
         if let Some(renderer) = slot.borrow_mut().as_mut() {
             f(renderer);

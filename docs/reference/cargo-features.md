@@ -11,7 +11,7 @@ The facade forwards feature flags to focused crates. Keep features explicit in a
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
 | `animato` | no | Animato 1.4.0 scene, camera, material, and skeleton animation bridge. |
-| `wasm` | no | Browser canvas wrapper and DOM input mapping. |
+| `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, and WebGL fallback. |
 | `serde` | no | Serialization support where each crate supports it. |
 
 

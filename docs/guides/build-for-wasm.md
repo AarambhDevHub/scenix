@@ -6,7 +6,7 @@ Compile the browser wrapper and WASM viewer example.
 
 ## Relevant Feature Flags
 
-`wasm`; renderer/WebGPU depends on browser support.
+`wasm`; `BrowserRenderer` uses WebGPU when safe and WebGL when WebGPU is unavailable.
 
 ## Steps
 
@@ -25,7 +25,7 @@ cargo check --manifest-path examples/wasm_viewer/Cargo.toml --target wasm32-unkn
 
 ## Verify
 
-Use the website fallback path for browsers without WebGPU.
+Use the website fallback path for browsers without WebGPU or WebGL. In normal browsers without WebGPU, `scenix-wasm` should still render through WebGL.
 
 ## Related Docs
 

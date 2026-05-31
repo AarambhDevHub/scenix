@@ -316,7 +316,7 @@ scenix/
 │   │   └── src/
 │   │       ├── lib.rs
 │   │       ├── input.rs                ← DOM key/button mapping helpers
-│   │       └── web.rs                  ← WebRenderer, canvas sizing, generated scene
+│   │       └── web.rs                  ← BrowserRenderer, WebRenderer, WebGlRenderer, generated scene
 │   │
 │   ├── scenix-helpers/                  ← Debug visualization helpers
 │   │   ├── Cargo.toml
@@ -427,7 +427,7 @@ members = [
 ]
 
 [workspace.package]
-version      = "1.0.0"
+version      = "1.1.0"
 edition      = "2024"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/AarambhDevHub/scenix"
@@ -1607,11 +1607,11 @@ driver.add_node(NodeAnimator::new(
 
 ### 4.14 `scenix-wasm`
 
-**Responsibility:** Browser-specific integrations: creating a `wgpu::Surface` from a `<canvas>`, forwarding DOM input events into scenix input types, clamping canvas sizes, and providing a generated-scene `WebRenderer` wrapper.
+**Responsibility:** Browser-specific integrations: selecting a canvas backend, creating a `wgpu::Surface` from a `<canvas>` when WebGPU is safe, using a WebGL compatibility renderer when WebGPU is unavailable, forwarding DOM input events into scenix input types, clamping canvas sizes, and providing generated-scene browser wrappers.
 
 **Depends on:** `scenix-renderer`, `scenix-scene`, `scenix-camera`, `scenix-input`, `wasm-bindgen`, `web-sys`
 
-**Status in v1.0.0:** shipped as an optional facade feature. The browser wrapper powers the generated "Scenix Engine Lab" website demo with cube, sphere, torus, floor, helper visuals, DOM input, raycast selection, animation toggles, and no network asset loading.
+**Status in v1.1.0:** shipped as an optional facade feature. The browser wrapper powers the generated "Scenix Engine Lab" website demo with cube, sphere, torus, floor, helper visuals, DOM input, raycast selection, animation toggles, WebGPU/WebGL backend selection, and no network asset loading.
 
 ```rust
 #[wasm_bindgen]
@@ -1621,6 +1621,16 @@ pub struct WebRenderer {
     camera:   PerspectiveCamera,
     pointer:  PointerState,
     keyboard: KeyboardState,
+}
+
+#[wasm_bindgen]
+pub struct BrowserRenderer {
+    // WebGPU first when safe, WebGL fallback otherwise.
+}
+
+#[wasm_bindgen]
+pub struct WebGlRenderer {
+    // WebGL1-compatible compatibility backend.
 }
 
 #[wasm_bindgen]
@@ -2051,10 +2061,10 @@ let config = RendererConfig::default();
 let mut renderer = pollster::block_on(Renderer::new(&window, config)).unwrap();
 ```
 
-### WASM / Browser (WebGPU)
+### WASM / Browser (WebGPU With WebGL Fallback)
 
 ```rust
-use scenix_wasm::WebRenderer;
+use scenix_wasm::BrowserRenderer;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(start)]
@@ -2064,7 +2074,7 @@ pub async fn main() {
         .get_element_by_id("canvas").unwrap()
         .dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
 
-    let renderer = WebRenderer::new(canvas).await.unwrap();
+    let renderer = BrowserRenderer::new(canvas).await.unwrap();
     // drive from requestAnimationFrame
 }
 ```
@@ -2300,11 +2310,11 @@ impl MyApp {
 | `scenix-raycaster` | ✅ | Uses `alloc` for BVH and hit vectors |
 | `scenix-helpers` | ✅ | Uses `alloc` for `LineGeometry` |
 | `scenix-animato` | ✅ | Uses `alloc` and Animato 1.4.0 tween/spring features |
-| `scenix-wasm` | ❌ | Browser-only wrapper requiring `std`, `wasm-bindgen`, `web-sys`, and `wgpu` |
+| `scenix-wasm` | ❌ | Browser-only wrapper requiring `std`, `wasm-bindgen`, `web-sys`, WebGL bindings, and `wgpu` for the WebGPU path |
 
 ---
 
-*Document version: 1.0.0 — covers architecture through scenix 1.0.0*
+*Document version: 1.1.0 — covers architecture through scenix 1.1.0*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
-*Total crates: 17 planned; 17 shipped through v1.0.0*
+*Total crates: 17 planned; 17 shipped through v1.1.0*

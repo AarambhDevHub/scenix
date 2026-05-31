@@ -20,7 +20,7 @@ scenix = { version = "1", features = ["renderer", "post"] }
 - Replace `0.9` dependency requirements with `1`.
 - Confirm renderer, loader, post, Animato, and WASM features are enabled only where needed.
 - Re-run no-default checks for CPU crates if you support `no_std`.
-- Review known renderer limitations in `../release-v1.0.0.md`.
+- Review known renderer limitations in `../release-v1.1.0.md`.
 
 ## Verification
 

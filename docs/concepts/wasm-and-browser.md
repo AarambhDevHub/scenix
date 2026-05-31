@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Use the browser wrapper, DOM input mapping, and generated scene demo.
+Use the browser wrapper, DOM input mapping, generated scene demo, and browser backend fallback.
 
 ## When To Use This
 
@@ -10,13 +10,38 @@ Read this page when the subsystem affects your app architecture or dependency ch
 
 ## Relevant Feature Flags
 
-Enable `wasm`; renderer support requires browser WebGPU.
+Enable `wasm`. `scenix-wasm::BrowserRenderer` tries WebGPU where it is safe, uses WebGL when WebGPU is missing or unsuitable, and lets applications fall back to their own Canvas2D preview when WebGL is unavailable.
 
 ## Key Rules
 
 - `scenix-wasm` wraps canvas setup and input forwarding.
+- `WebRenderer` is the direct WebGPU path.
+- `WebGlRenderer` is the direct WebGL compatibility path.
+- `BrowserRenderer` chooses WebGPU first on safe browsers and WebGL otherwise.
 - The website is Leptos CSR and builds with Trunk.
-- Fallback UI should handle unavailable WebGPU cleanly.
+- Fallback UI should handle unavailable WebGPU and WebGL cleanly.
+
+## Minimal Browser Renderer
+
+```rust
+use scenix_wasm::BrowserRenderer;
+use wasm_bindgen::JsCast;
+
+# async fn start() -> Result<(), wasm_bindgen::JsValue> {
+let canvas = web_sys::window()
+    .unwrap()
+    .document()
+    .unwrap()
+    .get_element_by_id("scenix-canvas")
+    .unwrap()
+    .dyn_into::<web_sys::HtmlCanvasElement>()?;
+
+let mut renderer = BrowserRenderer::new(canvas).await?;
+renderer.tick(0.0)?;
+web_sys::console::log_1(&renderer.backend_label().into());
+# Ok(())
+# }
+```
 
 
 ## Example

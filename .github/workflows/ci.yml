@@ -120,6 +120,8 @@ jobs:
 
       - name: Build website
         working-directory: website
+        env:
+          NO_COLOR: "false"
         run: trunk build --release --public-url /scenix/
 
   coverage:

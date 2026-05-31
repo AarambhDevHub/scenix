@@ -24,7 +24,10 @@ pub const fn clamp_canvas_size(width: u32, height: u32) -> (u32, u32) {
 mod web;
 
 #[cfg(target_arch = "wasm32")]
-pub use web::{WebRenderer, canvas_size};
+pub use web::{
+    BrowserBackendKind, BrowserBackendPreference, BrowserRenderer, WebGlRenderer, WebRenderer,
+    canvas_size,
+};
 
 #[cfg(not(target_arch = "wasm32"))]
 /// Browser renderer wrapper.
@@ -33,3 +36,37 @@ pub use web::{WebRenderer, canvas_size};
 /// `wasm32-unknown-unknown`.
 #[derive(Debug)]
 pub struct WebRenderer;
+
+#[cfg(not(target_arch = "wasm32"))]
+/// Browser renderer with automatic WebGPU/WebGL backend selection.
+#[derive(Debug)]
+pub struct BrowserRenderer;
+
+#[cfg(not(target_arch = "wasm32"))]
+/// Browser WebGL compatibility renderer.
+#[derive(Debug)]
+pub struct WebGlRenderer;
+
+#[cfg(not(target_arch = "wasm32"))]
+/// Preferred browser rendering backend.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BrowserBackendPreference {
+    /// Select the best available browser backend.
+    Auto,
+    /// Force WebGPU.
+    WebGpu,
+    /// Force WebGL.
+    WebGl,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+/// Active browser rendering backend.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BrowserBackendKind {
+    /// WebGPU backend.
+    WebGpu,
+    /// WebGL backend.
+    WebGl,
+    /// Application-level Canvas2D fallback.
+    CanvasFallback,
+}

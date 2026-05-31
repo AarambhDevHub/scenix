@@ -17,7 +17,7 @@ scenix = "1"
 
 ## Key Public API
 
-SceneGraph, SceneNode, PerspectiveCamera, Geometry, PbrMaterial, Raycaster, Renderer, GltfLoader, PostStack, ScenixAnimationDriver, WebRenderer
+SceneGraph, SceneNode, PerspectiveCamera, Geometry, PbrMaterial, Raycaster, Renderer, GltfLoader, PostStack, ScenixAnimationDriver, BrowserRenderer, WebRenderer
 
 ## Common Use
 

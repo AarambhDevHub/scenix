@@ -7,6 +7,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-31
+
+### Added
+
+- Added `scenix-wasm::BrowserRenderer` for automatic browser backend
+  selection between WebGPU and WebGL.
+- Added `scenix-wasm::WebGlRenderer` as a browser compatibility renderer for
+  generated Scenix Engine Lab scenes when WebGPU is unavailable or unsuitable.
+- Added `BrowserBackendPreference` and `BrowserBackendKind` so applications can
+  force WebGPU, force WebGL, or report the active backend.
+- Added facade and `scenix-wasm` tests for the new browser backend enums.
+
+### Changed
+
+- Bumped all workspace crates and internal dependency requirements to `1.1.0`.
+- Updated the website demo bridge to use `BrowserRenderer` and try WebGL before
+  the Canvas2D fallback.
+- Updated README, architecture notes, WASM docs, release notes, and feature
+  matrix text for WebGPU-to-WebGL browser fallback.
+- Updated CI, Pages, and publish website builds to pass `NO_COLOR=false` for
+  Trunk compatibility.
+
 ## [1.0.0] - 2026-05-27
 
 ### Added
@@ -278,7 +300,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/AarambhDevHub/scenix/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/AarambhDevHub/scenix/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/AarambhDevHub/scenix/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/AarambhDevHub/scenix/compare/v0.7.0...v0.8.0

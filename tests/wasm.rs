@@ -1,5 +1,8 @@
 use scenix_input::{KeyCode, PointerButton};
-use scenix_wasm::{clamp_canvas_size, key_code_from_dom, pointer_button_from_dom};
+use scenix_wasm::{
+    BrowserBackendKind, BrowserBackendPreference, clamp_canvas_size, key_code_from_dom,
+    pointer_button_from_dom,
+};
 
 #[test]
 fn dom_key_codes_map_to_input_codes() {
@@ -23,4 +26,26 @@ fn zero_canvas_size_is_clamped() {
     assert_eq!(clamp_canvas_size(0, 0), (1, 1));
     assert_eq!(clamp_canvas_size(640, 0), (640, 1));
     assert_eq!(clamp_canvas_size(0, 480), (1, 480));
+}
+
+#[test]
+fn browser_backend_enums_are_stable() {
+    assert_eq!(
+        BrowserBackendPreference::Auto,
+        BrowserBackendPreference::Auto
+    );
+    assert_eq!(
+        BrowserBackendPreference::WebGpu,
+        BrowserBackendPreference::WebGpu
+    );
+    assert_eq!(
+        BrowserBackendPreference::WebGl,
+        BrowserBackendPreference::WebGl
+    );
+    assert_eq!(BrowserBackendKind::WebGpu, BrowserBackendKind::WebGpu);
+    assert_eq!(BrowserBackendKind::WebGl, BrowserBackendKind::WebGl);
+    assert_eq!(
+        BrowserBackendKind::CanvasFallback,
+        BrowserBackendKind::CanvasFallback
+    );
 }
