@@ -34,6 +34,16 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v0.9.0` | Integration | animato bridge, WASM browser support, framework compat | ✅ |
 | `v1.0.0` | Stable | API freeze, full docs, examples, all CI green | ✅ |
 | `v1.1.0` | Browser fallback | WebGPU-to-WebGL browser fallback and updated release automation | ✅ |
+| `v1.2.0` | Renderer parity | Real material GPU paths, texture binding, lights, shadows, IBL, render targets | 📋 |
+| `v1.3.0` | Asset pipeline | glTF extensions, animation import, compression, extra loaders, exporters, asset manager | 📋 |
+| `v1.4.0` | Animation runtime | Clip/mixer/action layer, skeletal animation, morph playback, retargeting helpers | 📋 |
+| `v1.5.0` | Interaction tools | Transform/drag/pointer-lock controls, selection helpers, editor primitives | 📋 |
+| `v1.6.0` | Shader nodes | New optional shader graph and node material crate | 🔮 |
+| `v1.7.0` | Particles | New optional CPU/GPU particle crate | 🔮 |
+| `v1.8.0` | Environment systems | New optional terrain, sky, and water crates | 🔮 |
+| `v1.9.0` | Runtime bridges | New optional XR, audio, and physics crates | 🔮 |
+| `v1.10.0` | Editor tooling | New optional editor and UI overlay crates | 🔮 |
+| `v1.x+` | Advanced rendering | Post effects, geometry extras, modifiers, GPU-driven rendering, realtime GI | 🔮 |
 
 ---
 
@@ -463,28 +473,349 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 
 ## Current Focus
 
-The project is now in post-1.0 maintenance. New work should preserve the stable modular API, keep heavy dependencies optional, and add deprecations before removing public APIs.
+The project is now in post-1.1 planning and maintenance. New work should preserve the stable modular API, keep heavy dependencies optional, and add deprecations before removing public APIs.
 
-## Post-1.0 Ideas (Future / `v1.x`)
+Scenix is not only a website or WASM demo library. Future work must treat **desktop, mobile, and web** as first-class runtime targets:
 
-These are not committed — they are ideas to revisit after the stable release.
+- Desktop: Linux, Windows, and macOS through `wgpu` surfaces.
+- Mobile: Android and iOS through `wgpu`, native lifecycle handling, touch/gamepad input, and mobile texture formats.
+- Web: WASM with WebGPU first, WebGL2 fallback, and clean unavailable-backend handling.
 
-| Idea | Notes |
+## Future Milestones (`v1.x`)
+
+The version numbers below are planning buckets, not release promises. Each milestone should ship only when tests, docs, examples, and benches are ready.
+
+## v1.2.0 — Renderer And Material Parity
+
+**Goal:** Move from stable preview rendering to production-quality material and lighting behavior.
+
+### Crates shipped / updated
+
+- `scenix-renderer` — primary work: real GPU material paths, texture binding, lights, shadows, IBL, render targets, diagnostics, resource lifecycle, and scene-to-renderer sync.
+- `scenix-material` — material parameters, texture slots, physical material extensions, alpha behavior, pipeline keys, and future node-material integration points.
+- `scenix-texture` — sampler metadata, mipmaps, compressed texture formats, video texture update contract, and texture validation needed by GPU upload.
+- `scenix-light` — light/shadow data needed by renderer upload, cascades, probes, and area-light renderer-facing metadata.
+- `scenix-post` — post target reuse, depth/normal/motion input contracts, and backend fallback hooks where renderer changes affect post-processing.
+- `scenix-wasm` — WebGPU/WebGL feature parity notes, fallback behavior, and browser renderer smoke paths.
+- `scenix` — facade re-exports and feature flags for any new public renderer/material/texture APIs.
+- No new crate is planned for this release.
+
+- [ ] Real GPU texture allocation and binding for `Texture2D`, `TextureCube`, `Texture3D`, video textures, mip levels, and samplers.
+- [ ] PBR shader path with albedo, metallic-roughness, normal, occlusion, emissive, vertex colors, alpha mask, alpha blend, and double-sided rendering.
+- [ ] Physical shader path with clearcoat, sheen, transmission, thickness, IOR, iridescence, attenuation, and environment response.
+- [ ] Real lighting integration for ambient, hemisphere, directional, point, spot, area, and light probes.
+- [ ] Shadow map rendering for directional, point, and spot lights, including atlas allocation, PCF, bias controls, and cascade support.
+- [ ] Environment lighting with cube/equirectangular maps, irradiance, prefiltered radiance, BRDF lookup, and PMREM-style filtering.
+- [ ] Render targets for 2D, cube, 3D, array, depth, multisampled, HDR, offscreen capture, and readback.
+- [ ] Color management and tone mapping policy shared across desktop, mobile, WebGPU, and WebGL fallback.
+- [ ] Renderer stats for draw calls, triangles, material count, texture memory, visible/culled objects, GPU timings where supported, and pipeline cache activity.
+- [ ] Resource lifecycle APIs for register, update, unregister, clear, dispose, and reload workflows.
+- [ ] Scene-to-renderer sync helpers that report created, updated, reused, skipped, and removed GPU resources.
+- [ ] Capability matrix for renderer features across desktop, mobile, WebGPU, and WebGL fallback.
+
+## v1.3.0 — Asset Pipeline
+
+**Goal:** Make Scenix useful for real production assets, not only generated scenes.
+
+### Crates shipped / updated
+
+- `scenix-loader` — primary work: glTF extensions, skins, morphs, animation import, extra loaders, exporters, asset cache, async loading, hot reload, and asset metadata.
+- `scenix-mesh` — geometry attributes required by imported assets, morph target import, skinning-related vertex attributes, and mesh compression/decompression integration points.
+- `scenix-material` — imported material extension mapping for clearcoat, transmission, volume, sheen, specular, IOR, iridescence, emissive strength, texture transforms, and variants.
+- `scenix-texture` — KTX2/BasisU metadata, compressed texture validation, texture transform metadata, and image/HDR/EXR integration points.
+- `scenix-scene` — imported hierarchy, node metadata, variant metadata, and loaded scene organization.
+- `scenix-camera` — imported perspective/orthographic camera conversion and metadata.
+- `scenix-light` — imported punctual lights and future IES/light metadata.
+- `scenix-animato` — imported animation data handoff into the animation runtime planned for `v1.4.0`.
+- `scenix-renderer` — optional asset-to-GPU convenience helpers for registered loaded assets.
+- `scenix` — facade re-exports and feature flags for new loader/exporter APIs.
+- No new crate is planned for this release.
+
+- [ ] glTF skins, skeletons, morph targets, animation clips, and node/light/camera extension support.
+- [ ] glTF material extensions: clearcoat, transmission, volume, sheen, specular, IOR, iridescence, emissive strength, texture transform, variants, KTX2/BasisU, meshopt, and Draco.
+- [ ] Additional loaders: FBX, Collada, PLY, SVG, USD/USDZ, 3MF, VOX, VTK, Rhino 3DM, LDraw, TTF/font, IES, DDS, TGA, TIFF, EXR, UltraHDR, and LUT formats.
+- [ ] Exporters: glTF/GLB, OBJ, STL, PLY, USDZ, KTX2, EXR/HDR, and scene JSON.
+- [ ] Asset manager with async loading, progress callbacks, cancellation, dependency graphs, memory budgets, cache invalidation, and desktop hot reload.
+- [ ] Asset examples covering local files, URLs, embedded bytes, browser assets, desktop assets, and mobile packaged assets.
+- [ ] Asset-to-GPU convenience helpers for loaded glTF/OBJ/STL/image assets while preserving manual renderer registration.
+
+## v1.4.0 — Animation Runtime
+
+**Goal:** Keep Animato as the value engine while adding a scene/asset animation layer comparable to Three.js clips and mixers.
+
+### Crates shipped / updated
+
+- `scenix-animato` — primary work: `AnimationClip`, `AnimationAction`, `AnimationMixer`, property binding, blending, events, loop modes, and deterministic sampling.
+- `scenix-loader` — loaded animation clips, skeletons, morph animation channels, and imported clip metadata from glTF/FBX-style assets.
+- `scenix-mesh` — morph weights, skinning data model, vertex attributes, and CPU/GPU skinning data handoff.
+- `scenix-scene` — animation property paths for nodes, visibility, transforms, and scene hierarchy targets.
+- `scenix-material` — animation targets for material fields and texture-driven material variants.
+- `scenix-camera` — animation targets for camera position, target, projection, and orthographic bounds.
+- `scenix-light` — animation targets for light intensity, color, range, angle, and shadow-related fields.
+- `scenix-renderer` — GPU skinning, morph upload, animation-driven resource updates, and renderer sync hooks.
+- `scenix-helpers` — skeleton, path, and animation debugging helpers.
+- `scenix` — facade re-exports and feature flags for new animation APIs.
+- No new crate is planned for this release.
+
+- [ ] `AnimationClip`, `AnimationAction`, and `AnimationMixer` equivalents for imported clips.
+- [ ] Property binding for node transforms, visibility, material fields, cameras, lights, morph weights, and skeleton bones.
+- [ ] Playback controls: loop modes, pause/resume, time scale, markers, events, crossfade, additive blending, and deterministic sampling.
+- [ ] Skeletal animation data model, GPU skinning path, CPU fallback tests, skeleton helpers, and pose debugging.
+- [ ] Retargeting helpers and optional IK helpers.
+- [ ] Animation path helper and docs for imported animation workflows.
+
+## v1.5.0 — Controls, Interaction, And Editor Primitives
+
+**Goal:** Support product viewers, editors, games, CAD-like tools, and data visualization without every app rebuilding interaction basics.
+
+### Crates shipped / updated
+
+- `scenix-camera` — primary camera-control work: arcball, trackball, map, first-person, pointer-lock, and improved orbit/fly behavior.
+- `scenix-input` — touch, gesture, gamepad, pointer lock, high-DPI normalization, and cross-platform input mapping.
+- `scenix-raycaster` — selection box/frustum picking, drag-plane support, hover/active/selected workflows, layer masks, and picking helpers.
+- `scenix-helpers` — transform gizmo geometry, selection helpers, bounds helpers, camera/light/skeleton editor helpers, and snapping/grid visuals.
+- `scenix-scene` — selection metadata, layer policies, editor-facing node metadata, and scene inspector support.
+- `scenix-renderer` — object ID/depth/normal buffers or readback hooks required by editor picking and viewport overlays.
+- `scenix-wasm` — browser input forwarding for pointer lock, touch gestures, drag controls, and WebView/browser viewer behavior.
+- `scenix` — facade re-exports and feature flags for new controls/input/helper APIs.
+- No new crate is planned for this release; `scenix-editor` should wait until these primitives are ready.
+
+- [ ] Arcball, Trackball, Map, FirstPerson, PointerLock, Drag, and Transform controls.
+- [ ] Translation, rotation, scale, bounds, camera, light, and skeleton gizmos.
+- [ ] Selection box/frustum picking, hover/active/selected state model, drag planes, snapping, grid constraints, and layer masks.
+- [ ] Inspector data model for scene graph, cameras, lights, materials, textures, animations, renderer stats, and GPU resources.
+- [ ] Web overlay support and native overlay integration for egui or Iced.
+- [ ] Mobile touch gesture mapping for orbit, pan, pinch zoom, drag, and transform operations.
+
+## v1.6.0 — Shader Nodes And Node Materials
+
+**Goal:** Add a typed shader graph layer above raw `ShaderMaterial` without weakening the low-level WGSL escape hatch.
+
+### Crates shipped / updated
+
+- `scenix-nodes` — new optional crate for shader nodes, material graphs, serialized node graphs, WGSL generation, and WebGL-compatible subset validation.
+- `scenix-material` — node-material integration points, material graph references, pipeline-key integration, and built-in node material descriptors.
+- `scenix-renderer` — node shader compilation, shader cache integration, bind group layout generation, diagnostics, and fallback behavior.
+- `scenix-post` — post-processing node graph integration where practical.
+- `scenix-wasm` — WebGPU/WebGL compatibility checks for generated shaders.
+- `scenix` — optional `nodes` facade feature and re-exports.
+
+- [ ] `scenix-nodes` crate scaffold with docs, tests, and facade feature.
+- [ ] Typed nodes for constants, uniforms, attributes, varyings, textures, math, color space, lighting, fog, tone mapping, and post effects.
+- [ ] WGSL backend for renderer integration.
+- [ ] WebGL-compatible subset validator for browser fallback.
+- [ ] First node material rendered through `scenix-renderer`.
+- [ ] Serialization format for editor-generated material graphs.
+
+## v1.7.0 — Particles
+
+**Goal:** Add reusable particle systems for effects, visualizations, sprites, and lightweight simulations.
+
+### Crates shipped / updated
+
+- `scenix-particles` — new optional crate for emitters, particle data, CPU simulation, GPU simulation where supported, modules, and examples.
+- `scenix-scene` — particle scene attachments or node metadata.
+- `scenix-mesh` — billboard/sprite/point geometry helpers and particle buffer layouts.
+- `scenix-material` — particle, sprite, points, soft-particle, and flipbook material support.
+- `scenix-texture` — atlas/flipbook texture support and particle texture metadata.
+- `scenix-renderer` — particle draw path, batching, instancing, GPU buffers, optional compute path, and fallback path.
+- `scenix-wasm` — WebGPU/WebGL particle capability notes.
+- `scenix` — optional `particles` facade feature and re-exports.
+
+- [ ] CPU particle emitter with spawn, lifetime, velocity, acceleration, color, size, rotation, and curve modules.
+- [ ] Sprite/point particle rendering example.
+- [ ] Particle texture atlas and flipbook animation support.
+- [ ] Batched particle upload path.
+- [ ] Optional GPU compute simulation where supported.
+- [ ] WebGL fallback strategy for non-compute particle scenes.
+
+## v1.8.0 — Terrain, Sky, And Water
+
+**Goal:** Add reusable environment systems for real scenes, games, product viewers, and simulations.
+
+### Crates shipped / updated
+
+- `scenix-terrain` — new optional crate for heightmaps, chunked LOD, splat maps, terrain collision data, streaming, and terrain examples.
+- `scenix-sky` — new optional crate for procedural sky, atmosphere, sun/sky lighting helpers, environment map generation, and grounded skybox support.
+- `scenix-water` — new optional crate for water surfaces, waves, foam, reflection, refraction, fresnel behavior, and underwater helpers.
+- `scenix-renderer` — terrain LOD draw path, sky/background path, water reflection/refraction targets, environment capture hooks, and fallback behavior.
+- `scenix-material` — terrain, sky, atmosphere, and water material descriptors.
+- `scenix-texture` — heightmap, normal map, splat map, and environment texture handling.
+- `scenix-light` — sun/sky/environment light integration.
+- `scenix-scene` — environment object attachments and metadata.
+- `scenix` — optional `terrain`, `sky`, and `water` facade features and re-exports.
+
+- [ ] Heightmap terrain with chunked LOD example.
+- [ ] Terrain splat-map material path.
+- [ ] Procedural sky background and sun/sky lighting helper.
+- [ ] Water plane with reflection/refraction render targets.
+- [ ] Mobile/web capability notes for environment features.
+- [ ] Shared environment demo scene.
+
+## v1.9.0 — XR, Audio, And Physics Bridges
+
+**Goal:** Add optional runtime bridges for immersive applications, spatial sound, and simulation while keeping the core renderer independent.
+
+### Crates shipped / updated
+
+- `scenix-xr` — new optional crate for WebXR/OpenXR sessions, controllers, hands, hit tests, anchors, planes, depth sensing, estimated lighting, and mobile XR lifecycle.
+- `scenix-audio` — new optional crate for audio listeners, positional audio sources, streaming audio, analyser data, and scene-node attachment.
+- `scenix-physics` — new optional crate for Rapier/Jolt bridge, rigid bodies, colliders, character controller helpers, debug visualization, and scene transform sync.
+- `scenix-scene` — node attachments and sync metadata for XR, audio, and physics.
+- `scenix-input` — XR controller, gamepad, touch, and device input mapping.
+- `scenix-camera` — XR camera rigs, stereo camera helpers, and listener/camera sync.
+- `scenix-helpers` — physics collider helpers, XR/controller helpers, and debug visualizations.
+- `scenix-renderer` — stereo/XR render target hooks and debug drawing support where needed.
+- `scenix-wasm` — WebXR browser integration.
+- `scenix` — optional `xr`, `audio`, and `physics` facade features and re-exports.
+
+- [ ] One WebXR or OpenXR viewer example.
+- [ ] XR controller input and pose mapping.
+- [ ] Audio listener plus positional source attached to scene nodes.
+- [ ] Physics rigid body/collider bridge with transform synchronization.
+- [ ] Character-controller or simple collision example.
+- [ ] Debug helpers for controllers, colliders, and physics state.
+
+## v1.10.0 — Editor And UI Tooling
+
+**Goal:** Build editor-facing tools only after renderer, asset, animation, controls, and resource lifecycle APIs are strong enough.
+
+### Crates shipped / updated
+
+- `scenix-editor` — new optional crate for visual editor shell, asset browser, scene inspector, gizmos, material editor, animation timeline, import/export workflow, and project metadata.
+- `scenix-ui` or `scenix-egui` — new optional crate for cross-platform debug UI overlays, renderer stats, scene inspector panels, and tool widgets.
+- `scenix-scene` — editor metadata, inspector support, selection state, and serialization hooks.
+- `scenix-renderer` — viewport overlays, object ID/depth/normal buffers, renderer stats, and resource inspector hooks.
+- `scenix-material` — material inspector and node material editor support.
+- `scenix-loader` — asset browser, import/export workflow, reload, and asset dependency graph integration.
+- `scenix-animato` — animation timeline, clips, action controls, and preview playback.
+- `scenix-helpers` — transform gizmos, selection helpers, debug overlays, and editor visuals.
+- `scenix-wasm` — browser editor support where practical.
+- `scenix` — optional `editor` and `ui` facade features and re-exports.
+
+- [ ] Minimal scene inspector/editor shell.
+- [ ] Renderer stats overlay.
+- [ ] Scene graph panel with selection and transform editing.
+- [ ] Material inspector with texture slots and physical material fields.
+- [ ] Asset browser using loader/exporter APIs.
+- [ ] Animation timeline preview for imported clips.
+- [ ] Save/load project or scene metadata format.
+
+## v1.x+ — Advanced Rendering And Geometry Extras
+
+**Goal:** Track advanced work that is not assigned to a specific future version yet.
+
+| Area | Future Work |
+|------|-------------|
+| Post-processing | SSR, SSGI, GTAO, SAO, LUT, film, vignette, chromatic aberration, glitch, halftone, pixelation, afterimage, transition, mask, denoise, god rays, lens flare |
+| Geometry | Polyhedron, tetrahedron, octahedron, dodecahedron, rounded box, text, decal, convex, parametric, NURBS, edges, wireframe geometry |
+| Modifiers | Simplify, tessellate, edge split, curve flow, mesh surface sampler, convex hull, OBB, octree |
+| Scene objects | Reflector, refractor, lens flare, marching cubes, shadow catcher, impostors, decals, volume slices |
+| GPU-driven rendering | Indirect draws, GPU culling, clustered/forward+ lighting, large-scene renderer paths |
+| Realtime GI | SSGI first, future probe/grid/path options when practical |
+
+### Optional Future Crates
+
+| Crate | Notes |
 |------|-------|
-| `scenix-audio` | Positional 3D audio via `kira` or `rodio` |
-| `scenix-physics` | Collision detection + rigid body via `rapier3d` bridge |
-| `scenix-xr` | WebXR / OpenXR support for VR/AR |
-| `scenix-particles` | GPU particle system with compute shaders |
-| `scenix-terrain` | Height-map terrain with LOD chunking |
-| `scenix-sky` | Procedural sky + atmosphere scattering |
-| `scenix-water` | Water surface with reflection/refraction |
-| `scenix-egui` | egui overlay integration for debug UI |
-| `scenix-editor` | Visual scene editor built with Tauri + scenix |
-| MatcapMaterial | Matcap material type for stylized rendering |
-| GPU-driven rendering | Indirect draw calls, mesh shaders, GPU culling |
-| Cluster forward+ | Clustered light assignment for forward rendering |
-| Cascaded shadow maps v2 | SDSM (sample distribution shadow maps) |
-| Realtime GI | Screen-space global illumination (SSGI) |
+| `scenix-nodes` | Shader graph, typed shader nodes, node materials, serialized material graphs, WGSL backend, and WebGL-compatible subset |
+| `scenix-particles` | CPU particles, GPU particles where supported, sprite batching, emitter modules, and particle examples |
+| `scenix-terrain` | Heightmap terrain, chunked LOD, splat maps, terrain collision data, and streaming |
+| `scenix-sky` | Procedural sky, atmosphere scattering, sun/sky lighting helpers, and grounded skybox support |
+| `scenix-water` | Water surfaces, reflection/refraction helpers, foam, waves, and underwater/fresnel material support |
+| `scenix-xr` | WebXR and OpenXR support for VR/AR, controllers, hand tracking, hit tests, anchors, planes, estimated lighting, and mobile XR lifecycle |
+| `scenix-audio` | Audio listener, spatial audio source, streaming audio, analyser data, and scene-node attachment |
+| `scenix-physics` | Rapier/Jolt bridge, rigid bodies, colliders, character controller helpers, debug visualization, and scene transform sync |
+| `scenix-editor` | Visual scene editor, asset browser, scene inspector, gizmos, material editor, animation timeline, import/export workflow |
+| `scenix-ui` or `scenix-egui` | Cross-platform debug UI overlays for desktop, mobile, and web |
+
+### Crate Work Map
+
+**Goal:** Make it clear where future work belongs before opening issues or creating new crates.
+
+Existing crates to extend first:
+
+| Work Area | Primary Crate(s) | Work To Do |
+|-----------|------------------|------------|
+| Production renderer | `scenix-renderer` | PBR/physical GPU shaders, real lights, shadows, IBL, render targets, renderer stats, GPU resource lifecycle |
+| Material model | `scenix-material` | Material parameters, pipeline keys, texture slots, physical extensions, future node-material integration points |
+| Texture system | `scenix-texture`, `scenix-renderer` | Compressed formats, mipmaps, sampler metadata, video texture updates, GPU upload/binding, texture memory accounting |
+| Light and shadows | `scenix-light`, `scenix-renderer` | Shadow config, cascades, probes, light upload, shadow atlas integration, area-light renderer behavior |
+| Asset import/export | `scenix-loader` | glTF extensions, animation import, skins, morphs, extra loaders, exporters, asset cache, async loading, hot reload |
+| Post-processing | `scenix-post`, `scenix-renderer` | Extra effects, depth/normal/motion buffers, post graph, target reuse, backend feature fallback |
+| Imported animation | `scenix-animato`, `scenix-loader`, `scenix-mesh` | Animation clips, mixer/action layer, property binding, skeleton playback, morph playback, blending |
+| Controls and picking | `scenix-camera`, `scenix-input`, `scenix-raycaster`, `scenix-helpers` | Arcball/trackball/map/first-person/pointer-lock controls, drag helpers, selection box, gizmo geometry |
+| Scene graph data | `scenix-scene`, `scenix-core` | Resource/version tracking, layer policies, scene-to-renderer sync metadata, stronger IDs and error handling |
+| Browser runtime | `scenix-wasm`, `scenix-renderer` | WebGPU/WebGL parity notes, fallback behavior, browser smoke scenes, WebView support |
+| Desktop/mobile runtime | `scenix-renderer`, `scenix-input`, examples | winit examples, Android/iOS examples, surface loss/recreate, high-DPI, touch, gesture, gamepad |
+| Visual validation | `tests/`, `examples/`, `benches/` | Golden images, renderer smoke tests, compatibility scenes, benchmark gates |
+
+Future crates to create only when implementation starts:
+
+| Future Crate | Create When | First Useful Deliverable |
+|--------------|-------------|--------------------------|
+| `scenix-nodes` | Shader graph work needs more than `ShaderMaterial` | One node material rendered through `scenix-renderer` with docs and tests |
+| `scenix-particles` | Sprite/billboard examples need reusable emitters | CPU particle emitter with one renderer example |
+| `scenix-terrain` | Heightmap/chunked LOD work begins | Heightmap terrain mesh with LOD example |
+| `scenix-sky` | Environment/sky features grow beyond materials | Procedural sky driving scene lighting or background |
+| `scenix-water` | Water needs reflection/refraction render targets | Water plane example with reflection/refraction path |
+| `scenix-xr` | WebXR/OpenXR runtime work begins | One WebXR or OpenXR viewer example with controller input |
+| `scenix-audio` | Spatial audio integration begins | Listener plus positional source attached to scene nodes |
+| `scenix-physics` | Physics sync design is ready | Rigid body/collider bridge with debug helper example |
+| `scenix-editor` | Inspector/gizmo/resource APIs are ready enough | Minimal scene inspector/editor shell using existing crates |
+| `scenix-ui` or `scenix-egui` | Debug UI needs reusable overlays | Renderer stats overlay and scene inspector panel |
+
+Do not add a future crate to the workspace manifest until it has a crate directory, feature flag plan, docs, tests, and at least one example.
+
+### Cross-Cutting Resource Management
+
+**Goal:** Make Scenix usable in long-running apps, editors, mobile apps, and asset-heavy scenes without leaking ownership or hiding GPU cost.
+
+- [ ] Stable resource lifecycle policy for CPU data, GPU data, asset cache entries, render targets, shadow maps, post targets, and browser fallback resources.
+- [ ] Dirty/version tracking for geometry, textures, materials, lights, transforms, skeletons, morph weights, and animation-driven data.
+- [ ] GPU memory accounting for vertex buffers, index buffers, textures, uniform buffers, render targets, shadow atlases, and post scratch targets.
+- [ ] Resource budget controls for geometry memory, texture memory, post-processing targets, shadow maps, and asset cache size.
+- [ ] Explicit cleanup APIs for hot reload, editor delete operations, scene unload, device loss, and mobile suspend/resume.
+- [ ] Clear error categories for unsupported formats, unsupported GPU features, stale handles, invalid IDs, budget exceeded, upload failure, and device/surface loss.
+
+### Cross-Cutting Validation And Visual Tests
+
+**Goal:** Prove renderer and asset behavior with repeatable tests, not only examples.
+
+- [ ] Golden image tests for reference scenes, material balls, shadows, post-processing, glTF sample models, and selected animation frames.
+- [ ] Pixel-diff and perceptual-diff tolerances documented per backend.
+- [ ] Headless renderer smoke tests for textures, shadows, environment maps, transparent sorting, post effects, and readback.
+- [ ] Browser WebGPU and WebGL smoke scenes with documented fallback behavior.
+- [ ] Desktop compatibility table for Linux/Vulkan, Windows/DX12 or Vulkan, and macOS/Metal.
+- [ ] Mobile compatibility table for Android/Vulkan and iOS/Metal, including lifecycle, touch, DPI, and compressed textures.
+- [ ] Feature support labels: `Full`, `Partial`, `Fallback`, or `Unsupported` for desktop, mobile, WebGPU, and WebGL.
+- [ ] Conformance scenes for PBR, physical material extensions, glTF extensions, skinning, morph targets, animation clips, post effects, and picking.
+- [ ] Benchmarks for large scenes, texture upload, asset loading, BVH builds, animation sampling, and frame render time.
+- [ ] CI gates for CPU/no_std, all-features, wasm compile, renderer smoke, docs, examples, and benchmark compile checks.
+
+### Cross-Platform Example Matrix
+
+**Goal:** Make every supported runtime visible to users through working examples.
+
+| Target | Required Examples |
+|--------|-------------------|
+| Desktop | winit surface app, egui overlay app, Tauri/WebView app, headless/offscreen capture |
+| Mobile | Android Vulkan/wgpu app, iOS Metal/wgpu app, touch orbit controls, packaged asset loading, suspend/resume |
+| Web | WebGPU viewer, WebGL fallback viewer, asset loading from URL, graceful unsupported-backend UI |
+| Shared | Same scene rendered on desktop, mobile, and web with documented feature differences |
+
+## Future Work Rules
+
+- Every feature must state desktop, mobile, and web support level.
+- Heavy systems stay opt-in through focused crates or facade features.
+- CPU authoring crates must remain renderer-agnostic.
+- Browser-only APIs must not leak into desktop/mobile core APIs.
+- Mobile-only constraints such as lifecycle, touch input, DPI, surface recreation, and compressed textures must be handled deliberately.
+- Native desktop, Android, iOS, and web examples should be added as features mature instead of being tied to a single release bucket.
+- `scenix-input` should grow touch, gesture, gamepad, pointer lock, and high-DPI normalization as cross-platform requirements.
+- Texture capability detection for BC, ASTC, ETC2, KTX2/BasisU, and fallback transcodes should be handled by the relevant renderer/asset milestones.
+- WebGPU/WebGL parity notes and graceful feature fallback behavior should be documented whenever a renderer feature is added.
+- New renderer features need focused examples, tests, and at least one benchmark or smoke test.
 
 ---
 
@@ -492,11 +823,11 @@ These are not committed — they are ideas to revisit after the stable release.
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to set up the workspace, run tests, and submit pull requests.
 
-The best way to contribute now is to propose a focused post-1.0 issue or PR that preserves the stable API contract.
+The best way to contribute now is to propose a focused post-1.1 planning issue or PR that preserves the stable API contract.
 
 ---
 
-*Roadmap version: 1.1.0 — last updated May 31, 2026*
-*Next milestone: post-1.0 maintenance*
+*Roadmap version: 1.1.0 + future parity plan — last updated June 3, 2026*
+*Next milestone: v1.2.0 renderer and material parity planning*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
