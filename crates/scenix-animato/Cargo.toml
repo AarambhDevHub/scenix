@@ -1,6 +1,6 @@
 [package]
 name = "scenix-animato"
-description = "Animato 1.4 bridge for scenix scenes, cameras, materials, and skeleton poses."
+description = "Animato 1.5 bridge for scenix scenes, cameras, materials, and skeleton poses."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

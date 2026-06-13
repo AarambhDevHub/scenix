@@ -29,8 +29,8 @@ All facade features are documented here.
 | `loader` | no | glTF/GLB, OBJ/MTL, STL, image, KTX2, HDR/EXR loading. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
-| `animato` | no | Animato 1.4.0 scene, camera, material, and skeleton animation bridge. |
-| `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, and WebGL fallback. |
+| `animato` | no | Animato 1.5.0 scene, camera, material, and skeleton animation bridge. |
+| `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
 | `serde` | no | Serialization support where each crate supports it. |
 
 

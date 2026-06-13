@@ -1,6 +1,6 @@
 use scenix::{
-    Color, MaterialId, MeshId, PerspectiveCamera, Renderer, RendererConfig, SceneGraph, SceneNode,
-    ToonMaterial, Vec3, sphere_geometry,
+    Color, MaterialId, MeshId, PerspectiveCamera, Renderer, RendererConfig, Sampler, SceneGraph,
+    SceneNode, Texture2D, TextureFormat, TextureId, ToonMaterial, Vec3, sphere_geometry,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -8,10 +8,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut renderer = Renderer::headless(RendererConfig::new(320, 240)).await?;
         let mesh_id = MeshId::new(1);
         let material_id = MaterialId::new(1);
+        let gradient_id = TextureId::new(1);
         let mut material = ToonMaterial::new().steps(4).outline(0.03, Color::BLACK);
         material.color = Color::from_hex(0xFFCC66);
+        material.gradient_map = Some(gradient_id);
 
         renderer.register_mesh(mesh_id, &sphere_geometry(1.0, 32, 16))?;
+        renderer.register_texture2d(
+            gradient_id,
+            &Texture2D::new(
+                4,
+                1,
+                TextureFormat::Rgba8UnormSrgb,
+                vec![
+                    35, 30, 24, 255, 110, 88, 52, 255, 215, 160, 68, 255, 255, 226, 144, 255,
+                ],
+            )?,
+            Sampler::new(),
+        )?;
         renderer.register_toon_material(material_id, &material)?;
 
         let mut scene = SceneGraph::new();

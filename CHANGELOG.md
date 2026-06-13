@@ -7,13 +7,45 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-13
+
+### Added
+
+- Added renderer-owned GPU texture upload for `Texture2D`, `TextureCube`, and
+  `Texture3D`, including mip-aware byte ranges, sampler conversion, and
+  compressed-format capability checks.
+- Added additive renderer lifecycle APIs for updating, unregistering, and
+  clearing texture resources, plus render-target creation, render-to-texture,
+  texture readback, environment descriptors, diagnostics, resource stats, and
+  pipeline-cache stats.
+- Added renderer registration for hemisphere, area, and light-probe data
+  alongside existing ambient, directional, point, and spot lights.
+- Added `examples/render_target_capture.rs` and expanded renderer examples to
+  exercise textured PBR, toon gradient textures, environment maps, and render
+  targets.
+- Added `docs/release-v1.2.0.md` with renderer parity migration notes and a
+  small textured material code example.
+
+### Changed
+
+- Bumped all workspace crates and internal dependency requirements to `1.2.0`.
+- Updated `scenix-animato` to use Animato `1.5.0`.
+- Reworked the active renderer draw path to batch per-draw uniform writes and
+  bind real material texture and light uniforms.
+- Upgraded the browser fallback to prefer a real WebGL2 renderer path when
+  WebGPU is unavailable, including texture sampling, material uniforms,
+  directional/point lighting, toon/physical approximations, animation, picking,
+  and explicit WebGL2/WebGL1 parity diagnostics.
+- Updated README, API docs, examples docs, feature matrix, workflows, and
+  GitHub Release automation for the Renderer And Material Parity release.
+
 ## [1.1.0] - 2026-05-31
 
 ### Added
 
 - Added `scenix-wasm::BrowserRenderer` for automatic browser backend
   selection between WebGPU and WebGL.
-- Added `scenix-wasm::WebGlRenderer` as a browser compatibility renderer for
+- Added `scenix-wasm::WebGlRenderer` as a browser fallback renderer for
   generated Scenix Engine Lab scenes when WebGPU is unavailable or unsuitable.
 - Added `BrowserBackendPreference` and `BrowserBackendKind` so applications can
   force WebGPU, force WebGL, or report the active backend.

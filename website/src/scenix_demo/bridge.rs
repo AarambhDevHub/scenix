@@ -593,8 +593,8 @@ fn attach_fallback_events(canvas: &HtmlCanvasElement) {
         pick_fallback(
             up_canvas.client_width().max(1) as f64,
             up_canvas.client_height().max(1) as f64,
-            event.offset_x(),
-            event.offset_y(),
+            event.offset_x() as f64,
+            event.offset_y() as f64,
         );
     }) as Box<dyn FnMut(_)>);
     let _ = canvas.add_event_listener_with_callback("pointerup", up_closure.as_ref().unchecked_ref());

@@ -8,6 +8,74 @@ pub struct TextureTarget {
     height: u32,
 }
 
+/// Renderer-owned render target kind.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum RenderTargetKind {
+    /// Color target rendered as a 2D texture.
+    Color2D,
+    /// HDR color target rendered as a 2D texture.
+    Hdr2D,
+    /// Depth-only target.
+    Depth,
+    /// Cube target metadata. v1.2 renders individual captures through 2D views.
+    Cube,
+}
+
+/// Descriptor for a renderer-owned render target registered by `TextureId`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct RenderTargetDescriptor {
+    /// Width in pixels.
+    pub width: u32,
+    /// Height in pixels.
+    pub height: u32,
+    /// Texture format.
+    pub format: wgpu::TextureFormat,
+    /// Target kind.
+    pub kind: RenderTargetKind,
+    /// MSAA sample count. v1.2 render-to-texture uses one sample.
+    pub sample_count: u32,
+}
+
+impl RenderTargetDescriptor {
+    /// Creates a color 2D render target descriptor.
+    #[inline]
+    pub const fn color(width: u32, height: u32, format: wgpu::TextureFormat) -> Self {
+        Self {
+            width,
+            height,
+            format,
+            kind: RenderTargetKind::Color2D,
+            sample_count: 1,
+        }
+    }
+
+    /// Creates an HDR color 2D render target descriptor.
+    #[inline]
+    pub const fn hdr(width: u32, height: u32) -> Self {
+        Self {
+            width,
+            height,
+            format: wgpu::TextureFormat::Rgba16Float,
+            kind: RenderTargetKind::Hdr2D,
+            sample_count: 1,
+        }
+    }
+
+    /// Creates a depth render target descriptor.
+    #[inline]
+    pub const fn depth(width: u32, height: u32) -> Self {
+        Self {
+            width,
+            height,
+            format: wgpu::TextureFormat::Depth32Float,
+            kind: RenderTargetKind::Depth,
+            sample_count: 1,
+        }
+    }
+}
+
 impl TextureTarget {
     /// Allocates a renderable texture target.
     pub fn new(

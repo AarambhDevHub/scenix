@@ -6,7 +6,7 @@ Optional browser canvas wrapper, DOM input mapping, generated scene setup, WebGP
 
 ## Dependency Weight
 
-Browser-oriented optional path; enable `wasm` on facade. This pulls browser bindings, `scenix-renderer` for WebGPU, and lightweight WebGL code for compatibility fallback.
+Browser-oriented optional path; enable `wasm` on facade. This pulls browser bindings, `scenix-renderer` for WebGPU, and a WebGL2-first fallback renderer for browsers where WebGPU is unavailable.
 
 ## Install
 
@@ -17,7 +17,7 @@ scenix-wasm = "1"
 
 ## Key Public API
 
-BrowserRenderer, BrowserBackendPreference, BrowserBackendKind, WebRenderer, WebGlRenderer, set_panic_hook, key_code_from_dom, pointer_button_from_dom, canvas_size
+BrowserRenderer, BrowserBackendPreference, BrowserBackendKind, WebRenderer, WebGlRenderer, WebGlCapabilityLevel, set_panic_hook, key_code_from_dom, pointer_button_from_dom, canvas_size
 
 ## Backend Choice
 
@@ -44,7 +44,7 @@ let active_backend = renderer.backend_label();
 # }
 ```
 
-Use `WebRenderer` only when you require WebGPU specifically. Use `WebGlRenderer` to force the compatibility path in browser tests or product demos.
+Use `WebRenderer` only when you require WebGPU specifically. Use `WebGlRenderer` to force the WebGL path in browser tests or product demos; it requests WebGL2 first and reports `parity=full-fallback` when WebGL2 is active.
 
 ## Common Use
 

@@ -18,11 +18,11 @@ use scenix_scene::{NodeKind, SceneGraph, SceneNode};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use web_sys::{
-    HtmlCanvasElement, WebGlBuffer, WebGlProgram, WebGlRenderingContext, WebGlShader,
-    WebGlUniformLocation, window,
+    HtmlCanvasElement, WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlRenderingContext,
+    WebGlShader, WebGlTexture, WebGlUniformLocation, window,
 };
 
-use crate::{clamp_canvas_size, key_code_from_dom, pointer_button_from_dom};
+use crate::{WebGlCapabilityLevel, clamp_canvas_size, key_code_from_dom, pointer_button_from_dom};
 
 const OBJECT_LAYER: u32 = 1;
 const HELPER_LAYER: u32 = 2;
@@ -71,8 +71,21 @@ struct WebGlMesh {
 }
 
 #[derive(Clone, Copy, Debug)]
+enum WebGlMaterialModel {
+    Pbr,
+    Physical,
+    Toon,
+    Lambert,
+    Unlit,
+}
+
 struct WebGlMaterial {
     color: Color,
+    texture: Option<WebGlTexture>,
+    model: WebGlMaterialModel,
+    metallic: f32,
+    roughness: f32,
+    clearcoat: f32,
     unlit: bool,
     wireframe: bool,
 }
@@ -81,14 +94,341 @@ struct WebGlProgramState {
     program: WebGlProgram,
     position_attrib: u32,
     normal_attrib: u32,
+    uv_attrib: u32,
     color_attrib: u32,
     view_projection_uniform: WebGlUniformLocation,
     model_uniform: WebGlUniformLocation,
     material_uniform: WebGlUniformLocation,
     light_direction_uniform: WebGlUniformLocation,
+    point_position_range_uniform: WebGlUniformLocation,
+    point_color_uniform: WebGlUniformLocation,
+    texture_uniform: WebGlUniformLocation,
+    use_texture_uniform: WebGlUniformLocation,
+    material_model_uniform: WebGlUniformLocation,
+    metallic_roughness_uniform: WebGlUniformLocation,
     unlit_uniform: WebGlUniformLocation,
     bloom_uniform: WebGlUniformLocation,
     ssao_uniform: WebGlUniformLocation,
+}
+
+enum WebGlBackendContext {
+    WebGl2(WebGl2RenderingContext),
+    WebGl1(WebGlRenderingContext),
+}
+
+impl WebGlBackendContext {
+    fn capability(&self) -> WebGlCapabilityLevel {
+        match self {
+            Self::WebGl2(_) => WebGlCapabilityLevel::WebGl2,
+            Self::WebGl1(_) => WebGlCapabilityLevel::WebGl1,
+        }
+    }
+
+    fn viewport(&self, x: i32, y: i32, width: i32, height: i32) {
+        match self {
+            Self::WebGl2(gl) => gl.viewport(x, y, width, height),
+            Self::WebGl1(gl) => gl.viewport(x, y, width, height),
+        }
+    }
+
+    fn enable(&self, cap: u32) {
+        match self {
+            Self::WebGl2(gl) => gl.enable(cap),
+            Self::WebGl1(gl) => gl.enable(cap),
+        }
+    }
+
+    fn disable(&self, cap: u32) {
+        match self {
+            Self::WebGl2(gl) => gl.disable(cap),
+            Self::WebGl1(gl) => gl.disable(cap),
+        }
+    }
+
+    fn depth_func(&self, func: u32) {
+        match self {
+            Self::WebGl2(gl) => gl.depth_func(func),
+            Self::WebGl1(gl) => gl.depth_func(func),
+        }
+    }
+
+    fn clear_color(&self, r: f32, g: f32, b: f32, a: f32) {
+        match self {
+            Self::WebGl2(gl) => gl.clear_color(r, g, b, a),
+            Self::WebGl1(gl) => gl.clear_color(r, g, b, a),
+        }
+    }
+
+    fn clear(&self, mask: u32) {
+        match self {
+            Self::WebGl2(gl) => gl.clear(mask),
+            Self::WebGl1(gl) => gl.clear(mask),
+        }
+    }
+
+    fn create_buffer(&self) -> Option<WebGlBuffer> {
+        match self {
+            Self::WebGl2(gl) => gl.create_buffer(),
+            Self::WebGl1(gl) => gl.create_buffer(),
+        }
+    }
+
+    fn bind_buffer(&self, target: u32, buffer: Option<&WebGlBuffer>) {
+        match self {
+            Self::WebGl2(gl) => gl.bind_buffer(target, buffer),
+            Self::WebGl1(gl) => gl.bind_buffer(target, buffer),
+        }
+    }
+
+    fn buffer_data_with_array_buffer_view(&self, target: u32, data: &js_sys::Object, usage: u32) {
+        match self {
+            Self::WebGl2(gl) => gl.buffer_data_with_array_buffer_view(target, data, usage),
+            Self::WebGl1(gl) => gl.buffer_data_with_array_buffer_view(target, data, usage),
+        }
+    }
+
+    fn create_texture(&self) -> Option<WebGlTexture> {
+        match self {
+            Self::WebGl2(gl) => gl.create_texture(),
+            Self::WebGl1(gl) => gl.create_texture(),
+        }
+    }
+
+    fn active_texture(&self, texture: u32) {
+        match self {
+            Self::WebGl2(gl) => gl.active_texture(texture),
+            Self::WebGl1(gl) => gl.active_texture(texture),
+        }
+    }
+
+    fn bind_texture(&self, target: u32, texture: Option<&WebGlTexture>) {
+        match self {
+            Self::WebGl2(gl) => gl.bind_texture(target, texture),
+            Self::WebGl1(gl) => gl.bind_texture(target, texture),
+        }
+    }
+
+    fn tex_parameteri(&self, target: u32, pname: u32, param: i32) {
+        match self {
+            Self::WebGl2(gl) => gl.tex_parameteri(target, pname, param),
+            Self::WebGl1(gl) => gl.tex_parameteri(target, pname, param),
+        }
+    }
+
+    fn tex_image_2d_with_u8(
+        &self,
+        target: u32,
+        level: i32,
+        internalformat: i32,
+        width: i32,
+        height: i32,
+        border: i32,
+        format: u32,
+        type_: u32,
+        pixels: Option<&[u8]>,
+    ) -> Result<(), JsValue> {
+        match self {
+            Self::WebGl2(gl) => gl
+                .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+                    target,
+                    level,
+                    internalformat,
+                    width,
+                    height,
+                    border,
+                    format,
+                    type_,
+                    pixels,
+                ),
+            Self::WebGl1(gl) => gl
+                .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
+                    target,
+                    level,
+                    internalformat,
+                    width,
+                    height,
+                    border,
+                    format,
+                    type_,
+                    pixels,
+                ),
+        }
+    }
+
+    fn use_program(&self, program: Option<&WebGlProgram>) {
+        match self {
+            Self::WebGl2(gl) => gl.use_program(program),
+            Self::WebGl1(gl) => gl.use_program(program),
+        }
+    }
+
+    fn uniform3f(&self, location: Option<&WebGlUniformLocation>, x: f32, y: f32, z: f32) {
+        match self {
+            Self::WebGl2(gl) => gl.uniform3f(location, x, y, z),
+            Self::WebGl1(gl) => gl.uniform3f(location, x, y, z),
+        }
+    }
+
+    fn uniform4f(&self, location: Option<&WebGlUniformLocation>, x: f32, y: f32, z: f32, w: f32) {
+        match self {
+            Self::WebGl2(gl) => gl.uniform4f(location, x, y, z, w),
+            Self::WebGl1(gl) => gl.uniform4f(location, x, y, z, w),
+        }
+    }
+
+    fn uniform1f(&self, location: Option<&WebGlUniformLocation>, x: f32) {
+        match self {
+            Self::WebGl2(gl) => gl.uniform1f(location, x),
+            Self::WebGl1(gl) => gl.uniform1f(location, x),
+        }
+    }
+
+    fn uniform1i(&self, location: Option<&WebGlUniformLocation>, x: i32) {
+        match self {
+            Self::WebGl2(gl) => gl.uniform1i(location, x),
+            Self::WebGl1(gl) => gl.uniform1i(location, x),
+        }
+    }
+
+    fn uniform_matrix4fv_with_f32_array(
+        &self,
+        location: Option<&WebGlUniformLocation>,
+        transpose: bool,
+        data: &[f32],
+    ) {
+        match self {
+            Self::WebGl2(gl) => gl.uniform_matrix4fv_with_f32_array(location, transpose, data),
+            Self::WebGl1(gl) => gl.uniform_matrix4fv_with_f32_array(location, transpose, data),
+        }
+    }
+
+    fn uniform4fv_with_f32_array(&self, location: Option<&WebGlUniformLocation>, data: &[f32]) {
+        match self {
+            Self::WebGl2(gl) => gl.uniform4fv_with_f32_array(location, data),
+            Self::WebGl1(gl) => gl.uniform4fv_with_f32_array(location, data),
+        }
+    }
+
+    fn enable_vertex_attrib_array(&self, index: u32) {
+        match self {
+            Self::WebGl2(gl) => gl.enable_vertex_attrib_array(index),
+            Self::WebGl1(gl) => gl.enable_vertex_attrib_array(index),
+        }
+    }
+
+    fn vertex_attrib_pointer_with_i32(
+        &self,
+        index: u32,
+        size: i32,
+        type_: u32,
+        normalized: bool,
+        stride: i32,
+        offset: i32,
+    ) {
+        match self {
+            Self::WebGl2(gl) => {
+                gl.vertex_attrib_pointer_with_i32(index, size, type_, normalized, stride, offset)
+            }
+            Self::WebGl1(gl) => {
+                gl.vertex_attrib_pointer_with_i32(index, size, type_, normalized, stride, offset)
+            }
+        }
+    }
+
+    fn draw_elements_with_i32(&self, mode: u32, count: i32, type_: u32, offset: i32) {
+        match self {
+            Self::WebGl2(gl) => gl.draw_elements_with_i32(mode, count, type_, offset),
+            Self::WebGl1(gl) => gl.draw_elements_with_i32(mode, count, type_, offset),
+        }
+    }
+
+    fn create_shader(&self, shader_type: u32) -> Option<WebGlShader> {
+        match self {
+            Self::WebGl2(gl) => gl.create_shader(shader_type),
+            Self::WebGl1(gl) => gl.create_shader(shader_type),
+        }
+    }
+
+    fn shader_source(&self, shader: &WebGlShader, source: &str) {
+        match self {
+            Self::WebGl2(gl) => gl.shader_source(shader, source),
+            Self::WebGl1(gl) => gl.shader_source(shader, source),
+        }
+    }
+
+    fn compile_shader(&self, shader: &WebGlShader) {
+        match self {
+            Self::WebGl2(gl) => gl.compile_shader(shader),
+            Self::WebGl1(gl) => gl.compile_shader(shader),
+        }
+    }
+
+    fn get_shader_parameter(&self, shader: &WebGlShader, pname: u32) -> JsValue {
+        match self {
+            Self::WebGl2(gl) => gl.get_shader_parameter(shader, pname),
+            Self::WebGl1(gl) => gl.get_shader_parameter(shader, pname),
+        }
+    }
+
+    fn get_shader_info_log(&self, shader: &WebGlShader) -> Option<String> {
+        match self {
+            Self::WebGl2(gl) => gl.get_shader_info_log(shader),
+            Self::WebGl1(gl) => gl.get_shader_info_log(shader),
+        }
+    }
+
+    fn create_program(&self) -> Option<WebGlProgram> {
+        match self {
+            Self::WebGl2(gl) => gl.create_program(),
+            Self::WebGl1(gl) => gl.create_program(),
+        }
+    }
+
+    fn attach_shader(&self, program: &WebGlProgram, shader: &WebGlShader) {
+        match self {
+            Self::WebGl2(gl) => gl.attach_shader(program, shader),
+            Self::WebGl1(gl) => gl.attach_shader(program, shader),
+        }
+    }
+
+    fn link_program(&self, program: &WebGlProgram) {
+        match self {
+            Self::WebGl2(gl) => gl.link_program(program),
+            Self::WebGl1(gl) => gl.link_program(program),
+        }
+    }
+
+    fn get_program_parameter(&self, program: &WebGlProgram, pname: u32) -> JsValue {
+        match self {
+            Self::WebGl2(gl) => gl.get_program_parameter(program, pname),
+            Self::WebGl1(gl) => gl.get_program_parameter(program, pname),
+        }
+    }
+
+    fn get_program_info_log(&self, program: &WebGlProgram) -> Option<String> {
+        match self {
+            Self::WebGl2(gl) => gl.get_program_info_log(program),
+            Self::WebGl1(gl) => gl.get_program_info_log(program),
+        }
+    }
+
+    fn get_attrib_location(&self, program: &WebGlProgram, name: &str) -> i32 {
+        match self {
+            Self::WebGl2(gl) => gl.get_attrib_location(program, name),
+            Self::WebGl1(gl) => gl.get_attrib_location(program, name),
+        }
+    }
+
+    fn get_uniform_location(
+        &self,
+        program: &WebGlProgram,
+        name: &str,
+    ) -> Option<WebGlUniformLocation> {
+        match self {
+            Self::WebGl2(gl) => gl.get_uniform_location(program, name),
+            Self::WebGl1(gl) => gl.get_uniform_location(program, name),
+        }
+    }
 }
 
 /// Preferred browser rendering backend.
@@ -99,7 +439,7 @@ pub enum BrowserBackendPreference {
     Auto,
     /// Force the existing WebGPU/wgpu renderer.
     WebGpu,
-    /// Force the WebGL compatibility renderer.
+    /// Force the WebGL fallback renderer.
     WebGl,
 }
 
@@ -109,7 +449,7 @@ pub enum BrowserBackendPreference {
 pub enum BrowserBackendKind {
     /// The existing WebGPU/wgpu renderer is active.
     WebGpu,
-    /// The WebGL compatibility renderer is active.
+    /// The WebGL fallback renderer is active.
     WebGl,
     /// The caller is using an application-level Canvas2D fallback.
     CanvasFallback,
@@ -723,11 +1063,12 @@ impl BrowserRenderer {
     }
 }
 
-/// WebGL compatibility renderer for browsers without usable WebGPU.
+/// WebGL2-first fallback renderer for browsers without usable WebGPU.
 #[wasm_bindgen]
 pub struct WebGlRenderer {
     canvas: HtmlCanvasElement,
-    gl: WebGlRenderingContext,
+    gl: WebGlBackendContext,
+    capability: WebGlCapabilityLevel,
     program: WebGlProgramState,
     lab: LabRuntime,
     meshes: BTreeMap<MeshId, WebGlMesh>,
@@ -743,11 +1084,13 @@ impl WebGlRenderer {
         crate::set_panic_hook();
         let (width, height) = canvas_size(&canvas);
         let gl = webgl_context(&canvas)?;
+        let capability = gl.capability();
         let program = create_webgl_program(&gl)?;
         let lab = LabRuntime::new(width, height);
         let mut renderer = Self {
             canvas,
             gl,
+            capability,
             program,
             lab,
             meshes: BTreeMap::new(),
@@ -906,12 +1249,19 @@ impl WebGlRenderer {
 
     /// Returns active WebGL feature flags as a compact string.
     pub fn active_feature_flags(&self) -> String {
+        let shadows = match self.capability {
+            WebGlCapabilityLevel::WebGl2 => "webgl2-soft",
+            WebGlCapabilityLevel::WebGl1 => "fallback",
+        };
         format!(
-            "backend=webgl, helpers={}, wireframe={}, bloom={}, ssao={}, raycaster=true, animato=true",
+            "backend={}, parity={}, helpers={}, wireframe={}, bloom={}, ssao={}, textures=true, materials=true, lights=true, shadows={}, raycaster=true, animato=true",
+            self.capability.label(),
+            self.capability.parity_label(),
             self.lab.helpers_visible(),
             self.lab.wireframe_enabled(),
             self.lab.bloom_enabled(),
-            self.lab.ssao_enabled()
+            self.lab.ssao_enabled(),
+            shadows
         )
     }
 }
@@ -933,10 +1283,10 @@ impl WebGlRenderer {
                 .named("lab blue PBR")
                 .albedo(Color::from_hex(0x4EA1FF))
                 .metallic_roughness(0.18, 0.38),
-        );
+        )?;
         let mut toon = ToonMaterial::new().steps(4).outline(0.025, Color::BLACK);
         toon.color = Color::from_hex(0xFFCC66);
-        self.register_toon_material(MaterialId::new(2), &toon);
+        self.register_toon_material(MaterialId::new(2), &toon)?;
         self.register_physical_material(
             MaterialId::new(3),
             &PhysicalMaterial::new()
@@ -946,15 +1296,15 @@ impl WebGlRenderer {
                         .metallic_roughness(0.55, 0.25),
                 )
                 .clearcoat(0.65, 0.16),
-        );
+        )?;
         self.register_lambert_material(
             MaterialId::new(4),
             &LambertMaterial::new().color(Color::from_hex(0x2D3446)),
-        );
+        )?;
         self.register_unlit_material(
             MaterialId::new(5),
             &UnlitMaterial::new().color(Color::from_hex(0xA7F3D0)),
-        );
+        )?;
         self.register_wireframe_material(
             MaterialId::new(6),
             &WireframeMaterial {
@@ -963,7 +1313,7 @@ impl WebGlRenderer {
                 line_width: 1.0,
                 double_sided: true,
             },
-        );
+        )?;
         Ok(())
     }
 
@@ -982,10 +1332,11 @@ impl WebGlRenderer {
         for index in 0..vertex_count {
             let position = geometry.positions[index];
             let normal = geometry.normals.get(index).copied().unwrap_or(Vec3::Y);
+            let uv = geometry.uvs.get(index).copied().unwrap_or(Vec2::ZERO);
             let color = geometry.colors.get(index).copied().unwrap_or(Color::WHITE);
             vertices.extend_from_slice(&[
-                position.x, position.y, position.z, normal.x, normal.y, normal.z, color.r, color.g,
-                color.b, color.a,
+                position.x, position.y, position.z, normal.x, normal.y, normal.z, uv.x, uv.y,
+                color.r, color.g, color.b, color.a,
             ]);
         }
 
@@ -1022,62 +1373,121 @@ impl WebGlRenderer {
         Ok(())
     }
 
-    fn register_pbr_material(&mut self, id: MaterialId, material: &PbrMaterial) {
+    fn register_pbr_material(
+        &mut self,
+        id: MaterialId,
+        material: &PbrMaterial,
+    ) -> Result<(), JsValue> {
+        let texture = self.create_material_texture(material.albedo)?;
         self.materials.insert(
             id,
             WebGlMaterial {
                 color: material.albedo,
+                texture: Some(texture),
+                model: WebGlMaterialModel::Pbr,
+                metallic: material.metallic,
+                roughness: material.roughness,
+                clearcoat: 0.0,
                 unlit: false,
                 wireframe: false,
             },
         );
+        Ok(())
     }
 
-    fn register_physical_material(&mut self, id: MaterialId, material: &PhysicalMaterial) {
+    fn register_physical_material(
+        &mut self,
+        id: MaterialId,
+        material: &PhysicalMaterial,
+    ) -> Result<(), JsValue> {
+        let texture = self.create_material_texture(material.base.albedo)?;
         self.materials.insert(
             id,
             WebGlMaterial {
                 color: material.base.albedo,
+                texture: Some(texture),
+                model: WebGlMaterialModel::Physical,
+                metallic: material.base.metallic,
+                roughness: material.base.roughness,
+                clearcoat: material.clearcoat,
                 unlit: false,
                 wireframe: false,
             },
         );
+        Ok(())
     }
 
-    fn register_unlit_material(&mut self, id: MaterialId, material: &UnlitMaterial) {
+    fn register_unlit_material(
+        &mut self,
+        id: MaterialId,
+        material: &UnlitMaterial,
+    ) -> Result<(), JsValue> {
+        let texture = self.create_material_texture(material.color)?;
         self.materials.insert(
             id,
             WebGlMaterial {
                 color: material.color,
+                texture: Some(texture),
+                model: WebGlMaterialModel::Unlit,
+                metallic: 0.0,
+                roughness: 1.0,
+                clearcoat: 0.0,
                 unlit: true,
                 wireframe: false,
             },
         );
+        Ok(())
     }
 
-    fn register_lambert_material(&mut self, id: MaterialId, material: &LambertMaterial) {
+    fn register_lambert_material(
+        &mut self,
+        id: MaterialId,
+        material: &LambertMaterial,
+    ) -> Result<(), JsValue> {
+        let texture = self.create_material_texture(material.color)?;
         self.materials.insert(
             id,
             WebGlMaterial {
                 color: material.color,
+                texture: Some(texture),
+                model: WebGlMaterialModel::Lambert,
+                metallic: 0.0,
+                roughness: 1.0,
+                clearcoat: 0.0,
                 unlit: false,
                 wireframe: false,
             },
         );
+        Ok(())
     }
 
-    fn register_toon_material(&mut self, id: MaterialId, material: &ToonMaterial) {
+    fn register_toon_material(
+        &mut self,
+        id: MaterialId,
+        material: &ToonMaterial,
+    ) -> Result<(), JsValue> {
+        let texture = self.create_material_texture(material.color)?;
         self.materials.insert(
             id,
             WebGlMaterial {
                 color: material.color,
+                texture: Some(texture),
+                model: WebGlMaterialModel::Toon,
+                metallic: 0.0,
+                roughness: 0.82,
+                clearcoat: 0.0,
                 unlit: false,
                 wireframe: false,
             },
         );
+        Ok(())
     }
 
-    fn register_wireframe_material(&mut self, id: MaterialId, material: &WireframeMaterial) {
+    fn register_wireframe_material(
+        &mut self,
+        id: MaterialId,
+        material: &WireframeMaterial,
+    ) -> Result<(), JsValue> {
         self.materials.insert(
             id,
             WebGlMaterial {
@@ -1087,10 +1497,63 @@ impl WebGlRenderer {
                     material.color.b,
                     material.opacity.min(material.color.a),
                 ),
+                texture: None,
+                model: WebGlMaterialModel::Unlit,
+                metallic: 0.0,
+                roughness: 1.0,
+                clearcoat: 0.0,
                 unlit: true,
                 wireframe: true,
             },
         );
+        Ok(())
+    }
+
+    fn create_material_texture(&self, color: Color) -> Result<WebGlTexture, JsValue> {
+        let texture = self
+            .gl
+            .create_texture()
+            .ok_or_else(|| JsValue::from_str("failed to create WebGL material texture"))?;
+        let pixels = [
+            (color.r.clamp(0.0, 1.0) * 255.0).round() as u8,
+            (color.g.clamp(0.0, 1.0) * 255.0).round() as u8,
+            (color.b.clamp(0.0, 1.0) * 255.0).round() as u8,
+            (color.a.clamp(0.0, 1.0) * 255.0).round() as u8,
+        ];
+        self.gl
+            .bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&texture));
+        self.gl.tex_parameteri(
+            WebGlRenderingContext::TEXTURE_2D,
+            WebGlRenderingContext::TEXTURE_MIN_FILTER,
+            WebGlRenderingContext::LINEAR as i32,
+        );
+        self.gl.tex_parameteri(
+            WebGlRenderingContext::TEXTURE_2D,
+            WebGlRenderingContext::TEXTURE_MAG_FILTER,
+            WebGlRenderingContext::LINEAR as i32,
+        );
+        self.gl.tex_parameteri(
+            WebGlRenderingContext::TEXTURE_2D,
+            WebGlRenderingContext::TEXTURE_WRAP_S,
+            WebGlRenderingContext::CLAMP_TO_EDGE as i32,
+        );
+        self.gl.tex_parameteri(
+            WebGlRenderingContext::TEXTURE_2D,
+            WebGlRenderingContext::TEXTURE_WRAP_T,
+            WebGlRenderingContext::CLAMP_TO_EDGE as i32,
+        );
+        self.gl.tex_image_2d_with_u8(
+            WebGlRenderingContext::TEXTURE_2D,
+            0,
+            WebGlRenderingContext::RGBA as i32,
+            1,
+            1,
+            0,
+            WebGlRenderingContext::RGBA,
+            WebGlRenderingContext::UNSIGNED_BYTE,
+            Some(&pixels),
+        )?;
+        Ok(texture)
     }
 
     fn create_array_buffer(&self, values: &[f32]) -> Result<WebGlBuffer, JsValue> {
@@ -1104,7 +1567,7 @@ impl WebGlRenderer {
         array.copy_from(values);
         self.gl.buffer_data_with_array_buffer_view(
             WebGlRenderingContext::ARRAY_BUFFER,
-            &array,
+            array.as_ref(),
             WebGlRenderingContext::STATIC_DRAW,
         );
         Ok(buffer)
@@ -1121,7 +1584,7 @@ impl WebGlRenderer {
         array.copy_from(values);
         self.gl.buffer_data_with_array_buffer_view(
             WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,
-            &array,
+            array.as_ref(),
             WebGlRenderingContext::STATIC_DRAW,
         );
         Ok(buffer)
@@ -1143,6 +1606,16 @@ impl WebGlRenderer {
             -0.85,
             -0.25,
         );
+        self.gl.uniform4f(
+            Some(&self.program.point_position_range_uniform),
+            2.0,
+            2.1,
+            1.4,
+            5.0,
+        );
+        self.gl
+            .uniform4f(Some(&self.program.point_color_uniform), 0.4, 0.8, 1.0, 1.6);
+        self.gl.uniform1i(Some(&self.program.texture_uniform), 0);
         self.gl.uniform1f(
             Some(&self.program.bloom_uniform),
             if self.lab.bloom_enabled() { 1.0 } else { 0.0 },
@@ -1176,39 +1649,60 @@ impl WebGlRenderer {
             let Some(mesh) = self.meshes.get(&mesh_id) else {
                 continue;
             };
-            let material = self
-                .materials
-                .get(&material_id)
-                .copied()
-                .unwrap_or(WebGlMaterial {
-                    color: Color::WHITE,
-                    unlit: false,
-                    wireframe: false,
-                });
+            let material = self.materials.get(&material_id);
+            let color = material.map_or(Color::WHITE, |material| material.color);
+            let unlit = material.is_none_or(|material| material.unlit || material.wireframe);
+            let wireframe = material.is_some_and(|material| material.wireframe);
+            let material_model = material.map_or(0.0, |material| match material.model {
+                WebGlMaterialModel::Pbr => 0.0,
+                WebGlMaterialModel::Physical => 1.0,
+                WebGlMaterialModel::Toon => 2.0,
+                WebGlMaterialModel::Lambert => 3.0,
+                WebGlMaterialModel::Unlit => 4.0,
+            });
+            let metallic = material.map_or(0.0, |material| material.metallic);
+            let roughness = material.map_or(1.0, |material| material.roughness);
+            let clearcoat = material.map_or(0.0, |material| material.clearcoat);
             let model = self
                 .lab
                 .scene
                 .world_matrix(node_id)
                 .unwrap_or(scenix_math::Mat4::IDENTITY)
                 .to_cols_array();
-            let color = material.color.to_array();
             self.gl.uniform_matrix4fv_with_f32_array(
                 Some(&self.program.model_uniform),
                 false,
                 &model,
             );
             self.gl
-                .uniform4fv_with_f32_array(Some(&self.program.material_uniform), &color);
+                .uniform4fv_with_f32_array(Some(&self.program.material_uniform), &color.to_array());
+            self.gl
+                .uniform1f(Some(&self.program.material_model_uniform), material_model);
+            self.gl.uniform4f(
+                Some(&self.program.metallic_roughness_uniform),
+                metallic,
+                roughness,
+                clearcoat,
+                0.0,
+            );
             self.gl.uniform1f(
                 Some(&self.program.unlit_uniform),
-                if material.unlit || material.wireframe {
-                    1.0
-                } else {
-                    0.0
-                },
+                if unlit { 1.0 } else { 0.0 },
             );
+            self.gl.active_texture(WebGlRenderingContext::TEXTURE0);
+            if let Some(texture) = material.and_then(|material| material.texture.as_ref()) {
+                self.gl
+                    .bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(texture));
+                self.gl
+                    .uniform1f(Some(&self.program.use_texture_uniform), 1.0);
+            } else {
+                self.gl
+                    .bind_texture(WebGlRenderingContext::TEXTURE_2D, None);
+                self.gl
+                    .uniform1f(Some(&self.program.use_texture_uniform), 0.0);
+            }
             self.bind_mesh(mesh);
-            if material.wireframe {
+            if wireframe {
                 self.gl.bind_buffer(
                     WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,
                     Some(&mesh.line_index_buffer),
@@ -1235,7 +1729,7 @@ impl WebGlRenderer {
     }
 
     fn bind_mesh(&self, mesh: &WebGlMesh) {
-        const STRIDE: i32 = 10 * 4;
+        const STRIDE: i32 = 12 * 4;
         self.gl.bind_buffer(
             WebGlRenderingContext::ARRAY_BUFFER,
             Some(&mesh.vertex_buffer),
@@ -1262,13 +1756,22 @@ impl WebGlRenderer {
         );
         self.gl
             .enable_vertex_attrib_array(self.program.color_attrib);
+        self.gl.enable_vertex_attrib_array(self.program.uv_attrib);
+        self.gl.vertex_attrib_pointer_with_i32(
+            self.program.uv_attrib,
+            2,
+            WebGlRenderingContext::FLOAT,
+            false,
+            STRIDE,
+            6 * 4,
+        );
         self.gl.vertex_attrib_pointer_with_i32(
             self.program.color_attrib,
             4,
             WebGlRenderingContext::FLOAT,
             false,
             STRIDE,
-            6 * 4,
+            8 * 4,
         );
     }
 }
@@ -1567,16 +2070,24 @@ fn should_try_webgpu() -> bool {
     Reflect::has(&navigator, &JsValue::from_str("gpu")).unwrap_or(false)
 }
 
-fn webgl_context(canvas: &HtmlCanvasElement) -> Result<WebGlRenderingContext, JsValue> {
+fn webgl_context(canvas: &HtmlCanvasElement) -> Result<WebGlBackendContext, JsValue> {
+    if let Some(context) = canvas.get_context("webgl2")? {
+        return context
+            .dyn_into::<WebGl2RenderingContext>()
+            .map(WebGlBackendContext::WebGl2)
+            .map_err(|_| JsValue::from_str("canvas context is not a WebGl2RenderingContext"));
+    }
+
     canvas
         .get_context("webgl")?
         .or_else(|| canvas.get_context("experimental-webgl").ok().flatten())
         .ok_or_else(|| JsValue::from_str("WebGL is not available for this canvas"))?
         .dyn_into::<WebGlRenderingContext>()
+        .map(WebGlBackendContext::WebGl1)
         .map_err(|_| JsValue::from_str("canvas context is not a WebGLRenderingContext"))
 }
 
-fn create_webgl_program(gl: &WebGlRenderingContext) -> Result<WebGlProgramState, JsValue> {
+fn create_webgl_program(gl: &WebGlBackendContext) -> Result<WebGlProgramState, JsValue> {
     let vertex = compile_shader(
         gl,
         WebGlRenderingContext::VERTEX_SHADER,
@@ -1591,24 +2102,32 @@ fn create_webgl_program(gl: &WebGlRenderingContext) -> Result<WebGlProgramState,
     gl.use_program(Some(&program));
     let position_attrib = attrib_location(gl, &program, "a_position")?;
     let normal_attrib = attrib_location(gl, &program, "a_normal")?;
+    let uv_attrib = attrib_location(gl, &program, "a_uv")?;
     let color_attrib = attrib_location(gl, &program, "a_color")?;
     Ok(WebGlProgramState {
         view_projection_uniform: uniform_location(gl, &program, "u_view_projection")?,
         model_uniform: uniform_location(gl, &program, "u_model")?,
         material_uniform: uniform_location(gl, &program, "u_material")?,
         light_direction_uniform: uniform_location(gl, &program, "u_light_direction")?,
+        point_position_range_uniform: uniform_location(gl, &program, "u_point_position_range")?,
+        point_color_uniform: uniform_location(gl, &program, "u_point_color")?,
+        texture_uniform: uniform_location(gl, &program, "u_texture")?,
+        use_texture_uniform: uniform_location(gl, &program, "u_use_texture")?,
+        material_model_uniform: uniform_location(gl, &program, "u_material_model")?,
+        metallic_roughness_uniform: uniform_location(gl, &program, "u_metallic_roughness")?,
         unlit_uniform: uniform_location(gl, &program, "u_unlit")?,
         bloom_uniform: uniform_location(gl, &program, "u_bloom")?,
         ssao_uniform: uniform_location(gl, &program, "u_ssao")?,
         program,
         position_attrib,
         normal_attrib,
+        uv_attrib,
         color_attrib,
     })
 }
 
 fn compile_shader(
-    gl: &WebGlRenderingContext,
+    gl: &WebGlBackendContext,
     shader_type: u32,
     source: &str,
 ) -> Result<WebGlShader, JsValue> {
@@ -1632,7 +2151,7 @@ fn compile_shader(
 }
 
 fn link_program(
-    gl: &WebGlRenderingContext,
+    gl: &WebGlBackendContext,
     vertex: &WebGlShader,
     fragment: &WebGlShader,
 ) -> Result<WebGlProgram, JsValue> {
@@ -1657,7 +2176,7 @@ fn link_program(
 }
 
 fn attrib_location(
-    gl: &WebGlRenderingContext,
+    gl: &WebGlBackendContext,
     program: &WebGlProgram,
     name: &str,
 ) -> Result<u32, JsValue> {
@@ -1672,7 +2191,7 @@ fn attrib_location(
 }
 
 fn uniform_location(
-    gl: &WebGlRenderingContext,
+    gl: &WebGlBackendContext,
     program: &WebGlProgram,
     name: &str,
 ) -> Result<WebGlUniformLocation, JsValue> {
@@ -1683,17 +2202,22 @@ fn uniform_location(
 const WEBGL_VERTEX_SHADER: &str = r#"
 attribute vec3 a_position;
 attribute vec3 a_normal;
+attribute vec2 a_uv;
 attribute vec4 a_color;
 
 uniform mat4 u_view_projection;
 uniform mat4 u_model;
 
 varying vec3 v_normal;
+varying vec3 v_world_position;
+varying vec2 v_uv;
 varying vec4 v_color;
 
 void main() {
     vec4 world = u_model * vec4(a_position, 1.0);
     v_normal = normalize((u_model * vec4(a_normal, 0.0)).xyz);
+    v_world_position = world.xyz;
+    v_uv = a_uv;
     v_color = a_color;
     gl_Position = u_view_projection * world;
 }
@@ -1704,21 +2228,63 @@ precision mediump float;
 
 uniform vec4 u_material;
 uniform vec3 u_light_direction;
+uniform vec4 u_point_position_range;
+uniform vec4 u_point_color;
+uniform sampler2D u_texture;
+uniform float u_use_texture;
+uniform float u_material_model;
+uniform vec4 u_metallic_roughness;
 uniform float u_unlit;
 uniform float u_bloom;
 uniform float u_ssao;
 
 varying vec3 v_normal;
+varying vec3 v_world_position;
+varying vec2 v_uv;
 varying vec4 v_color;
 
 void main() {
     vec3 normal = normalize(v_normal);
+    vec3 base = v_color.rgb * u_material.rgb;
+    vec4 texel = texture2D(u_texture, v_uv);
+    base = mix(base, base * texel.rgb, clamp(u_use_texture, 0.0, 1.0));
+
     float ndl = max(dot(normal, normalize(-u_light_direction)), 0.0);
-    float light = mix(0.42 + ndl * 0.72, 1.0, clamp(u_unlit, 0.0, 1.0));
-    light += u_bloom * 0.14;
-    light -= u_ssao * 0.08;
-    vec4 color = v_color * u_material;
-    gl_FragColor = vec4(color.rgb * clamp(light, 0.08, 1.35), color.a);
+    vec3 point_delta = u_point_position_range.xyz - v_world_position;
+    float point_distance = length(point_delta);
+    vec3 point_dir = normalize(point_delta);
+    float point_ndl = max(dot(normal, point_dir), 0.0);
+    float attenuation = clamp(1.0 - point_distance / max(u_point_position_range.w, 0.001), 0.0, 1.0);
+    attenuation *= attenuation;
+
+    vec3 ambient = vec3(0.16, 0.18, 0.22);
+    vec3 direct = vec3(1.0) * ndl * 0.78;
+    vec3 point = u_point_color.rgb * point_ndl * attenuation * u_point_color.a;
+    vec3 lit = ambient + direct + point;
+
+    float metallic = clamp(u_metallic_roughness.x, 0.0, 1.0);
+    float roughness = clamp(u_metallic_roughness.y, 0.04, 1.0);
+    float clearcoat = clamp(u_metallic_roughness.z, 0.0, 1.0);
+    float spec = pow(max(dot(reflect(normalize(u_light_direction), normal), vec3(0.0, 0.0, 1.0)), 0.0), mix(96.0, 10.0, roughness));
+    vec3 specular = vec3(spec) * mix(0.12, 0.52, metallic) + vec3(spec * clearcoat * 0.45);
+
+    if (u_material_model > 1.5 && u_material_model < 2.5) {
+        lit = vec3(floor(clamp((ambient.r + ndl + attenuation) * 3.0, 0.0, 3.0)) / 3.0 + 0.28);
+        specular *= 0.25;
+    } else if (u_material_model > 2.5 && u_material_model < 3.5) {
+        specular *= 0.0;
+    } else if (u_material_model > 0.5 && u_material_model < 1.5) {
+        base += vec3(clearcoat * 0.08);
+    }
+
+    vec3 color = base * lit + specular;
+    color = mix(color, base, clamp(u_unlit, 0.0, 1.0));
+    color += u_bloom * max(color - vec3(0.72), vec3(0.0)) * 0.35;
+    float contact_shadow = smoothstep(0.0, 0.32, v_world_position.y);
+    color *= mix(0.82, 1.0, contact_shadow);
+    color -= u_ssao * 0.06;
+    color = color / (color + vec3(1.0));
+    gl_FragColor = vec4(clamp(color, 0.0, 1.0), u_material.a * v_color.a);
 }
 "#;
 

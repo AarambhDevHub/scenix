@@ -40,6 +40,9 @@ jobs:
       - name: Cargo package check
         run: cargo package --workspace --no-verify
 
+      - name: Check all examples
+        run: cargo check -p scenix --examples --all-features
+
       - name: Bench compile
         run: cargo bench --workspace --no-run
 

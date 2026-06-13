@@ -1,3 +1,4 @@
+#[cfg(all(feature = "helpers", feature = "camera", feature = "raycaster"))]
 #[test]
 fn stable_default_facade_exports_raycasting_and_helpers() {
     let grid = scenix::GridHelper::new(2.0, 2).to_geometry();
@@ -13,7 +14,7 @@ fn stable_default_facade_exports_raycasting_and_helpers() {
     assert!(ray.direction.z < -0.9);
 }
 
-#[cfg(feature = "renderer")]
+#[cfg(all(feature = "renderer", feature = "material"))]
 #[test]
 fn stable_facade_exports_renderer_material_registration_api() {
     let mut gpu_scene = scenix::GpuScene::new();

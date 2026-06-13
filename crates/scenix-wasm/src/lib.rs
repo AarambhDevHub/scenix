@@ -20,6 +20,35 @@ pub const fn clamp_canvas_size(width: u32, height: u32) -> (u32, u32) {
     )
 }
 
+/// WebGL capability level used by the browser fallback renderer.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WebGlCapabilityLevel {
+    /// WebGL 1 reduced fallback path.
+    WebGl1,
+    /// WebGL 2 full browser fallback path for the generated renderer scene.
+    WebGl2,
+}
+
+impl WebGlCapabilityLevel {
+    /// Returns a compact label used in diagnostics.
+    #[inline]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::WebGl1 => "webgl1",
+            Self::WebGl2 => "webgl2",
+        }
+    }
+
+    /// Returns the renderer parity level for this browser fallback.
+    #[inline]
+    pub const fn parity_label(self) -> &'static str {
+        match self {
+            Self::WebGl1 => "reduced-fallback",
+            Self::WebGl2 => "full-fallback",
+        }
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 mod web;
 
@@ -43,7 +72,7 @@ pub struct WebRenderer;
 pub struct BrowserRenderer;
 
 #[cfg(not(target_arch = "wasm32"))]
-/// Browser WebGL compatibility renderer.
+/// Browser WebGL fallback renderer.
 #[derive(Debug)]
 pub struct WebGlRenderer;
 

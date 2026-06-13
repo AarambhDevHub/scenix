@@ -4,7 +4,7 @@ const FEATURES: &[(&str, &str)] = &[
     ("Modular workspace", "Use only the crates your app needs."),
     ("Renderer-agnostic scene graph", "Author scenes without pulling GPU dependencies."),
     ("wgpu renderer", "Native and browser rendering through WebGPU backends."),
-    ("Animato bridge", "Drive transforms, cameras, and materials with Animato 1.4."),
+    ("Animato bridge", "Drive transforms, cameras, and materials with Animato 1.5."),
     ("WASM support", "Browser canvas wrapper with DOM input forwarding."),
     ("BVH raycasting", "Fast CPU picking with exact mesh intersections."),
     ("Debug helpers", "Grid, axes, bounds, camera, light, and skeleton lines."),

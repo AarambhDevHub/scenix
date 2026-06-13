@@ -5,7 +5,7 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix `1.1.0` is the current stable release. The public API is frozen around small focused crates: CPU authoring stays lightweight by default, while loading, GPU rendering, post-processing, Animato integration, and browser support remain opt-in.
+scenix `1.2.0` is the current stable release. The public API is frozen around small focused crates: CPU authoring stays lightweight by default, while loading, GPU rendering, post-processing, Animato integration, and browser support remain opt-in.
 
 ## Install
 
@@ -65,7 +65,7 @@ scenix-raycaster = { version = "1", default-features = false }
 scenix-helpers = { version = "1", default-features = false }
 ```
 
-`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and `scenix-wasm` are optional `std` paths. The Animato bridge uses `animato = "1.4.0"`.
+`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and `scenix-wasm` are optional `std` paths. The Animato bridge uses `animato = "1.5.0"`.
 
 ## Feature Flags
 
@@ -77,8 +77,8 @@ scenix-helpers = { version = "1", default-features = false }
 | `loader` | no | glTF/GLB, OBJ/MTL, STL, image, KTX2, HDR/EXR loading. |
 | `renderer` | no | `wgpu` renderer with surface/headless targets. |
 | `post` | no | Full-screen post-processing stack; use with `renderer`. |
-| `animato` | no | Animato 1.4.0 tracks and scene/camera/material drivers. |
-| `wasm` | no | Browser canvas wrapper with WebGPU first, WebGL fallback, and generated demo scene. |
+| `animato` | no | Animato 1.5.0 tracks and scene/camera/material drivers. |
+| `wasm` | no | Browser canvas wrapper with WebGPU first, WebGL2 full fallback, WebGL1 reduced fallback, and generated demo scene. |
 | `serde` | no | Serialization support where the focused crate supports it. |
 
 ## Quick Start
@@ -205,11 +205,11 @@ assert!(raycaster.cast_ray(ray, &scene, &meshes).is_some());
 | `scenix-light` | Lights, shadow settings, and light probes. |
 | `scenix-texture` | CPU textures, samplers, atlases, video updates, and mipmaps. |
 | `scenix-loader` | Optional CPU asset loaders and asset cache. |
-| `scenix-renderer` | Optional `wgpu` renderer and resource registries. |
+| `scenix-renderer` | Optional `wgpu` renderer, real material texture paths, lights, render targets, and resource registries. |
 | `scenix-post` | Optional `wgpu` post-processing effects. |
 | `scenix-raycaster` | BVH scene picking and exact mesh intersections. |
 | `scenix-helpers` | Debug `LineGeometry` generators. |
-| `scenix-animato` | Optional Animato 1.4.0 bridge. |
+| `scenix-animato` | Optional Animato 1.5.0 bridge. |
 | `scenix-wasm` | Optional browser canvas wrapper with WebGPU and WebGL paths. |
 
 ## Examples
@@ -233,7 +233,8 @@ cargo run -p scenix --example morph_targets
 cargo run -p scenix --example fog_demo
 cargo run -p scenix --example helpers_demo
 cargo run -p scenix --example sprite_particles
-cargo run -p scenix --example environment_map
+cargo run -p scenix --example environment_map --features renderer
+cargo run -p scenix --example render_target_capture --features renderer
 ```
 
 The browser example lives in `examples/wasm_viewer`:
@@ -253,7 +254,7 @@ trunk serve
 trunk build --release --public-url /scenix/
 ```
 
-GitHub Pages deployment is handled by `.github/workflows/pages.yml`, which builds `website/dist` with Trunk and deploys it at `/scenix/`. The demo uses `scenix-wasm`: it tries WebGPU where safe, falls back to WebGL in browsers without usable WebGPU, and only uses the Canvas2D preview when both GPU paths are unavailable.
+GitHub Pages deployment is handled by `.github/workflows/pages.yml`, which builds `website/dist` with Trunk and deploys it at `/scenix/`. The demo uses `scenix-wasm`: it tries WebGPU where safe, falls back to a WebGL2 renderer with the same generated scene/material/light controls when WebGPU is unavailable, uses reduced WebGL1 only as a last GPU path, and only uses the Canvas2D preview when both GPU paths are unavailable.
 
 ## Development Checks
 
@@ -292,12 +293,13 @@ cargo llvm-cov --workspace --all-features
 - [Deployment](./docs/deployment/README.md)
 - [Migration](./docs/migration/from-0.9-to-1.0.md)
 - [Reference](./docs/reference/feature-matrix.md)
-- [v1.1.0 release notes](./docs/release-v1.1.0.md)
+- [v1.2.0 release notes](./docs/release-v1.2.0.md)
 
 ## Known Limitations
 
-- The renderer is stable for generated scenes, headless/surface rendering, material preview paths, and examples. Advanced physical shading is intentionally documented as a preview contract rather than a film-grade renderer.
+- The renderer now uploads material textures, light data, environment descriptors, and render targets through real GPU resources. Advanced physical shading is a pragmatic realtime path, not an offline film renderer.
 - Loader APIs produce CPU-side scenix data; GPU upload stays explicit through `Renderer` registration.
+- WebGL2 is the full browser fallback for the generated renderer scene when WebGPU is unavailable. WebGL1 remains a reduced last-resort fallback for older browsers.
 - The website demo does not vendor large model assets.
 - GPU tests require a Vulkan-capable device or Mesa lavapipe.
 

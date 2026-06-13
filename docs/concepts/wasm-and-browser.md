@@ -10,14 +10,14 @@ Read this page when the subsystem affects your app architecture or dependency ch
 
 ## Relevant Feature Flags
 
-Enable `wasm`. `scenix-wasm::BrowserRenderer` tries WebGPU where it is safe, uses WebGL when WebGPU is missing or unsuitable, and lets applications fall back to their own Canvas2D preview when WebGL is unavailable.
+Enable `wasm`. `scenix-wasm::BrowserRenderer` tries WebGPU where it is safe, uses WebGL2 as the full generated-scene fallback when WebGPU is missing or unsuitable, uses reduced WebGL1 only for older browsers, and lets applications fall back to their own Canvas2D preview when WebGL is unavailable.
 
 ## Key Rules
 
 - `scenix-wasm` wraps canvas setup and input forwarding.
 - `WebRenderer` is the direct WebGPU path.
-- `WebGlRenderer` is the direct WebGL compatibility path.
-- `BrowserRenderer` chooses WebGPU first on safe browsers and WebGL otherwise.
+- `WebGlRenderer` is the direct WebGL fallback path; it requests WebGL2 first and WebGL1 only if needed.
+- `BrowserRenderer` chooses WebGPU first on safe browsers and WebGL2 otherwise when available.
 - The website is Leptos CSR and builds with Trunk.
 - Fallback UI should handle unavailable WebGPU and WebGL cleanly.
 

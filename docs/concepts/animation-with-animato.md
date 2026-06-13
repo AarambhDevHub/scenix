@@ -10,7 +10,7 @@ Read this page when the subsystem affects your app architecture or dependency ch
 
 ## Relevant Feature Flags
 
-Enable `animato`; it uses `animato = "1.4.0"`.
+Enable `animato`; it uses `animato = "1.5.0"`.
 
 ## Key Rules
 

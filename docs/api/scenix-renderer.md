@@ -2,7 +2,7 @@
 
 ## Role
 
-Optional `wgpu` renderer, GPU resource stores, pipeline cache, frame stats, shadows, and headless rendering.
+Optional `wgpu` renderer, GPU resource stores, material texture upload, light uniforms, render targets, pipeline cache, frame stats, shadows, and headless rendering.
 
 ## Dependency Weight
 
@@ -17,7 +17,7 @@ scenix-renderer = "1"
 
 ## Key Public API
 
-Renderer, RendererConfig, FrameStats, GpuScene, GpuMaterial, PipelineCache, GBuffer, ShadowMapAtlas
+Renderer, RendererConfig, FrameStats, RendererDiagnostics, ResourceStats, EnvironmentMap, RenderTargetDescriptor, GpuScene, GpuMaterial, PipelineCache, GBuffer, ShadowMapAtlas
 
 ## Common Use
 

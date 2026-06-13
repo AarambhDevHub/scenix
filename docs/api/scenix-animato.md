@@ -2,7 +2,7 @@
 
 ## Role
 
-Optional Animato 1.4.0 bridge for scene, camera, material, and skeleton animation.
+Optional Animato 1.5.0 bridge for scene, camera, material, and skeleton animation.
 
 ## Dependency Weight
 

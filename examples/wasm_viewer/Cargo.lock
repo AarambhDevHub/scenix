@@ -25,9 +25,9 @@ dependencies = [
 
 [[package]]
 name = "animato"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f008921505f2f0733b0293cc512445b27e9020e4a6f884e364c711479e1ff84d"
+checksum = "cacfbb4afeb3d42a58041d7e659cde501c9e342d6a52a27a955918f213356571"
 dependencies = [
  "animato-color",
  "animato-core",
@@ -42,9 +42,9 @@ dependencies = [
 
 [[package]]
 name = "animato-color"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99e1123edf4c867afd75abdd7c6f966116db3f6535cacc006a7325c4dad1d2fc"
+checksum = "4ed99fe1bcfe7c5f77e090cdabb6ac137375631a9047fb11027197f1db4b2386"
 dependencies = [
  "animato-core",
  "palette",
@@ -52,27 +52,27 @@ dependencies = [
 
 [[package]]
 name = "animato-core"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3a0fc17621711bec9ad1f078d3a47d0a5aa6470dbf1549cf1c9d312aca20d04"
+checksum = "fbb6291143a307f92590aa004bd2a53095d02abab0901902faff55f318cc319b"
 dependencies = [
  "libm",
 ]
 
 [[package]]
 name = "animato-driver"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0531a2b8cf0131c9a31b94f9a973ec740e375fbea5c9013fa882f5603bfbb53d"
+checksum = "77305ebf2e5e972e2d2499666b7453afafe9c5e85ce334c1a19440be41fa7d20"
 dependencies = [
  "animato-core",
 ]
 
 [[package]]
 name = "animato-path"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "459214d8a0c0df7c84fa7a9e1fefe36ed5f2e753c660b2059cb9d0fb1727cb8f"
+checksum = "f0ec05bb9d2b22be1143f49b785e4fcd5a5fe2b662ecccfb688b79f6b01e3656"
 dependencies = [
  "animato-core",
  "animato-tween",
@@ -81,9 +81,9 @@ dependencies = [
 
 [[package]]
 name = "animato-physics"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9be1833033cce675966a38ad4175f23ca989b39b8eb6a251454a9020fbbc27e9"
+checksum = "e42fff00457bccc5169efcee801b0a379679fee09d79f6ef3cec0e5037eb7e6a"
 dependencies = [
  "animato-core",
  "libm",
@@ -91,18 +91,18 @@ dependencies = [
 
 [[package]]
 name = "animato-spring"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beefbc7478b1546137040ddd16e1c813a2cf4557c02c6786328526195f986694"
+checksum = "50749d924cd3bde4c4ce57147b3b7977940b6c2e12e711bf024a1bbfd101ef43"
 dependencies = [
  "animato-core",
 ]
 
 [[package]]
 name = "animato-timeline"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "125cc3e94b4a2945f60a28eb7023a66e21b64c51a3d9d08c17713aef548fba68"
+checksum = "1170b52e6cf45b6ab996215ec2a845ca07c5bd849fcbfc1c2c46c4a49b95012a"
 dependencies = [
  "animato-core",
  "animato-tween",
@@ -110,9 +110,9 @@ dependencies = [
 
 [[package]]
 name = "animato-tween"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d10edd5731d243f92b5f9447a03784ab0f4e9c9635e572a254b9ed2962b3dd0"
+checksum = "f61606e3f0b5bba3898b1770f870683f42150e53b5282e3055758e915e2d9a26"
 dependencies = [
  "animato-core",
 ]
@@ -1039,7 +1039,7 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "scenix"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-animato",
  "scenix-camera",
@@ -1061,7 +1061,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-animato"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "animato",
  "scenix-camera",
@@ -1073,7 +1073,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-camera"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-core",
  "scenix-input",
@@ -1082,14 +1082,14 @@ dependencies = [
 
 [[package]]
 name = "scenix-core"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-math",
 ]
 
 [[package]]
 name = "scenix-helpers"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-camera",
  "scenix-core",
@@ -1099,14 +1099,14 @@ dependencies = [
 
 [[package]]
 name = "scenix-input"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-math",
 ]
 
 [[package]]
 name = "scenix-light"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1114,7 +1114,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-loader"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "gltf",
  "image",
@@ -1133,7 +1133,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-material"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1141,11 +1141,11 @@ dependencies = [
 
 [[package]]
 name = "scenix-math"
-version = "1.1.0"
+version = "1.2.0"
 
 [[package]]
 name = "scenix-mesh"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1153,7 +1153,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-post"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "bytemuck",
  "scenix-core",
@@ -1163,7 +1163,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-raycaster"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-camera",
  "scenix-core",
@@ -1174,7 +1174,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-renderer"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "bytemuck",
  "raw-window-handle",
@@ -1192,7 +1192,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-scene"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1201,14 +1201,14 @@ dependencies = [
 
 [[package]]
 name = "scenix-texture"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix-core",
 ]
 
 [[package]]
 name = "scenix-wasm"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
@@ -1231,7 +1231,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-wasm-viewer"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "scenix",
  "wasm-bindgen",

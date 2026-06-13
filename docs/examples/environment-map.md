@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Uses texture cube and environment-facing data structures.
+Registers a cube texture and uses it as a renderer environment map.
 
 ## Source
 
@@ -10,18 +10,18 @@ Uses texture cube and environment-facing data structures.
 
 ## Relevant Feature Flags
 
-default facade
+`renderer`
 
 ## Run Or Check
 
 ```sh
-cargo run -p scenix --example environment_map
+cargo run -p scenix --example environment_map --features renderer
 ```
 
 ## What To Look For
 
 - The example should compile with the listed features.
-- CPU examples should not require GPU setup.
+- The example should report one rendered draw and one registered environment texture.
 - Renderer examples may need a working native graphics backend or headless support.
 
 ## Related Docs

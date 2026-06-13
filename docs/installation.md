@@ -1,6 +1,6 @@
 # Installation
 
-This page explains the supported ways to depend on Scenix v1.1.0. Use the facade crate for application code and focused crates when you are building a library or a very small tool.
+This page explains the supported ways to depend on Scenix v1.2.0. Use the facade crate for application code and focused crates when you are building a library or a very small tool.
 
 ## Facade Install
 
@@ -57,6 +57,6 @@ Loader, renderer, post, and WASM paths are `std`-oriented.
 | `loader` | no | glTF/GLB, OBJ/MTL, STL, image, KTX2, HDR/EXR loading. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
-| `animato` | no | Animato 1.4.0 scene, camera, material, and skeleton animation bridge. |
-| `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, and WebGL fallback. |
+| `animato` | no | Animato 1.5.0 scene, camera, material, and skeleton animation bridge. |
+| `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
 | `serde` | no | Serialization support where each crate supports it. |

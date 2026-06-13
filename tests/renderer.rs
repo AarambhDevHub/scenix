@@ -7,12 +7,15 @@ use scenix_material::{
 use scenix_math::{Aabb, Mat4, Vec3};
 use scenix_mesh::{Geometry, box_geometry};
 use scenix_renderer::{
-    DrawSubmission, GpuIndexFormat, GpuMaterial, GpuScene, MaterialUniform, RenderPassKind,
-    RendererConfig, RendererMaterial, RendererPipelineKey, to_wgpu_address_mode, to_wgpu_compare,
-    to_wgpu_filter_mode, to_wgpu_texture_format,
+    DrawSubmission, EnvironmentMap, GpuIndexFormat, GpuMaterial, GpuScene, MaterialUniform,
+    RenderPassKind, RenderTargetDescriptor, RendererConfig, RendererMaterial, RendererPipelineKey,
+    to_wgpu_address_mode, to_wgpu_compare, to_wgpu_filter_mode, to_wgpu_texture_format,
 };
 use scenix_scene::SceneGraph;
-use scenix_texture::{AddressMode, CompareFunction, FilterMode, Sampler, Texture2D, TextureFormat};
+use scenix_texture::{
+    AddressMode, CompareFunction, FilterMode, Sampler, Texture2D, Texture3D, TextureCube,
+    TextureFormat,
+};
 
 fn draw(distance_to_camera: f32) -> DrawSubmission {
     DrawSubmission {
@@ -117,6 +120,88 @@ fn resource_registry_validation_catches_bad_ids_and_textures() {
         ),
         Err(ValidationError::InvalidId)
     );
+}
+
+#[test]
+fn texture_mip_ranges_are_stable_for_upload() {
+    let mips = vec![vec![255; 4 * 4 * 4], vec![128; 2 * 2 * 4], vec![64; 4]];
+    let texture = Texture2D::from_mips(4, 4, TextureFormat::Rgba8Unorm, mips).unwrap();
+
+    assert_eq!(texture.mip_level_range(0).unwrap(), 0..64);
+    assert_eq!(texture.mip_level_range(1).unwrap(), 64..80);
+    assert_eq!(texture.mip_level_range(2).unwrap(), 80..84);
+    assert_eq!(
+        texture.mip_level_range(3).unwrap_err(),
+        ValidationError::OutOfRange
+    );
+}
+
+#[test]
+fn renderer_registry_accepts_cube_3d_and_all_light_variants() {
+    let mut gpu_scene = GpuScene::new();
+    let sampler = Sampler::new();
+    let face = vec![255; 4];
+    let cube = TextureCube::new(
+        1,
+        TextureFormat::Rgba8UnormSrgb,
+        [
+            face.clone(),
+            face.clone(),
+            face.clone(),
+            face.clone(),
+            face.clone(),
+            face,
+        ],
+    )
+    .unwrap();
+    let volume = Texture3D::new(1, 1, 1, TextureFormat::Rgba8Unorm, vec![255; 4]).unwrap();
+
+    gpu_scene
+        .register_texture_cube(TextureId::new(10), &cube, sampler)
+        .unwrap();
+    gpu_scene
+        .register_texture3d(TextureId::new(11), &volume, sampler)
+        .unwrap();
+    gpu_scene
+        .register_light(
+            LightId::new(1),
+            scenix_renderer::RendererLight::Hemisphere(Default::default()),
+        )
+        .unwrap();
+    gpu_scene
+        .register_light(
+            LightId::new(2),
+            scenix_renderer::RendererLight::Area(Default::default()),
+        )
+        .unwrap();
+    gpu_scene
+        .register_light(
+            LightId::new(3),
+            scenix_renderer::RendererLight::Probe(Default::default()),
+        )
+        .unwrap();
+
+    assert_eq!(gpu_scene.textures().len(), 2);
+    assert_eq!(gpu_scene.light_count(), 3);
+    assert!(gpu_scene.unregister_texture(TextureId::new(10)));
+    gpu_scene.clear_lights();
+    assert_eq!(gpu_scene.light_count(), 0);
+}
+
+#[test]
+fn v12_public_descriptors_are_compact_and_hashable() {
+    let target = RenderTargetDescriptor::color(
+        128,
+        64,
+        scenix_renderer::wgpu::TextureFormat::Rgba8UnormSrgb,
+    );
+    assert_eq!(target.width, 128);
+
+    let environment = EnvironmentMap::new(TextureId::new(7))
+        .intensity(0.5)
+        .light_probe(LightId::new(2));
+    assert_eq!(environment.texture_id, TextureId::new(7));
+    assert_eq!(environment.light_probe, Some(LightId::new(2)));
 }
 
 #[test]

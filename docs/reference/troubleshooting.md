@@ -2,7 +2,7 @@
 
 ## Browser Demo Does Not Start
 
-Check browser WebGPU and WebGL support. The website tries WebGPU first, WebGL second, then uses a Canvas2D preview when both GPU paths are unavailable.
+Check browser WebGPU and WebGL support. The website tries WebGPU first, WebGL2 second, reduced WebGL1 third, then uses a Canvas2D preview when both GPU paths are unavailable.
 
 ## Renderer Test Fails In CI
 

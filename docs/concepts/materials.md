@@ -16,7 +16,8 @@ Default facade features include `material`; rendering needs `renderer`.
 
 - PBR is the standard material path.
 - Physical, toon, normal, wireframe, unlit, and lambert materials cover v1 examples.
-- Advanced physical shading is a preview contract in v1.
+- v1.2 renderer registrations upload material uniforms and bound textures for the active GPU path.
+- Advanced physical shading is a realtime approximation, not an offline film renderer.
 
 
 ## Example

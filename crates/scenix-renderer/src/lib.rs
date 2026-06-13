@@ -5,6 +5,7 @@
 //! allocation, render-pass scheduling, and pipeline caching.
 
 pub mod config;
+pub mod environment;
 pub mod frame;
 pub mod gbuffer;
 pub mod gpu_scene;
@@ -15,8 +16,9 @@ pub mod renderer;
 mod shadow;
 
 pub use config::{RenderTargetMode, RendererConfig};
-pub use frame::{FrameContext, FrameStats};
-pub use gbuffer::GBuffer;
+pub use environment::EnvironmentMap;
+pub use frame::{FrameContext, FrameStats, PipelineCacheStats, RendererDiagnostics, ResourceStats};
+pub use gbuffer::{GBuffer, RenderTargetDescriptor, RenderTargetKind};
 pub use gpu_scene::{
     DrawSubmission, GpuIndexFormat, GpuMesh, GpuScene, GpuTexture, PackedGeometry, PackedVertex,
     RendererLight, RendererMaterial, TextureStore, to_wgpu_address_mode, to_wgpu_compare,

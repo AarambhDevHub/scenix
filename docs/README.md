@@ -1,6 +1,6 @@
 # Scenix Developer Documentation
 
-Scenix v1.1.0 is a modular Rust-native 3D scene workspace. These docs are written for application developers who need to choose crates, create scenes, render or load assets, integrate Animato, target WASM, and debug performance.
+Scenix v1.2.0 is a modular Rust-native 3D scene workspace. These docs are written for application developers who need to choose crates, create scenes, render or load assets, integrate Animato, target WASM, and debug performance.
 
 ## Start Here
 
@@ -55,7 +55,7 @@ Scenix v1.1.0 is a modular Rust-native 3D scene workspace. These docs are writte
 - [Deployment](deployment/README.md)
 - [Migration](migration/from-0.9-to-1.0.md)
 - [Reference](reference/feature-matrix.md)
-- [v1.1.0 release notes](release-v1.1.0.md)
+- [v1.2.0 release notes](release-v1.2.0.md)
 
 ## Feature Flags At A Glance
 
@@ -67,8 +67,8 @@ Scenix v1.1.0 is a modular Rust-native 3D scene workspace. These docs are writte
 | `loader` | no | glTF/GLB, OBJ/MTL, STL, image, KTX2, HDR/EXR loading. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
-| `animato` | no | Animato 1.4.0 scene, camera, material, and skeleton animation bridge. |
-| `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, and WebGL fallback. |
+| `animato` | no | Animato 1.5.0 scene, camera, material, and skeleton animation bridge. |
+| `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
 | `serde` | no | Serialization support where each crate supports it. |
 
 

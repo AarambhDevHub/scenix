@@ -1,7 +1,7 @@
 use scenix_input::{KeyCode, PointerButton};
 use scenix_wasm::{
-    BrowserBackendKind, BrowserBackendPreference, clamp_canvas_size, key_code_from_dom,
-    pointer_button_from_dom,
+    BrowserBackendKind, BrowserBackendPreference, WebGlCapabilityLevel, clamp_canvas_size,
+    key_code_from_dom, pointer_button_from_dom,
 };
 
 #[test]
@@ -47,5 +47,12 @@ fn browser_backend_enums_are_stable() {
     assert_eq!(
         BrowserBackendKind::CanvasFallback,
         BrowserBackendKind::CanvasFallback
+    );
+    assert_eq!(WebGlCapabilityLevel::WebGl2.label(), "webgl2");
+    assert_eq!(WebGlCapabilityLevel::WebGl1.label(), "webgl1");
+    assert_eq!(WebGlCapabilityLevel::WebGl2.parity_label(), "full-fallback");
+    assert_eq!(
+        WebGlCapabilityLevel::WebGl1.parity_label(),
+        "reduced-fallback"
     );
 }

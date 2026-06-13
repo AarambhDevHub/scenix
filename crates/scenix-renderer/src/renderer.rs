@@ -1,21 +1,27 @@
+use std::collections::HashMap;
+
 use scenix_camera::PerspectiveCamera;
 use scenix_core::{GpuError, LightId, MaterialId, MeshId, ScenixError, TextureId};
-use scenix_light::{AmbientLight, DirectionalLight, PointLight, SpotLight};
+use scenix_light::{
+    AmbientLight, AreaLight, DirectionalLight, HemisphereLight, LightProbe, PointLight, SpotLight,
+};
 use scenix_material::{
-    LambertMaterial, NormalMaterial, PbrMaterial, PhysicalMaterial, ToonMaterial, UnlitMaterial,
-    WireframeMaterial,
+    LambertMaterial, Material, NormalMaterial, PbrMaterial, PhysicalMaterial, ToonMaterial,
+    UnlitMaterial, WireframeMaterial,
 };
 use scenix_math::{Mat4, Vec2, Vec3};
 use scenix_mesh::Geometry;
 use scenix_scene::SceneGraph;
-use scenix_texture::{Sampler, Texture2D};
+use scenix_texture::{Sampler, Texture2D, Texture3D, TextureCube, TextureFormat};
 
 use crate::gbuffer::TextureTarget;
 use crate::pass::culling::collect_visible_draws;
 use crate::pass::sort::{sort_opaque_front_to_back, sort_transparent_back_to_front};
 use crate::{
-    FrameContext, FrameStats, GBuffer, GpuScene, MaterialUniform, PackedVertex, PipelineCache,
-    RenderTargetMode, RendererConfig, RendererLight, ShadowMapAtlas,
+    EnvironmentMap, FrameContext, FrameStats, GBuffer, GpuScene, MaterialUniform, PackedVertex,
+    PipelineCache, PipelineCacheStats, RenderTargetDescriptor, RenderTargetKind, RenderTargetMode,
+    RendererConfig, RendererDiagnostics, RendererLight, RendererMaterial, ResourceStats,
+    ShadowMapAtlas,
 };
 
 #[repr(C)]
@@ -32,17 +38,62 @@ struct ObjectUniform {
     world: [[f32; 4]; 4],
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct LightUniform {
+    ambient: [f32; 4],
+    directional_direction: [f32; 4],
+    directional_color: [f32; 4],
+    point_position_range: [f32; 4],
+    point_color: [f32; 4],
+    spot_direction_angle: [f32; 4],
+    spot_color: [f32; 4],
+    environment: [f32; 4],
+    counts: [f32; 4],
+}
+
+impl Default for LightUniform {
+    fn default() -> Self {
+        Self {
+            ambient: [0.08, 0.08, 0.08, 1.0],
+            directional_direction: [-0.35, -0.8, -0.45, 0.0],
+            directional_color: [1.0, 1.0, 1.0, 0.0],
+            point_position_range: [0.0, 0.0, 0.0, 0.0],
+            point_color: [0.0, 0.0, 0.0, 0.0],
+            spot_direction_angle: [0.0, -1.0, 0.0, 0.0],
+            spot_color: [0.0, 0.0, 0.0, 0.0],
+            environment: [0.0, 0.0, 0.0, 0.0],
+            counts: [0.0, 0.0, 0.0, 0.0],
+        }
+    }
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+struct TextureGpuResource {
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    sampler: wgpu::Sampler,
+    material_bind_group: Option<wgpu::BindGroup>,
+    byte_len: u64,
+}
+
 #[derive(Debug)]
 struct UniformResources {
     frame_layout: wgpu::BindGroupLayout,
     object_layout: wgpu::BindGroupLayout,
     material_layout: wgpu::BindGroupLayout,
+    light_layout: wgpu::BindGroupLayout,
+    material_texture_layout: wgpu::BindGroupLayout,
     frame_buffer: wgpu::Buffer,
     object_buffer: wgpu::Buffer,
     material_buffer: wgpu::Buffer,
+    light_buffer: wgpu::Buffer,
     frame_bind_group: wgpu::BindGroup,
     object_bind_group: wgpu::BindGroup,
     material_bind_group: wgpu::BindGroup,
+    light_bind_group: wgpu::BindGroup,
+    default_texture_bind_group: wgpu::BindGroup,
     object_stride: u64,
     material_stride: u64,
     draw_capacity: usize,
@@ -71,6 +122,13 @@ impl UniformResources {
             wgpu::ShaderStages::VERTEX_FRAGMENT,
             true,
         );
+        let light_layout = uniform_layout(
+            device,
+            "scenix.light.layout",
+            wgpu::ShaderStages::FRAGMENT,
+            false,
+        );
+        let material_texture_layout = material_texture_layout(device);
         let frame_buffer = uniform_buffer(
             device,
             "scenix.frame.uniform",
@@ -85,6 +143,11 @@ impl UniformResources {
             device,
             "scenix.material.preview.uniform",
             material_stride as usize * draw_capacity,
+        );
+        let light_buffer = uniform_buffer(
+            device,
+            "scenix.light.uniform",
+            core::mem::size_of::<LightUniform>(),
         );
         let frame_bind_group = uniform_bind_group(
             device,
@@ -107,17 +170,31 @@ impl UniformResources {
             &material_buffer,
             core::mem::size_of::<MaterialUniform>(),
         );
+        let light_bind_group = uniform_bind_group(
+            device,
+            "scenix.light.bind_group",
+            &light_layout,
+            &light_buffer,
+            core::mem::size_of::<LightUniform>(),
+        );
+        let default_texture_bind_group =
+            default_material_texture_bind_group(device, &material_texture_layout);
 
         Self {
             frame_layout,
             object_layout,
             material_layout,
+            light_layout,
+            material_texture_layout,
             frame_buffer,
             object_buffer,
             material_buffer,
+            light_buffer,
             frame_bind_group,
             object_bind_group,
             material_bind_group,
+            light_bind_group,
+            default_texture_bind_group,
             object_stride,
             material_stride,
             draw_capacity,
@@ -171,6 +248,9 @@ pub struct Renderer {
     draw_pipeline: wgpu::RenderPipeline,
     uniforms: UniformResources,
     gpu_scene: GpuScene,
+    texture_resources: HashMap<TextureId, TextureGpuResource>,
+    render_targets: HashMap<TextureId, TextureTarget>,
+    environment: Option<EnvironmentMap>,
     gbuffer: GBuffer,
     shadow_maps: ShadowMapAtlas,
     #[cfg(feature = "post")]
@@ -228,6 +308,9 @@ impl Renderer {
             draw_pipeline,
             uniforms,
             gpu_scene: GpuScene::new(),
+            texture_resources: HashMap::new(),
+            render_targets: HashMap::new(),
+            environment: None,
             gbuffer,
             shadow_maps,
             #[cfg(feature = "post")]
@@ -263,6 +346,9 @@ impl Renderer {
             draw_pipeline,
             uniforms,
             gpu_scene: GpuScene::new(),
+            texture_resources: HashMap::new(),
+            render_targets: HashMap::new(),
+            environment: None,
             gbuffer,
             shadow_maps,
             #[cfg(feature = "post")]
@@ -311,30 +397,7 @@ impl Renderer {
         camera: &PerspectiveCamera,
     ) -> Result<FrameStats, ScenixError> {
         let frame_context = self.frame_context(camera);
-        let (mut draws, culling_stats) =
-            collect_visible_draws(scene, &self.gpu_scene, camera).map_err(ScenixError::from)?;
-        let mut opaque = Vec::new();
-        let mut transparent = Vec::new();
-        for draw in draws.drain(..) {
-            if draw.transparent {
-                transparent.push(draw);
-            } else {
-                opaque.push(draw);
-            }
-        }
-        sort_opaque_front_to_back(&mut opaque);
-        sort_transparent_back_to_front(&mut transparent);
-
-        let stats = FrameStats {
-            frame_index: self.frame_index,
-            scene_meshes: culling_stats.scene_meshes,
-            visible_meshes: culling_stats.visible_meshes,
-            culled_meshes: culling_stats.culled_meshes,
-            opaque_draws: opaque.len() as u32,
-            transparent_draws: transparent.len() as u32,
-            lights: self.gpu_scene.light_count() as u32,
-            target_mode: Some(self.target_mode),
-        };
+        let (opaque, transparent, stats) = self.prepare_draws(scene, camera)?;
 
         match self.target_mode {
             RenderTargetMode::Headless => {
@@ -455,7 +518,59 @@ impl Renderer {
     ) -> Result<(), ScenixError> {
         self.gpu_scene
             .register_texture2d(texture_id, texture, sampler)
-            .map_err(ScenixError::from)
+            .map_err(ScenixError::from)?;
+        let resource = upload_texture2d(
+            &self.device,
+            &self.queue,
+            &self.uniforms.material_texture_layout,
+            texture,
+            sampler,
+        )?;
+        self.texture_resources.insert(texture_id, resource);
+        Ok(())
+    }
+
+    /// Updates an existing 2D texture or registers it if the ID is new.
+    #[inline]
+    pub fn update_texture2d(
+        &mut self,
+        texture_id: TextureId,
+        texture: &Texture2D,
+        sampler: Sampler,
+    ) -> Result<(), ScenixError> {
+        self.register_texture2d(texture_id, texture, sampler)
+    }
+
+    /// Registers a cube texture.
+    #[inline]
+    pub fn register_texture_cube(
+        &mut self,
+        texture_id: TextureId,
+        texture: &TextureCube,
+        sampler: Sampler,
+    ) -> Result<(), ScenixError> {
+        self.gpu_scene
+            .register_texture_cube(texture_id, texture, sampler)
+            .map_err(ScenixError::from)?;
+        let resource = upload_texture_cube(&self.device, &self.queue, texture, sampler)?;
+        self.texture_resources.insert(texture_id, resource);
+        Ok(())
+    }
+
+    /// Registers a 3D texture.
+    #[inline]
+    pub fn register_texture3d(
+        &mut self,
+        texture_id: TextureId,
+        texture: &Texture3D,
+        sampler: Sampler,
+    ) -> Result<(), ScenixError> {
+        self.gpu_scene
+            .register_texture3d(texture_id, texture, sampler)
+            .map_err(ScenixError::from)?;
+        let resource = upload_texture3d(&self.device, &self.queue, texture, sampler)?;
+        self.texture_resources.insert(texture_id, resource);
+        Ok(())
     }
 
     /// Registers a renderer light.
@@ -508,6 +623,216 @@ impl Renderer {
         light: SpotLight,
     ) -> Result<(), ScenixError> {
         self.register_light(light_id, RendererLight::Spot(light))
+    }
+
+    /// Registers a hemisphere light.
+    #[inline]
+    pub fn register_hemisphere_light(
+        &mut self,
+        light_id: LightId,
+        light: HemisphereLight,
+    ) -> Result<(), ScenixError> {
+        self.register_light(light_id, RendererLight::Hemisphere(light))
+    }
+
+    /// Registers an area light.
+    #[inline]
+    pub fn register_area_light(
+        &mut self,
+        light_id: LightId,
+        light: AreaLight,
+    ) -> Result<(), ScenixError> {
+        self.register_light(light_id, RendererLight::Area(light))
+    }
+
+    /// Registers a light probe.
+    #[inline]
+    pub fn register_light_probe(
+        &mut self,
+        light_id: LightId,
+        light: LightProbe,
+    ) -> Result<(), ScenixError> {
+        self.register_light(light_id, RendererLight::Probe(light))
+    }
+
+    /// Removes a mesh from renderer-owned resources.
+    #[inline]
+    pub fn unregister_mesh(&mut self, mesh_id: MeshId) -> bool {
+        self.gpu_scene.unregister_mesh(mesh_id)
+    }
+
+    /// Removes a material from renderer-owned resources.
+    #[inline]
+    pub fn unregister_material(&mut self, material_id: MaterialId) -> bool {
+        self.gpu_scene.unregister_material(material_id)
+    }
+
+    /// Removes a texture and any associated GPU resource.
+    #[inline]
+    pub fn unregister_texture(&mut self, texture_id: TextureId) -> bool {
+        let metadata = self.gpu_scene.unregister_texture(texture_id);
+        let resource = self.texture_resources.remove(&texture_id).is_some();
+        metadata || resource
+    }
+
+    /// Removes a light from renderer-owned resources.
+    #[inline]
+    pub fn unregister_light(&mut self, light_id: LightId) -> bool {
+        self.gpu_scene.unregister_light(light_id)
+    }
+
+    /// Clears all registered textures.
+    #[inline]
+    pub fn clear_textures(&mut self) {
+        self.gpu_scene.clear_textures();
+        self.texture_resources.clear();
+    }
+
+    /// Clears all registered render targets.
+    #[inline]
+    pub fn clear_render_targets(&mut self) {
+        self.render_targets.clear();
+    }
+
+    /// Sets the active image-based-lighting environment.
+    pub fn set_environment_map(&mut self, environment: EnvironmentMap) -> Result<(), ScenixError> {
+        if environment.texture_id.is_null()
+            || self.gpu_scene.texture(environment.texture_id).is_none()
+        {
+            return Err(ScenixError::Validation(
+                scenix_core::ValidationError::InvalidId,
+            ));
+        }
+        self.environment = Some(environment);
+        Ok(())
+    }
+
+    /// Clears the active image-based-lighting environment.
+    #[inline]
+    pub fn clear_environment_map(&mut self) {
+        self.environment = None;
+    }
+
+    /// Creates or replaces a renderer-owned render target keyed by `TextureId`.
+    pub fn create_render_target(
+        &mut self,
+        texture_id: TextureId,
+        descriptor: RenderTargetDescriptor,
+    ) -> Result<(), ScenixError> {
+        if texture_id.is_null() || descriptor.width == 0 || descriptor.height == 0 {
+            return Err(ScenixError::Validation(
+                scenix_core::ValidationError::OutOfRange,
+            ));
+        }
+        if descriptor.sample_count != 1 {
+            return Err(ScenixError::Gpu(GpuError::Unsupported));
+        }
+        let usage = match descriptor.kind {
+            RenderTargetKind::Depth => {
+                wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING
+            }
+            RenderTargetKind::Color2D | RenderTargetKind::Hdr2D | RenderTargetKind::Cube => {
+                wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::TEXTURE_BINDING
+                    | wgpu::TextureUsages::COPY_SRC
+            }
+        };
+        let target = TextureTarget::new(
+            &self.device,
+            "scenix.render_target",
+            descriptor.width,
+            descriptor.height,
+            descriptor.format,
+            usage,
+        );
+        self.render_targets.insert(texture_id, target);
+        Ok(())
+    }
+
+    /// Renders a scene into a registered render target.
+    pub fn render_to_texture(
+        &mut self,
+        texture_id: TextureId,
+        scene: &SceneGraph,
+        camera: &PerspectiveCamera,
+    ) -> Result<FrameStats, ScenixError> {
+        let (view, format) = {
+            let target = self
+                .render_targets
+                .get(&texture_id)
+                .ok_or(ScenixError::Validation(
+                    scenix_core::ValidationError::InvalidId,
+                ))?;
+            (
+                target
+                    .texture()
+                    .create_view(&wgpu::TextureViewDescriptor::default()),
+                target.format(),
+            )
+        };
+        let frame_context = self.frame_context(camera);
+        let (opaque, transparent, stats) = self.prepare_draws(scene, camera)?;
+        self.render_to_final_view(
+            &view,
+            format,
+            frame_context,
+            stats.visible_meshes,
+            &opaque,
+            &transparent,
+        )?;
+        self.frame_index = self.frame_index.saturating_add(1);
+        Ok(stats)
+    }
+
+    /// Reads one RGBA8 pixel from a registered color render target.
+    pub fn read_texture_pixel(
+        &self,
+        texture_id: TextureId,
+        x: u32,
+        y: u32,
+    ) -> Result<[u8; 4], ScenixError> {
+        let target = self
+            .render_targets
+            .get(&texture_id)
+            .ok_or(ScenixError::Validation(
+                scenix_core::ValidationError::InvalidId,
+            ))?;
+        read_target_pixel(&self.device, &self.queue, target, x, y)
+    }
+
+    /// Returns renderer diagnostics.
+    pub fn diagnostics(&self) -> RendererDiagnostics {
+        RendererDiagnostics {
+            frame_index: self.frame_index,
+            meshes: self.gpu_scene.mesh_count() as u32,
+            materials: self.gpu_scene.material_count() as u32,
+            textures: self.gpu_scene.textures().len() as u32,
+            lights: self.gpu_scene.light_count() as u32,
+            render_targets: self.render_targets.len() as u32,
+            texture_memory_bytes: self.texture_memory_bytes(),
+            geometry_memory_bytes: self.geometry_memory_bytes(),
+            uniform_memory_bytes: self.uniform_memory_bytes(),
+            pipeline_cache_entries: self.pipeline_cache.len() as u32,
+            shadow_slots: self.shadow_maps.layers(),
+        }
+    }
+
+    /// Returns renderer resource memory counters.
+    #[inline]
+    pub fn resource_stats(&self) -> ResourceStats {
+        ResourceStats {
+            geometry_bytes: self.geometry_memory_bytes(),
+            texture_bytes: self.texture_memory_bytes(),
+            uniform_bytes: self.uniform_memory_bytes(),
+        }
+    }
+
+    /// Returns pipeline cache counters.
+    #[inline]
+    pub fn pipeline_cache_stats(&self) -> PipelineCacheStats {
+        PipelineCacheStats {
+            entries: self.pipeline_cache.len() as u32,
+        }
     }
 
     /// Returns the wgpu device.
@@ -606,59 +931,47 @@ impl Renderer {
             .offscreen
             .as_ref()
             .ok_or(ScenixError::Gpu(GpuError::Unsupported))?;
-        let padded_bytes_per_row = 256_u32;
-        let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("scenix.headless.readback"),
-            size: padded_bytes_per_row as u64,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            mapped_at_creation: false,
-        });
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("scenix.headless.readback.encoder"),
-            });
-        encoder.copy_texture_to_buffer(
-            wgpu::TexelCopyTextureInfo {
-                texture: offscreen.texture(),
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            wgpu::TexelCopyBufferInfo {
-                buffer: &buffer,
-                layout: wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(padded_bytes_per_row),
-                    rows_per_image: Some(1),
-                },
-            },
-            wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-        );
-        self.queue.submit(Some(encoder.finish()));
+        read_target_pixel(&self.device, &self.queue, offscreen, 0, 0)
+    }
 
-        let slice = buffer.slice(..);
-        let (sender, receiver) = std::sync::mpsc::channel();
-        slice.map_async(wgpu::MapMode::Read, move |result| {
-            let _ = sender.send(result);
-        });
-        self.device
-            .poll(wgpu::PollType::wait_indefinitely())
-            .map_err(|_| ScenixError::Gpu(GpuError::Upload))?;
-        receiver
-            .recv()
-            .map_err(|_| ScenixError::Gpu(GpuError::Upload))?
-            .map_err(|_| ScenixError::Gpu(GpuError::Upload))?;
+    fn prepare_draws(
+        &self,
+        scene: &SceneGraph,
+        camera: &PerspectiveCamera,
+    ) -> Result<
+        (
+            Vec<crate::DrawSubmission>,
+            Vec<crate::DrawSubmission>,
+            FrameStats,
+        ),
+        ScenixError,
+    > {
+        let (mut draws, culling_stats) =
+            collect_visible_draws(scene, &self.gpu_scene, camera).map_err(ScenixError::from)?;
+        let mut opaque = Vec::new();
+        let mut transparent = Vec::new();
+        for draw in draws.drain(..) {
+            if draw.transparent {
+                transparent.push(draw);
+            } else {
+                opaque.push(draw);
+            }
+        }
+        sort_opaque_front_to_back(&mut opaque);
+        sort_transparent_back_to_front(&mut transparent);
 
-        let mapped = slice.get_mapped_range();
-        let pixel = [mapped[0], mapped[1], mapped[2], mapped[3]];
-        drop(mapped);
-        buffer.unmap();
-        Ok(pixel)
+        let stats = FrameStats {
+            frame_index: self.frame_index,
+            scene_meshes: culling_stats.scene_meshes,
+            visible_meshes: culling_stats.visible_meshes,
+            culled_meshes: culling_stats.culled_meshes,
+            opaque_draws: opaque.len() as u32,
+            transparent_draws: transparent.len() as u32,
+            lights: self.gpu_scene.light_count() as u32,
+            target_mode: Some(self.target_mode),
+        };
+
+        Ok((opaque, transparent, stats))
     }
 
     fn render_headless(
@@ -868,8 +1181,17 @@ impl Renderer {
             0,
             bytemuck::bytes_of(&frame_uniform),
         );
+        let light_uniform = self.light_uniform();
+        self.queue.write_buffer(
+            &self.uniforms.light_buffer,
+            0,
+            bytemuck::bytes_of(&light_uniform),
+        );
         let draw_count = opaque.len() + transparent.len();
         self.uniforms.ensure_draw_capacity(&self.device, draw_count);
+        let mut object_bytes = vec![0_u8; self.uniforms.object_stride as usize * draw_count.max(1)];
+        let mut material_bytes =
+            vec![0_u8; self.uniforms.material_stride as usize * draw_count.max(1)];
         for (draw_index, draw) in opaque.iter().chain(transparent.iter()).enumerate() {
             let Some(material) = self.gpu_scene.material(draw.material_id) else {
                 continue;
@@ -877,25 +1199,20 @@ impl Renderer {
             let object_uniform = ObjectUniform {
                 world: mat4_uniform(draw.world_matrix),
             };
-            let material_uniform = MaterialUniform::new(
-                material.preview_color(),
-                Vec3::ZERO,
-                0.0,
-                0.8,
-                None,
-                material.preview_shader_code(),
-                material.pipeline_key().feature_bits,
-            );
-            self.queue.write_buffer(
-                &self.uniforms.object_buffer,
-                draw_index as u64 * self.uniforms.object_stride,
-                bytemuck::bytes_of(&object_uniform),
-            );
-            self.queue.write_buffer(
-                &self.uniforms.material_buffer,
-                draw_index as u64 * self.uniforms.material_stride,
-                bytemuck::bytes_of(&material_uniform),
-            );
+            let material_uniform = material_uniform(material);
+            let object_offset = self.uniforms.object_stride as usize * draw_index;
+            let material_offset = self.uniforms.material_stride as usize * draw_index;
+            object_bytes[object_offset..object_offset + core::mem::size_of::<ObjectUniform>()]
+                .copy_from_slice(bytemuck::bytes_of(&object_uniform));
+            material_bytes
+                [material_offset..material_offset + core::mem::size_of::<MaterialUniform>()]
+                .copy_from_slice(bytemuck::bytes_of(&material_uniform));
+        }
+        if draw_count > 0 {
+            self.queue
+                .write_buffer(&self.uniforms.object_buffer, 0, &object_bytes);
+            self.queue
+                .write_buffer(&self.uniforms.material_buffer, 0, &material_bytes);
         }
 
         let clear = if visible_meshes > 0 {
@@ -940,13 +1257,14 @@ impl Renderer {
             if visible_meshes > 0 {
                 pass.set_pipeline(&self.draw_pipeline);
                 pass.set_bind_group(0, &self.uniforms.frame_bind_group, &[]);
+                pass.set_bind_group(3, &self.uniforms.light_bind_group, &[]);
                 for (draw_index, draw) in opaque.iter().chain(transparent.iter()).enumerate() {
                     let Some(mesh) = self.gpu_scene.mesh(draw.mesh_id) else {
                         continue;
                     };
-                    if self.gpu_scene.material(draw.material_id).is_none() {
+                    let Some(material) = self.gpu_scene.material(draw.material_id) else {
                         continue;
-                    }
+                    };
                     pass.set_bind_group(
                         1,
                         &self.uniforms.object_bind_group,
@@ -957,6 +1275,7 @@ impl Renderer {
                         &self.uniforms.material_bind_group,
                         &[(draw_index as u64 * self.uniforms.material_stride) as u32],
                     );
+                    pass.set_bind_group(4, self.material_texture_bind_group(material), &[]);
                     pass.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
                     pass.set_index_buffer(
                         mesh.index_buffer().slice(..),
@@ -979,6 +1298,620 @@ impl Renderer {
             camera_position: camera.position,
         }
     }
+
+    fn material_texture_bind_group(&self, material: &RendererMaterial) -> &wgpu::BindGroup {
+        material_albedo_texture(material)
+            .and_then(|texture_id| self.texture_resources.get(&texture_id))
+            .and_then(|resource| resource.material_bind_group.as_ref())
+            .unwrap_or(&self.uniforms.default_texture_bind_group)
+    }
+
+    fn light_uniform(&self) -> LightUniform {
+        let mut uniform = LightUniform::default();
+        let mut directional_count = 0.0_f32;
+        let mut point_count = 0.0_f32;
+        let mut spot_count = 0.0_f32;
+        let mut extra_count = 0.0_f32;
+
+        for (_, light) in self.gpu_scene.lights().take(32) {
+            match light {
+                RendererLight::Ambient(light) => {
+                    uniform.ambient[0] += light.color.r * light.intensity;
+                    uniform.ambient[1] += light.color.g * light.intensity;
+                    uniform.ambient[2] += light.color.b * light.intensity;
+                }
+                RendererLight::Hemisphere(light) => {
+                    uniform.ambient[0] +=
+                        (light.sky_color.r + light.ground_color.r) * 0.5 * light.intensity;
+                    uniform.ambient[1] +=
+                        (light.sky_color.g + light.ground_color.g) * 0.5 * light.intensity;
+                    uniform.ambient[2] +=
+                        (light.sky_color.b + light.ground_color.b) * 0.5 * light.intensity;
+                    extra_count += 1.0;
+                }
+                RendererLight::Directional(light) => {
+                    if directional_count == 0.0 {
+                        uniform.directional_direction = [
+                            light.direction.x,
+                            light.direction.y,
+                            light.direction.z,
+                            light.shadow.map_or(0.0, |_| 1.0),
+                        ];
+                        uniform.directional_color =
+                            [light.color.r, light.color.g, light.color.b, light.intensity];
+                    }
+                    directional_count += 1.0;
+                }
+                RendererLight::Point(light) => {
+                    if point_count == 0.0 {
+                        uniform.point_position_range = [0.0, 2.0, 2.5, light.range];
+                        uniform.point_color =
+                            [light.color.r, light.color.g, light.color.b, light.intensity];
+                    }
+                    point_count += 1.0;
+                }
+                RendererLight::Spot(light) => {
+                    if spot_count == 0.0 {
+                        uniform.spot_direction_angle = [0.0, -1.0, 0.0, light.angle];
+                        uniform.spot_color =
+                            [light.color.r, light.color.g, light.color.b, light.intensity];
+                    }
+                    spot_count += 1.0;
+                }
+                RendererLight::Area(light) => {
+                    uniform.ambient[0] += light.color.r * light.intensity * 0.08;
+                    uniform.ambient[1] += light.color.g * light.intensity * 0.08;
+                    uniform.ambient[2] += light.color.b * light.intensity * 0.08;
+                    extra_count += 1.0;
+                }
+                RendererLight::Probe(light) => {
+                    uniform.environment[0] += light.sh_coefficients[0].x * light.intensity;
+                    uniform.environment[1] += light.sh_coefficients[0].y * light.intensity;
+                    uniform.environment[2] += light.sh_coefficients[0].z * light.intensity;
+                    extra_count += 1.0;
+                }
+            }
+        }
+
+        if let Some(environment) = self.environment {
+            uniform.environment[0] += 0.08 * environment.intensity;
+            uniform.environment[1] += 0.1 * environment.intensity;
+            uniform.environment[2] += 0.14 * environment.intensity;
+            uniform.environment[3] = environment.intensity;
+            if let Some(RendererLight::Probe(probe)) = environment
+                .light_probe
+                .and_then(|light_id| self.gpu_scene.lights().find(|(id, _)| **id == light_id))
+                .map(|(_, light)| light)
+            {
+                uniform.environment[0] += probe.sh_coefficients[0].x * probe.intensity;
+                uniform.environment[1] += probe.sh_coefficients[0].y * probe.intensity;
+                uniform.environment[2] += probe.sh_coefficients[0].z * probe.intensity;
+            }
+        }
+
+        uniform.counts = [directional_count, point_count, spot_count, extra_count];
+        uniform
+    }
+
+    fn geometry_memory_bytes(&self) -> u64 {
+        self.gpu_scene.geometry_memory_bytes()
+    }
+
+    fn texture_memory_bytes(&self) -> u64 {
+        let texture_bytes = self
+            .texture_resources
+            .values()
+            .map(|resource| resource.byte_len)
+            .sum::<u64>();
+        let target_bytes = self
+            .render_targets
+            .values()
+            .map(|target| texture_target_byte_len(target.width(), target.height(), target.format()))
+            .sum::<u64>();
+        texture_bytes + target_bytes
+    }
+
+    fn uniform_memory_bytes(&self) -> u64 {
+        self.uniforms.object_stride * self.uniforms.draw_capacity as u64
+            + self.uniforms.material_stride * self.uniforms.draw_capacity as u64
+            + core::mem::size_of::<FrameUniform>() as u64
+            + core::mem::size_of::<LightUniform>() as u64
+    }
+}
+
+fn material_uniform(material: &RendererMaterial) -> MaterialUniform {
+    match material {
+        RendererMaterial::Pbr(material) => MaterialUniform::new(
+            material.albedo,
+            material.emissive,
+            material.metallic,
+            material.roughness,
+            material.alpha_cutoff(),
+            0.0,
+            material.pipeline_key().feature_bits,
+        ),
+        RendererMaterial::Physical(material) => MaterialUniform::new(
+            material.base.albedo,
+            material.base.emissive,
+            material.base.metallic,
+            material.base.roughness,
+            material.alpha_cutoff(),
+            1.0,
+            material.pipeline_key().feature_bits,
+        ),
+        RendererMaterial::Unlit(material) => MaterialUniform::new(
+            material.color,
+            Vec3::ZERO,
+            0.0,
+            1.0,
+            material.alpha_cutoff(),
+            2.0,
+            material.pipeline_key().feature_bits,
+        ),
+        RendererMaterial::Lambert(material) => MaterialUniform::new(
+            material.color,
+            material.emissive,
+            0.0,
+            1.0,
+            material.alpha_cutoff(),
+            3.0,
+            material.pipeline_key().feature_bits,
+        ),
+        RendererMaterial::Toon(material) => MaterialUniform::new(
+            material.color,
+            Vec3::ZERO,
+            0.0,
+            1.0,
+            material.alpha_cutoff(),
+            4.0,
+            material.pipeline_key().feature_bits,
+        ),
+        RendererMaterial::Wireframe(material) => MaterialUniform::new(
+            scenix_core::Color {
+                a: material.opacity,
+                ..material.color
+            },
+            Vec3::ZERO,
+            0.0,
+            1.0,
+            material.alpha_cutoff(),
+            5.0,
+            material.pipeline_key().feature_bits,
+        ),
+        RendererMaterial::Normal(material) => MaterialUniform::new(
+            scenix_core::Color::WHITE,
+            Vec3::ZERO,
+            0.0,
+            1.0,
+            material.alpha_cutoff(),
+            6.0,
+            material.pipeline_key().feature_bits,
+        ),
+    }
+}
+
+fn material_albedo_texture(material: &RendererMaterial) -> Option<TextureId> {
+    match material {
+        RendererMaterial::Pbr(material) => material.albedo_texture,
+        RendererMaterial::Physical(material) => material.base.albedo_texture,
+        RendererMaterial::Unlit(material) => material.color_texture,
+        RendererMaterial::Toon(material) => material.color_texture.or(material.gradient_map),
+        _ => None,
+    }
+}
+
+fn upload_texture2d(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    layout: &wgpu::BindGroupLayout,
+    texture: &Texture2D,
+    sampler: Sampler,
+) -> Result<TextureGpuResource, ScenixError> {
+    let format = to_supported_wgpu_format(device, texture.format)?;
+    let gpu_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: texture.label.as_deref().or(Some("scenix.texture2d")),
+        size: wgpu::Extent3d {
+            width: texture.width,
+            height: texture.height,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: texture.mip_levels.max(1),
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING
+            | wgpu::TextureUsages::COPY_DST
+            | wgpu::TextureUsages::COPY_SRC,
+        view_formats: &[],
+    });
+    for level in 0..texture.mip_levels.max(1) {
+        let range = texture.mip_level_range(level).map_err(ScenixError::from)?;
+        let (width, height) = TextureFormat::mip_dimensions(texture.width, texture.height, level);
+        write_texture_level(
+            queue,
+            &gpu_texture,
+            TextureLevelUpload {
+                format: texture.format,
+                mip_level: level,
+                origin: wgpu::Origin3d::ZERO,
+                width,
+                height,
+                depth: 1,
+                data: &texture.data[range],
+            },
+        )?;
+    }
+    let view = gpu_texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let gpu_sampler = create_sampler(device, sampler);
+    let material_bind_group = if texture.format == TextureFormat::Depth32Float {
+        None
+    } else {
+        Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("scenix.material.texture.bind_group"),
+            layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&gpu_sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+            ],
+        }))
+    };
+    Ok(TextureGpuResource {
+        texture: gpu_texture,
+        view,
+        sampler: gpu_sampler,
+        material_bind_group,
+        byte_len: texture.data.len() as u64,
+    })
+}
+
+fn upload_texture_cube(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    texture: &TextureCube,
+    sampler: Sampler,
+) -> Result<TextureGpuResource, ScenixError> {
+    let format = to_supported_wgpu_format(device, texture.format)?;
+    let gpu_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: texture.label.as_deref().or(Some("scenix.texture_cube")),
+        size: wgpu::Extent3d {
+            width: texture.size,
+            height: texture.size,
+            depth_or_array_layers: 6,
+        },
+        mip_level_count: texture.mip_levels.max(1),
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    });
+    for (face_index, face) in texture.faces.iter().enumerate() {
+        for level in 0..texture.mip_levels.max(1) {
+            let range = texture.mip_level_range(level).map_err(ScenixError::from)?;
+            let (width, height) = TextureFormat::mip_dimensions(texture.size, texture.size, level);
+            write_texture_level(
+                queue,
+                &gpu_texture,
+                TextureLevelUpload {
+                    format: texture.format,
+                    mip_level: level,
+                    origin: wgpu::Origin3d {
+                        x: 0,
+                        y: 0,
+                        z: face_index as u32,
+                    },
+                    width,
+                    height,
+                    depth: 1,
+                    data: &face[range],
+                },
+            )?;
+        }
+    }
+    let view = gpu_texture.create_view(&wgpu::TextureViewDescriptor {
+        label: Some("scenix.texture_cube.view"),
+        dimension: Some(wgpu::TextureViewDimension::Cube),
+        ..Default::default()
+    });
+    let gpu_sampler = create_sampler(device, sampler);
+    Ok(TextureGpuResource {
+        texture: gpu_texture,
+        view,
+        sampler: gpu_sampler,
+        material_bind_group: None,
+        byte_len: texture.faces.iter().map(Vec::len).sum::<usize>() as u64,
+    })
+}
+
+fn upload_texture3d(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    texture: &Texture3D,
+    sampler: Sampler,
+) -> Result<TextureGpuResource, ScenixError> {
+    let format = to_supported_wgpu_format(device, texture.format)?;
+    let gpu_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: texture.label.as_deref().or(Some("scenix.texture3d")),
+        size: wgpu::Extent3d {
+            width: texture.width,
+            height: texture.height,
+            depth_or_array_layers: texture.depth,
+        },
+        mip_level_count: texture.mip_levels.max(1),
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D3,
+        format,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    });
+    for level in 0..texture.mip_levels.max(1) {
+        let range = texture.mip_level_range(level).map_err(ScenixError::from)?;
+        let (width, height) = TextureFormat::mip_dimensions(texture.width, texture.height, level);
+        let depth = (texture.depth >> level).max(1);
+        write_texture_level(
+            queue,
+            &gpu_texture,
+            TextureLevelUpload {
+                format: texture.format,
+                mip_level: level,
+                origin: wgpu::Origin3d::ZERO,
+                width,
+                height,
+                depth,
+                data: &texture.data[range],
+            },
+        )?;
+    }
+    let view = gpu_texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let gpu_sampler = create_sampler(device, sampler);
+    Ok(TextureGpuResource {
+        texture: gpu_texture,
+        view,
+        sampler: gpu_sampler,
+        material_bind_group: None,
+        byte_len: texture.data.len() as u64,
+    })
+}
+
+struct TextureLevelUpload<'a> {
+    format: TextureFormat,
+    mip_level: u32,
+    origin: wgpu::Origin3d,
+    width: u32,
+    height: u32,
+    depth: u32,
+    data: &'a [u8],
+}
+
+fn write_texture_level(
+    queue: &wgpu::Queue,
+    texture: &wgpu::Texture,
+    upload: TextureLevelUpload<'_>,
+) -> Result<(), ScenixError> {
+    let bytes_per_row = texture_bytes_per_row(upload.format, upload.width)?;
+    queue.write_texture(
+        wgpu::TexelCopyTextureInfo {
+            texture,
+            mip_level: upload.mip_level,
+            origin: upload.origin,
+            aspect: wgpu::TextureAspect::All,
+        },
+        upload.data,
+        wgpu::TexelCopyBufferLayout {
+            offset: 0,
+            bytes_per_row: Some(bytes_per_row),
+            rows_per_image: Some(upload.height),
+        },
+        wgpu::Extent3d {
+            width: upload.width,
+            height: upload.height,
+            depth_or_array_layers: upload.depth,
+        },
+    );
+    Ok(())
+}
+
+fn to_supported_wgpu_format(
+    device: &wgpu::Device,
+    format: TextureFormat,
+) -> Result<wgpu::TextureFormat, ScenixError> {
+    let Some(wgpu_format) = crate::to_wgpu_texture_format(format) else {
+        return Err(ScenixError::Gpu(GpuError::Unsupported));
+    };
+    let required = required_texture_features(format);
+    if !device.features().contains(required) {
+        return Err(ScenixError::Gpu(GpuError::Unsupported));
+    }
+    Ok(wgpu_format)
+}
+
+fn required_texture_features(format: TextureFormat) -> wgpu::Features {
+    match format {
+        TextureFormat::Bc7RgbaUnorm => wgpu::Features::TEXTURE_COMPRESSION_BC,
+        TextureFormat::Astc4x4RgbaUnorm => wgpu::Features::TEXTURE_COMPRESSION_ASTC,
+        TextureFormat::Etc2Rgba8Unorm => wgpu::Features::TEXTURE_COMPRESSION_ETC2,
+        _ => wgpu::Features::empty(),
+    }
+}
+
+fn texture_bytes_per_row(format: TextureFormat, width: u32) -> Result<u32, ScenixError> {
+    if let Some(bytes_per_pixel) = format.bytes_per_pixel() {
+        Ok(width.saturating_mul(bytes_per_pixel as u32))
+    } else {
+        let (block_width, _) = format
+            .block_dimensions()
+            .ok_or(ScenixError::Gpu(GpuError::Unsupported))?;
+        let bytes_per_block = format
+            .bytes_per_block()
+            .ok_or(ScenixError::Gpu(GpuError::Unsupported))?;
+        Ok(width.div_ceil(block_width) * bytes_per_block as u32)
+    }
+}
+
+fn texture_target_byte_len(width: u32, height: u32, format: wgpu::TextureFormat) -> u64 {
+    let bytes_per_pixel = match format {
+        wgpu::TextureFormat::Rgba16Float => 8,
+        wgpu::TextureFormat::Depth32Float
+        | wgpu::TextureFormat::Rgba8Unorm
+        | wgpu::TextureFormat::Rgba8UnormSrgb
+        | wgpu::TextureFormat::Bgra8Unorm
+        | wgpu::TextureFormat::Bgra8UnormSrgb => 4,
+        _ => 4,
+    };
+    width as u64 * height as u64 * bytes_per_pixel
+}
+
+fn create_sampler(device: &wgpu::Device, sampler: Sampler) -> wgpu::Sampler {
+    device.create_sampler(&wgpu::SamplerDescriptor {
+        label: Some("scenix.texture.sampler"),
+        address_mode_u: crate::to_wgpu_address_mode(sampler.address_u),
+        address_mode_v: crate::to_wgpu_address_mode(sampler.address_v),
+        address_mode_w: crate::to_wgpu_address_mode(sampler.address_w),
+        mag_filter: crate::to_wgpu_filter_mode(sampler.mag_filter),
+        min_filter: crate::to_wgpu_filter_mode(sampler.min_filter),
+        mipmap_filter: to_wgpu_mipmap_filter_mode(sampler.mip_filter),
+        compare: crate::to_wgpu_compare(sampler.compare),
+        anisotropy_clamp: sampler.anisotropy as u16,
+        ..Default::default()
+    })
+}
+
+fn to_wgpu_mipmap_filter_mode(filter: scenix_texture::FilterMode) -> wgpu::MipmapFilterMode {
+    match filter {
+        scenix_texture::FilterMode::Nearest => wgpu::MipmapFilterMode::Nearest,
+        scenix_texture::FilterMode::Linear => wgpu::MipmapFilterMode::Linear,
+    }
+}
+
+fn material_texture_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("scenix.material.texture.layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+        ],
+    })
+}
+
+fn default_material_texture_bind_group(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+) -> wgpu::BindGroup {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("scenix.material.default_white_texture"),
+        size: wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    });
+    let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("scenix.material.default_texture.bind_group"),
+        layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Sampler(&sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::TextureView(&view),
+            },
+        ],
+    })
+}
+
+fn read_target_pixel(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    target: &TextureTarget,
+    x: u32,
+    y: u32,
+) -> Result<[u8; 4], ScenixError> {
+    if x >= target.width() || y >= target.height() {
+        return Err(ScenixError::Validation(
+            scenix_core::ValidationError::OutOfRange,
+        ));
+    }
+    let padded_bytes_per_row = 256_u32;
+    let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("scenix.target.readback"),
+        size: padded_bytes_per_row as u64,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("scenix.target.readback.encoder"),
+    });
+    encoder.copy_texture_to_buffer(
+        wgpu::TexelCopyTextureInfo {
+            texture: target.texture(),
+            mip_level: 0,
+            origin: wgpu::Origin3d { x, y, z: 0 },
+            aspect: wgpu::TextureAspect::All,
+        },
+        wgpu::TexelCopyBufferInfo {
+            buffer: &buffer,
+            layout: wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(padded_bytes_per_row),
+                rows_per_image: Some(1),
+            },
+        },
+        wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        },
+    );
+    queue.submit(Some(encoder.finish()));
+
+    let slice = buffer.slice(..);
+    let (sender, receiver) = std::sync::mpsc::channel();
+    slice.map_async(wgpu::MapMode::Read, move |result| {
+        let _ = sender.send(result);
+    });
+    device
+        .poll(wgpu::PollType::wait_indefinitely())
+        .map_err(|_| ScenixError::Gpu(GpuError::Upload))?;
+    receiver
+        .recv()
+        .map_err(|_| ScenixError::Gpu(GpuError::Upload))?
+        .map_err(|_| ScenixError::Gpu(GpuError::Upload))?;
+
+    let mapped = slice.get_mapped_range();
+    let pixel = [mapped[0], mapped[1], mapped[2], mapped[3]];
+    drop(mapped);
+    buffer.unmap();
+    Ok(pixel)
 }
 
 fn instance_from_config(config: &RendererConfig) -> wgpu::Instance {
@@ -1002,6 +1935,8 @@ fn create_draw_pipeline(
             Some(&uniforms.frame_layout),
             Some(&uniforms.object_layout),
             Some(&uniforms.material_layout),
+            Some(&uniforms.light_layout),
+            Some(&uniforms.material_texture_layout),
         ],
         immediate_size: 0,
     });
@@ -1032,7 +1967,7 @@ fn create_draw_pipeline(
             entry_point: Some("fs_main"),
             targets: &[Some(wgpu::ColorTargetState {
                 format: color_format,
-                blend: Some(wgpu::BlendState::REPLACE),
+                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
             compilation_options: wgpu::PipelineCompilationOptions::default(),
@@ -1139,10 +2074,13 @@ async fn request_device(
         })
         .await
         .map_err(|_| ScenixError::Gpu(GpuError::Init))?;
+    let optional_features = wgpu::Features::TEXTURE_COMPRESSION_BC
+        | wgpu::Features::TEXTURE_COMPRESSION_ETC2
+        | wgpu::Features::TEXTURE_COMPRESSION_ASTC;
     let (device, queue) = adapter
         .request_device(&wgpu::DeviceDescriptor {
             label: Some("scenix.renderer.device"),
-            required_features: wgpu::Features::empty(),
+            required_features: adapter.features() & optional_features,
             required_limits: wgpu::Limits::default(),
             ..Default::default()
         })

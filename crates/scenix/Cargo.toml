@@ -58,94 +58,112 @@ path = "../../tests/scenix_foundation.rs"
 [[example]]
 name = "materials_and_lights"
 path = "../../examples/materials_and_lights.rs"
+required-features = ["scene", "mesh", "material", "light"]
 
 [[example]]
 name = "material_pipeline_keys"
 path = "../../examples/material_pipeline_keys.rs"
+required-features = ["material"]
 
 [[example]]
 name = "light_probe"
 path = "../../examples/light_probe.rs"
+required-features = ["light"]
 
 [[example]]
 name = "textures_and_camera"
 path = "../../examples/textures_and_camera.rs"
+required-features = ["camera", "texture"]
 
 [[example]]
 name = "orbit_camera"
 path = "../../examples/orbit_camera.rs"
+required-features = ["camera"]
 
 [[example]]
 name = "hello_cube"
 path = "../../examples/hello_cube.rs"
-required-features = ["renderer"]
+required-features = ["renderer", "scene", "camera", "mesh", "material"]
 
 [[example]]
 name = "pbr_sphere"
 path = "../../examples/pbr_sphere.rs"
-required-features = ["renderer"]
+required-features = ["renderer", "scene", "camera", "mesh", "material", "texture", "light"]
 
 [[example]]
 name = "physical_material"
 path = "../../examples/physical_material.rs"
-required-features = ["renderer"]
+required-features = ["renderer", "scene", "camera", "mesh", "material"]
 
 [[example]]
 name = "toon_shading"
 path = "../../examples/toon_shading.rs"
-required-features = ["renderer"]
+required-features = ["renderer", "scene", "camera", "mesh", "material", "texture"]
 
 [[example]]
 name = "shadow_demo"
 path = "../../examples/shadow_demo.rs"
-required-features = ["renderer"]
+required-features = ["renderer", "scene", "camera", "mesh", "material", "light"]
 
 [[example]]
 name = "gltf_scene"
 path = "../../examples/gltf_scene.rs"
-required-features = ["loader", "renderer"]
+required-features = ["loader", "renderer", "camera"]
 
 [[example]]
 name = "post_processing"
 path = "../../examples/post_processing.rs"
-required-features = ["renderer", "post"]
+required-features = ["renderer", "post", "scene", "camera", "mesh", "light"]
 
 [[example]]
 name = "raycasting"
 path = "../../examples/raycasting.rs"
+required-features = ["scene", "camera", "mesh", "raycaster"]
 
 [[example]]
 name = "helpers_demo"
 path = "../../examples/helpers_demo.rs"
+required-features = ["helpers", "camera", "light"]
 
 [[example]]
 name = "instanced_mesh"
 path = "../../examples/instanced_mesh.rs"
+required-features = ["mesh"]
 
 [[example]]
 name = "lod_demo"
 path = "../../examples/lod_demo.rs"
+required-features = ["scene"]
 
 [[example]]
 name = "morph_targets"
 path = "../../examples/morph_targets.rs"
+required-features = ["mesh"]
 
 [[example]]
 name = "fog_demo"
 path = "../../examples/fog_demo.rs"
+required-features = ["scene"]
 
 [[example]]
 name = "sprite_particles"
 path = "../../examples/sprite_particles.rs"
+required-features = ["scene"]
 
 [[example]]
 name = "environment_map"
 path = "../../examples/environment_map.rs"
+required-features = ["renderer", "scene", "camera", "mesh", "material", "texture"]
+
+[[example]]
+name = "render_target_capture"
+path = "../../examples/render_target_capture.rs"
+required-features = ["renderer", "scene", "camera", "mesh", "material"]
 
 [[example]]
 name = "animato_integration"
 path = "../../examples/animato_integration.rs"
-required-features = ["animato"]
+required-features = ["animato", "scene", "camera", "material"]
 
 [[test]]
 name = "scenix_v08"

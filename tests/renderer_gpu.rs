@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use scenix_camera::PerspectiveCamera;
-use scenix_core::{Color, LightId, MaterialId, MeshId};
+use scenix_core::{Color, LightId, MaterialId, MeshId, ScenixError};
 use scenix_light::{AmbientLight, DirectionalLight};
 use scenix_material::{PbrMaterial, PipelineKey};
 use scenix_math::Vec3;
@@ -15,8 +15,7 @@ fn run_gpu_tests() -> bool {
     std::env::var("SCENIX_RUN_GPU_TESTS").as_deref() == Ok("1")
 }
 
-async fn cube_renderer()
--> Result<(Renderer, SceneGraph, PerspectiveCamera), Box<dyn std::error::Error>> {
+async fn cube_renderer() -> Result<(Renderer, SceneGraph, PerspectiveCamera), ScenixError> {
     let mut renderer = Renderer::headless(RendererConfig::new(64, 64)).await?;
     let mesh_id = MeshId::new(1);
     let material_id = MaterialId::new(1);
@@ -49,7 +48,7 @@ async fn cube_renderer()
 }
 
 #[test]
-fn pipeline_cache_reuses_matching_pipeline() -> Result<(), Box<dyn std::error::Error>> {
+fn pipeline_cache_reuses_matching_pipeline() -> Result<(), ScenixError> {
     if !run_gpu_tests() {
         return Ok(());
     }
@@ -74,8 +73,7 @@ fn pipeline_cache_reuses_matching_pipeline() -> Result<(), Box<dyn std::error::E
 }
 
 #[test]
-fn headless_render_of_cube_produces_non_black_framebuffer() -> Result<(), Box<dyn std::error::Error>>
-{
+fn headless_render_of_cube_produces_non_black_framebuffer() -> Result<(), ScenixError> {
     if !run_gpu_tests() {
         return Ok(());
     }
@@ -95,7 +93,7 @@ fn headless_render_of_cube_produces_non_black_framebuffer() -> Result<(), Box<dy
 }
 
 #[test]
-fn resize_recreates_offscreen_targets() -> Result<(), Box<dyn std::error::Error>> {
+fn resize_recreates_offscreen_targets() -> Result<(), ScenixError> {
     if !run_gpu_tests() {
         return Ok(());
     }
@@ -113,7 +111,7 @@ fn resize_recreates_offscreen_targets() -> Result<(), Box<dyn std::error::Error>
 
 #[cfg(feature = "post")]
 #[test]
-fn renderer_applies_optional_post_stack() -> Result<(), Box<dyn std::error::Error>> {
+fn renderer_applies_optional_post_stack() -> Result<(), ScenixError> {
     if !run_gpu_tests() {
         return Ok(());
     }

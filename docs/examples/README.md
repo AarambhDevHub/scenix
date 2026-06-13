@@ -19,4 +19,5 @@ Each page maps to a real example file or the standalone WASM viewer crate. Comma
 - [Helpers Demo](helpers-demo.md) - `examples/helpers_demo.rs`
 - [Sprite Particles](sprite-particles.md) - `examples/sprite_particles.rs`
 - [Environment Map](environment-map.md) - `examples/environment_map.rs`
+- [Render Target Capture](render-target-capture.md) - `examples/render_target_capture.rs`
 - [WASM Viewer](wasm-viewer.md) - `examples/wasm_viewer`

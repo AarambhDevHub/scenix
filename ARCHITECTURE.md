@@ -2390,7 +2390,7 @@ Future crates become active workspace members only when their crate directory, d
 
 | Priority | Theme | Why It Comes First |
 |----------|-------|--------------------|
-| P0 | Renderer and material parity | The current renderer is stable for previews and examples; production parity needs real texture binding, lights, shadows, IBL, and physical shading. |
+| P0 | Renderer and material parity | v1.2.0 adds real texture binding, light upload, environment descriptors, render targets, diagnostics, and WebGL capability reporting. |
 | P1 | Asset pipeline depth | A Three.js-like ecosystem depends on loading, exporting, compressing, caching, and hot-reloading common 3D formats. |
 | P2 | Controls, interaction, and editor primitives | Product viewers, tools, games, and editors need transform gizmos, drag controls, pointer lock, selection volumes, and inspectors. |
 | P3 | Scene effects and simulation bridges | Sky, water, terrain, particles, audio, physics, and XR should arrive as optional crates or optional renderer modules. |
@@ -2551,7 +2551,7 @@ Every new feature should declare where it works.
 
 ---
 
-*Document version: 1.1.0 + future parity plan — updated June 3, 2026*
+*Document version: 1.2.0 + future parity plan — updated June 13, 2026*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
-*Total crates: 17 shipped through v1.1.0; future optional crates are listed in Section 17*
+*Total crates: 17 shipped through v1.2.0; future optional crates are listed in Section 17*

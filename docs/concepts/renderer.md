@@ -14,8 +14,10 @@ Enable `renderer`.
 
 ## Key Rules
 
-- The renderer owns device, queue, surfaces, buffers, textures, and pipeline caches.
+- The renderer owns device, queue, surfaces, buffers, textures, render targets, light uniforms, and pipeline caches.
 - SceneGraph stores IDs; renderer resource registration maps IDs to GPU resources.
+- Register, update, unregister, or clear GPU resources explicitly; loaders still produce CPU assets.
+- Use `TextureId` for renderer-owned render targets in v1.2.0.
 - GPU tests are gated with `SCENIX_RUN_GPU_TESTS=1`.
 
 

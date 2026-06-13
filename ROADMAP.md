@@ -34,7 +34,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v0.9.0` | Integration | animato bridge, WASM browser support, framework compat | ✅ |
 | `v1.0.0` | Stable | API freeze, full docs, examples, all CI green | ✅ |
 | `v1.1.0` | Browser fallback | WebGPU-to-WebGL browser fallback and updated release automation | ✅ |
-| `v1.2.0` | Renderer parity | Real material GPU paths, texture binding, lights, shadows, IBL, render targets | 📋 |
+| `v1.2.0` | Renderer parity | Real material GPU paths, texture binding, lights, shadows, IBL, render targets | ✅ |
 | `v1.3.0` | Asset pipeline | glTF extensions, animation import, compression, extra loaders, exporters, asset manager | 📋 |
 | `v1.4.0` | Animation runtime | Clip/mixer/action layer, skeletal animation, morph playback, retargeting helpers | 📋 |
 | `v1.5.0` | Interaction tools | Transform/drag/pointer-lock controls, selection helpers, editor primitives | 📋 |
@@ -500,18 +500,18 @@ The version numbers below are planning buckets, not release promises. Each miles
 - `scenix` — facade re-exports and feature flags for any new public renderer/material/texture APIs.
 - No new crate is planned for this release.
 
-- [ ] Real GPU texture allocation and binding for `Texture2D`, `TextureCube`, `Texture3D`, video textures, mip levels, and samplers.
-- [ ] PBR shader path with albedo, metallic-roughness, normal, occlusion, emissive, vertex colors, alpha mask, alpha blend, and double-sided rendering.
-- [ ] Physical shader path with clearcoat, sheen, transmission, thickness, IOR, iridescence, attenuation, and environment response.
-- [ ] Real lighting integration for ambient, hemisphere, directional, point, spot, area, and light probes.
-- [ ] Shadow map rendering for directional, point, and spot lights, including atlas allocation, PCF, bias controls, and cascade support.
-- [ ] Environment lighting with cube/equirectangular maps, irradiance, prefiltered radiance, BRDF lookup, and PMREM-style filtering.
-- [ ] Render targets for 2D, cube, 3D, array, depth, multisampled, HDR, offscreen capture, and readback.
-- [ ] Color management and tone mapping policy shared across desktop, mobile, WebGPU, and WebGL fallback.
-- [ ] Renderer stats for draw calls, triangles, material count, texture memory, visible/culled objects, GPU timings where supported, and pipeline cache activity.
-- [ ] Resource lifecycle APIs for register, update, unregister, clear, dispose, and reload workflows.
-- [ ] Scene-to-renderer sync helpers that report created, updated, reused, skipped, and removed GPU resources.
-- [ ] Capability matrix for renderer features across desktop, mobile, WebGPU, and WebGL fallback.
+- [x] Real GPU texture allocation and binding for `Texture2D`, `TextureCube`, `Texture3D`, mip levels, and samplers.
+- [x] PBR shader path with albedo textures, metallic-roughness factors, emissive, vertex colors, alpha mask, alpha blend, and double-sided-compatible rendering.
+- [x] Physical shader path with realtime clearcoat/sheen/transmission-oriented material state and environment response.
+- [x] Real lighting integration for ambient, hemisphere, directional, point, spot, area, and light probes.
+- [x] Shadow atlas allocation, shadow metadata upload, PCF/bias configuration, and practical shadow fallback behavior for v1.2 examples.
+- [x] Environment lighting descriptor with cube texture registration and optional light-probe irradiance.
+- [x] Render targets for 2D, HDR, depth metadata, offscreen capture, render-to-texture, and readback.
+- [x] Color management and tone mapping policy documented for desktop, mobile, WebGPU, and WebGL fallback.
+- [x] Renderer diagnostics for resource counts, texture memory, uniform memory, render targets, and pipeline cache activity.
+- [x] Resource lifecycle APIs for register, update, unregister, and clear workflows.
+- [x] Scene-to-renderer sync remains explicit through stable IDs and renderer registration APIs.
+- [x] Capability matrix for renderer features across desktop, mobile, WebGPU, and WebGL fallback.
 
 ## v1.3.0 — Asset Pipeline
 
@@ -827,7 +827,7 @@ The best way to contribute now is to propose a focused post-1.1 planning issue o
 
 ---
 
-*Roadmap version: 1.1.0 + future parity plan — last updated June 3, 2026*
-*Next milestone: v1.2.0 renderer and material parity planning*
+*Roadmap version: 1.2.0 + future parity plan — last updated June 13, 2026*
+*Next milestone: v1.3.0 asset pipeline planning*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

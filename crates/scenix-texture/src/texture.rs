@@ -1,5 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::ops::Range;
 
 use scenix_core::ValidationError;
 
@@ -137,6 +138,11 @@ impl Texture2D {
         self.format.expected_2d_len(self.width, self.height)
     }
 
+    /// Returns the byte range occupied by one mip level in `data`.
+    pub fn mip_level_range(&self, level: u32) -> Result<Range<usize>, ValidationError> {
+        mip_level_range_2d(self.format, self.width, self.height, self.mip_levels, level)
+    }
+
     /// Validates dimensions and byte length.
     pub fn validate(&self) -> Result<(), ValidationError> {
         let expected =
@@ -183,6 +189,11 @@ impl TextureCube {
         } else {
             Err(ValidationError::OutOfRange)
         }
+    }
+
+    /// Returns the byte range occupied by one mip level inside each face.
+    pub fn mip_level_range(&self, level: u32) -> Result<Range<usize>, ValidationError> {
+        mip_level_range_2d(self.format, self.size, self.size, self.mip_levels, level)
     }
 }
 
@@ -248,6 +259,49 @@ impl Texture3D {
             Err(ValidationError::OutOfRange)
         }
     }
+
+    /// Returns the byte range occupied by one mip level in `data`.
+    pub fn mip_level_range(&self, level: u32) -> Result<Range<usize>, ValidationError> {
+        let levels = self.mip_levels.max(1);
+        if level >= levels || levels > max_mip_levels_3d(self.width, self.height, self.depth)? {
+            return Err(ValidationError::OutOfRange);
+        }
+        let mut offset = 0_usize;
+        for current in 0..level {
+            let (width, height) = TextureFormat::mip_dimensions(self.width, self.height, current);
+            let depth = mip_dimension(self.depth, current);
+            offset = offset
+                .checked_add(self.format.expected_3d_len(width, height, depth)?)
+                .ok_or(ValidationError::OutOfRange)?;
+        }
+        let (width, height) = TextureFormat::mip_dimensions(self.width, self.height, level);
+        let depth = mip_dimension(self.depth, level);
+        let len = self.format.expected_3d_len(width, height, depth)?;
+        Ok(offset..offset + len)
+    }
+}
+
+fn mip_level_range_2d(
+    format: TextureFormat,
+    width: u32,
+    height: u32,
+    mip_levels: u32,
+    level: u32,
+) -> Result<Range<usize>, ValidationError> {
+    let levels = mip_levels.max(1);
+    if level >= levels || levels > max_mip_levels_2d(width, height)? {
+        return Err(ValidationError::OutOfRange);
+    }
+    let mut offset = 0_usize;
+    for current in 0..level {
+        let (w, h) = TextureFormat::mip_dimensions(width, height, current);
+        offset = offset
+            .checked_add(format.expected_2d_len(w, h)?)
+            .ok_or(ValidationError::OutOfRange)?;
+    }
+    let (w, h) = TextureFormat::mip_dimensions(width, height, level);
+    let len = format.expected_2d_len(w, h)?;
+    Ok(offset..offset + len)
 }
 
 fn validate_2d_mips(

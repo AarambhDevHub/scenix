@@ -1,5 +1,7 @@
+#[cfg(all(feature = "helpers", feature = "raycaster"))]
 use scenix::{AxesHelper, GridHelper, LineGeometry, Raycaster};
 
+#[cfg(all(feature = "helpers", feature = "raycaster"))]
 #[test]
 fn facade_exports_v08_raycasting_and_helpers() {
     let raycaster = Raycaster::new();

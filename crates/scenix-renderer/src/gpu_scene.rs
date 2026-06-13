@@ -1,14 +1,19 @@
 use std::collections::HashMap;
 
 use scenix_core::{Color, LightId, MaterialId, MeshId, TextureId, ValidationError};
-use scenix_light::{AmbientLight, DirectionalLight, PointLight, SpotLight};
+use scenix_light::{
+    AmbientLight, AreaLight, DirectionalLight, HemisphereLight, LightProbe, PointLight, SpotLight,
+};
 use scenix_material::{
     LambertMaterial, Material, NormalMaterial, PbrMaterial, PhysicalMaterial, PipelineKey,
     ToonMaterial, UnlitMaterial, WireframeMaterial,
 };
 use scenix_math::{Aabb, Mat4, Vec2, Vec3, Vec4};
 use scenix_mesh::Geometry;
-use scenix_texture::{AddressMode, CompareFunction, FilterMode, Sampler, Texture2D, TextureFormat};
+use scenix_texture::{
+    AddressMode, CompareFunction, FilterMode, Sampler, Texture2D, Texture3D, TextureCube,
+    TextureFormat,
+};
 use wgpu::util::DeviceExt;
 
 /// Interleaved GPU vertex layout used by the v0.6 renderer.
@@ -220,6 +225,12 @@ pub enum RendererLight {
     Point(PointLight),
     /// Spot light.
     Spot(SpotLight),
+    /// Hemisphere gradient light.
+    Hemisphere(HemisphereLight),
+    /// Rectangular area light.
+    Area(AreaLight),
+    /// Spherical-harmonics light probe.
+    Probe(LightProbe),
 }
 
 /// Visible draw submission generated from a scene node.
@@ -443,6 +454,56 @@ impl GpuScene {
         Ok(())
     }
 
+    /// Registers validated cube texture metadata and sampler state.
+    pub fn register_texture_cube(
+        &mut self,
+        texture_id: TextureId,
+        texture: &TextureCube,
+        sampler: Sampler,
+    ) -> Result<(), ValidationError> {
+        if texture_id.is_null() {
+            return Err(ValidationError::InvalidId);
+        }
+        texture.validate()?;
+        self.textures.insert(
+            texture_id,
+            GpuTexture {
+                width: texture.size,
+                height: texture.size,
+                format: texture.format,
+                wgpu_format: to_wgpu_texture_format(texture.format),
+                sampler,
+                mip_levels: texture.mip_levels.max(1),
+            },
+        );
+        Ok(())
+    }
+
+    /// Registers validated 3D texture metadata and sampler state.
+    pub fn register_texture3d(
+        &mut self,
+        texture_id: TextureId,
+        texture: &Texture3D,
+        sampler: Sampler,
+    ) -> Result<(), ValidationError> {
+        if texture_id.is_null() {
+            return Err(ValidationError::InvalidId);
+        }
+        texture.validate()?;
+        self.textures.insert(
+            texture_id,
+            GpuTexture {
+                width: texture.width,
+                height: texture.height,
+                format: texture.format,
+                wgpu_format: to_wgpu_texture_format(texture.format),
+                sampler,
+                mip_levels: texture.mip_levels.max(1),
+            },
+        );
+        Ok(())
+    }
+
     /// Registers a light.
     pub fn register_light(
         &mut self,
@@ -454,6 +515,54 @@ impl GpuScene {
         }
         self.lights.insert(light_id, light);
         Ok(())
+    }
+
+    /// Removes one mesh from the registry.
+    #[inline]
+    pub fn unregister_mesh(&mut self, mesh_id: MeshId) -> bool {
+        self.meshes.remove(&mesh_id).is_some()
+    }
+
+    /// Removes one material from the registry.
+    #[inline]
+    pub fn unregister_material(&mut self, material_id: MaterialId) -> bool {
+        self.materials.remove(&material_id).is_some()
+    }
+
+    /// Removes one texture metadata entry from the registry.
+    #[inline]
+    pub fn unregister_texture(&mut self, texture_id: TextureId) -> bool {
+        self.textures.remove(&texture_id).is_some()
+    }
+
+    /// Removes one light from the registry.
+    #[inline]
+    pub fn unregister_light(&mut self, light_id: LightId) -> bool {
+        self.lights.remove(&light_id).is_some()
+    }
+
+    /// Clears all mesh resources.
+    #[inline]
+    pub fn clear_meshes(&mut self) {
+        self.meshes.clear();
+    }
+
+    /// Clears all material resources.
+    #[inline]
+    pub fn clear_materials(&mut self) {
+        self.materials.clear();
+    }
+
+    /// Clears all texture metadata.
+    #[inline]
+    pub fn clear_textures(&mut self) {
+        self.textures.clear();
+    }
+
+    /// Clears all light resources.
+    #[inline]
+    pub fn clear_lights(&mut self) {
+        self.lights.clear();
     }
 
     /// Returns a mesh by ID.
@@ -480,6 +589,12 @@ impl GpuScene {
         &self.textures
     }
 
+    /// Returns registered lights.
+    #[inline]
+    pub fn lights(&self) -> impl Iterator<Item = (&LightId, &RendererLight)> {
+        self.lights.iter()
+    }
+
     /// Returns the number of registered lights.
     #[inline]
     pub fn light_count(&self) -> usize {
@@ -496,6 +611,18 @@ impl GpuScene {
     #[inline]
     pub fn material_count(&self) -> usize {
         self.materials.len()
+    }
+
+    /// Returns approximate GPU bytes used by mesh vertex and index buffers.
+    #[inline]
+    pub fn geometry_memory_bytes(&self) -> u64 {
+        self.meshes
+            .values()
+            .map(|mesh| {
+                bytemuck::cast_slice::<PackedVertex, u8>(mesh.packed.vertices.as_slice()).len()
+                    + mesh.packed.index_bytes.len()
+            })
+            .sum::<usize>() as u64
     }
 }
 

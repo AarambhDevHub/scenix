@@ -6,7 +6,7 @@ CPU crates support stable Rust. Renderer paths use `wgpu` and depend on the host
 
 ## Browser
 
-WASM builds target `wasm32-unknown-unknown`. WebGPU support depends on the browser; UI should provide a fallback when unavailable.
+WASM builds target `wasm32-unknown-unknown`. Browser rendering tries WebGPU first, then WebGL2 as the full fallback path, then reduced WebGL1 for older browsers.
 
 ## no_std
 

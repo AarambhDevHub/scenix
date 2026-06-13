@@ -14,7 +14,7 @@ No. Loader output remains CPU data. Register assets with `Renderer` explicitly.
 
 ## Does Animato come by default?
 
-No. Enable `animato` when you need the bridge. The bridge uses Animato 1.4.0.
+No. Enable `animato` when you need the bridge. The bridge uses Animato 1.5.0.
 
 ## Can the website deploy to static hosting?
 

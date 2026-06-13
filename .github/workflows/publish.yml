@@ -3,7 +3,7 @@ name: Publish
 on:
   push:
     tags:
-      - "v1.1.0"
+      - "v1.2.0"
       - "v*.*.*"
 
 env:
@@ -175,4 +175,4 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: "scenix ${{ github.ref_name }}"
-          body_path: docs/release-v1.1.0.md
+          body_path: docs/release-v1.2.0.md
