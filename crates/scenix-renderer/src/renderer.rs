@@ -75,6 +75,7 @@ struct TextureGpuResource {
     view: wgpu::TextureView,
     sampler: wgpu::Sampler,
     material_bind_group: Option<wgpu::BindGroup>,
+    material_bindable: bool,
     byte_len: u64,
 }
 
@@ -84,7 +85,6 @@ struct UniformResources {
     object_layout: wgpu::BindGroupLayout,
     material_layout: wgpu::BindGroupLayout,
     light_layout: wgpu::BindGroupLayout,
-    material_texture_layout: wgpu::BindGroupLayout,
     frame_buffer: wgpu::Buffer,
     object_buffer: wgpu::Buffer,
     material_buffer: wgpu::Buffer,
@@ -93,7 +93,6 @@ struct UniformResources {
     object_bind_group: wgpu::BindGroup,
     material_bind_group: wgpu::BindGroup,
     light_bind_group: wgpu::BindGroup,
-    default_texture_bind_group: wgpu::BindGroup,
     object_stride: u64,
     material_stride: u64,
     draw_capacity: usize,
@@ -116,19 +115,13 @@ impl UniformResources {
             wgpu::ShaderStages::VERTEX,
             true,
         );
-        let material_layout = uniform_layout(
-            device,
-            "scenix.material.preview.layout",
-            wgpu::ShaderStages::VERTEX_FRAGMENT,
-            true,
-        );
+        let material_layout = material_layout(device);
         let light_layout = uniform_layout(
             device,
             "scenix.light.layout",
             wgpu::ShaderStages::FRAGMENT,
             false,
         );
-        let material_texture_layout = material_texture_layout(device);
         let frame_buffer = uniform_buffer(
             device,
             "scenix.frame.uniform",
@@ -163,7 +156,7 @@ impl UniformResources {
             &object_buffer,
             core::mem::size_of::<ObjectUniform>(),
         );
-        let material_bind_group = uniform_bind_group(
+        let material_bind_group = default_material_bind_group(
             device,
             "scenix.material.preview.bind_group",
             &material_layout,
@@ -177,15 +170,11 @@ impl UniformResources {
             &light_buffer,
             core::mem::size_of::<LightUniform>(),
         );
-        let default_texture_bind_group =
-            default_material_texture_bind_group(device, &material_texture_layout);
-
         Self {
             frame_layout,
             object_layout,
             material_layout,
             light_layout,
-            material_texture_layout,
             frame_buffer,
             object_buffer,
             material_buffer,
@@ -194,16 +183,15 @@ impl UniformResources {
             object_bind_group,
             material_bind_group,
             light_bind_group,
-            default_texture_bind_group,
             object_stride,
             material_stride,
             draw_capacity,
         }
     }
 
-    fn ensure_draw_capacity(&mut self, device: &wgpu::Device, needed: usize) {
+    fn ensure_draw_capacity(&mut self, device: &wgpu::Device, needed: usize) -> bool {
         if needed <= self.draw_capacity {
-            return;
+            return false;
         }
         self.draw_capacity = needed.next_power_of_two();
         self.object_buffer = uniform_buffer(
@@ -223,13 +211,14 @@ impl UniformResources {
             &self.object_buffer,
             core::mem::size_of::<ObjectUniform>(),
         );
-        self.material_bind_group = uniform_bind_group(
+        self.material_bind_group = default_material_bind_group(
             device,
             "scenix.material.preview.bind_group",
             &self.material_layout,
             &self.material_buffer,
             core::mem::size_of::<MaterialUniform>(),
         );
+        true
     }
 }
 
@@ -522,7 +511,8 @@ impl Renderer {
         let resource = upload_texture2d(
             &self.device,
             &self.queue,
-            &self.uniforms.material_texture_layout,
+            &self.uniforms.material_layout,
+            &self.uniforms.material_buffer,
             texture,
             sampler,
         )?;
@@ -1188,7 +1178,9 @@ impl Renderer {
             bytemuck::bytes_of(&light_uniform),
         );
         let draw_count = opaque.len() + transparent.len();
-        self.uniforms.ensure_draw_capacity(&self.device, draw_count);
+        if self.uniforms.ensure_draw_capacity(&self.device, draw_count) {
+            self.rebuild_material_texture_bind_groups();
+        }
         let mut object_bytes = vec![0_u8; self.uniforms.object_stride as usize * draw_count.max(1)];
         let mut material_bytes =
             vec![0_u8; self.uniforms.material_stride as usize * draw_count.max(1)];
@@ -1272,10 +1264,9 @@ impl Renderer {
                     );
                     pass.set_bind_group(
                         2,
-                        &self.uniforms.material_bind_group,
+                        self.material_bind_group(material),
                         &[(draw_index as u64 * self.uniforms.material_stride) as u32],
                     );
-                    pass.set_bind_group(4, self.material_texture_bind_group(material), &[]);
                     pass.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
                     pass.set_index_buffer(
                         mesh.index_buffer().slice(..),
@@ -1299,11 +1290,29 @@ impl Renderer {
         }
     }
 
-    fn material_texture_bind_group(&self, material: &RendererMaterial) -> &wgpu::BindGroup {
+    fn material_bind_group(&self, material: &RendererMaterial) -> &wgpu::BindGroup {
         material_albedo_texture(material)
             .and_then(|texture_id| self.texture_resources.get(&texture_id))
             .and_then(|resource| resource.material_bind_group.as_ref())
-            .unwrap_or(&self.uniforms.default_texture_bind_group)
+            .unwrap_or(&self.uniforms.material_bind_group)
+    }
+
+    fn rebuild_material_texture_bind_groups(&mut self) {
+        for resource in self.texture_resources.values_mut() {
+            if !resource.material_bindable {
+                resource.material_bind_group = None;
+                continue;
+            }
+            resource.material_bind_group = Some(material_bind_group(
+                &self.device,
+                "scenix.material.texture.bind_group",
+                &self.uniforms.material_layout,
+                &self.uniforms.material_buffer,
+                core::mem::size_of::<MaterialUniform>(),
+                &resource.sampler,
+                &resource.view,
+            ));
+        }
     }
 
     fn light_uniform(&self) -> LightUniform {
@@ -1504,6 +1513,7 @@ fn upload_texture2d(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     layout: &wgpu::BindGroupLayout,
+    material_buffer: &wgpu::Buffer,
     texture: &Texture2D,
     sampler: Sampler,
 ) -> Result<TextureGpuResource, ScenixError> {
@@ -1543,29 +1553,24 @@ fn upload_texture2d(
     }
     let view = gpu_texture.create_view(&wgpu::TextureViewDescriptor::default());
     let gpu_sampler = create_sampler(device, sampler);
-    let material_bind_group = if texture.format == TextureFormat::Depth32Float {
-        None
-    } else {
-        Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("scenix.material.texture.bind_group"),
+    let material_bindable = texture.format != TextureFormat::Depth32Float;
+    let material_bind_group = material_bindable.then(|| {
+        material_bind_group(
+            device,
+            "scenix.material.texture.bind_group",
             layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Sampler(&gpu_sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&view),
-                },
-            ],
-        }))
-    };
+            material_buffer,
+            core::mem::size_of::<MaterialUniform>(),
+            &gpu_sampler,
+            &view,
+        )
+    });
     Ok(TextureGpuResource {
         texture: gpu_texture,
         view,
         sampler: gpu_sampler,
         material_bind_group,
+        material_bindable,
         byte_len: texture.data.len() as u64,
     })
 }
@@ -1625,6 +1630,7 @@ fn upload_texture_cube(
         view,
         sampler: gpu_sampler,
         material_bind_group: None,
+        material_bindable: false,
         byte_len: texture.faces.iter().map(Vec::len).sum::<usize>() as u64,
     })
 }
@@ -1675,6 +1681,7 @@ fn upload_texture3d(
         view,
         sampler: gpu_sampler,
         material_bind_group: None,
+        material_bindable: false,
         byte_len: texture.data.len() as u64,
     })
 }
@@ -1789,18 +1796,28 @@ fn to_wgpu_mipmap_filter_mode(filter: scenix_texture::FilterMode) -> wgpu::Mipma
     }
 }
 
-fn material_texture_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn material_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("scenix.material.texture.layout"),
+        label: Some("scenix.material.preview.layout"),
         entries: &[
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: true,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
                 visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                 count: None,
             },
             wgpu::BindGroupLayoutEntry {
-                binding: 1,
+                binding: 2,
                 visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Texture {
                     sample_type: wgpu::TextureSampleType::Float { filterable: true },
@@ -1813,9 +1830,45 @@ fn material_texture_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     })
 }
 
-fn default_material_texture_bind_group(
+fn material_bind_group(
     device: &wgpu::Device,
+    label: &'static str,
     layout: &wgpu::BindGroupLayout,
+    material_buffer: &wgpu::Buffer,
+    binding_size: usize,
+    sampler: &wgpu::Sampler,
+    view: &wgpu::TextureView,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some(label),
+        layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                    buffer: material_buffer,
+                    offset: 0,
+                    size: wgpu::BufferSize::new(binding_size as u64),
+                }),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: wgpu::BindingResource::TextureView(view),
+            },
+        ],
+    })
+}
+
+fn default_material_bind_group(
+    device: &wgpu::Device,
+    label: &'static str,
+    layout: &wgpu::BindGroupLayout,
+    material_buffer: &wgpu::Buffer,
+    binding_size: usize,
 ) -> wgpu::BindGroup {
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("scenix.material.default_white_texture"),
@@ -1833,20 +1886,15 @@ fn default_material_texture_bind_group(
     });
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
-    device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("scenix.material.default_texture.bind_group"),
+    material_bind_group(
+        device,
+        label,
         layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Sampler(&sampler),
-            },
-            wgpu::BindGroupEntry {
-                binding: 1,
-                resource: wgpu::BindingResource::TextureView(&view),
-            },
-        ],
-    })
+        material_buffer,
+        binding_size,
+        &sampler,
+        &view,
+    )
 }
 
 fn read_target_pixel(
@@ -1936,7 +1984,6 @@ fn create_draw_pipeline(
             Some(&uniforms.object_layout),
             Some(&uniforms.material_layout),
             Some(&uniforms.light_layout),
-            Some(&uniforms.material_texture_layout),
         ],
         immediate_size: 0,
     });

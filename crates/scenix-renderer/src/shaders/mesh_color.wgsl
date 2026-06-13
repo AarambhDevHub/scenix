@@ -37,9 +37,9 @@ struct VsOut {
 @group(0) @binding(0) var<uniform> frame: FrameUniform;
 @group(1) @binding(0) var<uniform> object: ObjectUniform;
 @group(2) @binding(0) var<uniform> material: MaterialUniform;
+@group(2) @binding(1) var material_sampler: sampler;
+@group(2) @binding(2) var material_albedo: texture_2d<f32>;
 @group(3) @binding(0) var<uniform> lights: LightUniform;
-@group(4) @binding(0) var material_sampler: sampler;
-@group(4) @binding(1) var material_albedo: texture_2d<f32>;
 
 @vertex
 fn vs_main(
