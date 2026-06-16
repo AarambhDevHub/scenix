@@ -5,7 +5,10 @@ use std::sync::Arc;
 extern crate image as image_crate;
 
 use scenix_core::{CameraId, LoadError, MaterialId, ScenixError, TextureId};
-use scenix_loader::{AssetCache, GltfLoader, LoadedCamera, hdr, image, ktx2, obj, stl};
+use scenix_loader::{
+    AssetCache, AssetManager, GltfLoader, LoadedCamera, LoadedMaterial, export, hdr, image, ktx2,
+    obj, stl, support_for_extension,
+};
 use scenix_scene::NodeKind;
 use scenix_texture::TextureFormat;
 
@@ -34,6 +37,84 @@ fn generated_gltf_loads_scene_mesh_material_texture_sampler_and_camera() {
     });
     assert!(mesh_node.is_some());
     assert_eq!(asset.scene.roots().len(), 2);
+}
+
+#[test]
+fn gltf_package_imports_v13_asset_metadata() {
+    let dir = temp_dir("gltf-package");
+    write_v13_metadata_gltf(&dir);
+
+    let package = GltfLoader::new()
+        .load_package_file(dir.join("asset.gltf"))
+        .unwrap();
+
+    assert_eq!(package.skins.len(), 1);
+    assert_eq!(package.animations.len(), 1);
+    assert!(package.animations.values().next().unwrap().duration >= 1.0);
+    assert!(matches!(
+        package.loaded_materials[&MaterialId::new(1)],
+        LoadedMaterial::Physical(_)
+    ));
+    assert!(
+        package
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "gltf.draco")
+    );
+}
+
+#[test]
+fn gltf_package_imports_morph_targets_and_skin_attributes() {
+    let dir = temp_dir("gltf-morph");
+    write_morphed_triangle_gltf(&dir);
+
+    let package = GltfLoader::new()
+        .load_package_file(dir.join("morph.gltf"))
+        .unwrap();
+
+    let morphs = package
+        .morph_targets
+        .get(&scenix_core::MeshId::new(1))
+        .unwrap();
+    assert_eq!(morphs.len(), 1);
+    assert_eq!(morphs[0].positions_delta.len(), 3);
+    let skin = package
+        .mesh_skin_attributes
+        .get(&scenix_core::MeshId::new(1))
+        .unwrap();
+    assert_eq!(skin.joints.len(), 3);
+    assert_eq!(skin.weights.len(), 3);
+}
+
+#[test]
+fn asset_manager_caches_invalidates_and_exports_packages() {
+    let dir = temp_dir("asset-manager");
+    write_triangle_gltf(&dir);
+    let path = dir.join("triangle.gltf");
+
+    let mut manager = AssetManager::new();
+    let first = manager.load_file(&path).unwrap();
+    let second = manager.load_file(&path).unwrap();
+    assert!(Arc::ptr_eq(&first, &second));
+    assert_eq!(manager.len(), 1);
+
+    let obj = export::obj_string(&first);
+    assert!(obj.contains("v 0 0 0"));
+    let scene = export::scene_json_string(&first);
+    assert!(scene.contains("\"meshes\":1"));
+    let ply = export::ply_ascii_string(&first).unwrap();
+    assert!(ply.starts_with("ply\n"));
+
+    assert!(manager.invalidate(&first.source.clone().unwrap()));
+    assert!(manager.is_empty());
+}
+
+#[test]
+fn asset_support_matrix_reports_diagnostic_only_formats() {
+    let fbx = support_for_extension("fbx").unwrap();
+    assert_eq!(fbx.name, "FBX / USD / USDZ / Rhino / UltraHDR");
+    let glb = support_for_extension(".glb").unwrap();
+    assert_eq!(glb.name, "glTF / GLB");
 }
 
 #[test]
@@ -198,6 +279,92 @@ fn write_triangle_gltf(dir: &Path) {
     fs::write(dir.join("triangle.gltf"), triangle_gltf_json(true)).unwrap();
 }
 
+fn write_v13_metadata_gltf(dir: &Path) {
+    fs::create_dir_all(dir).unwrap();
+    fs::write(dir.join("anim.bin"), animation_bin()).unwrap();
+    fs::write(
+        dir.join("asset.gltf"),
+        r#"{
+  "asset": {"version": "2.0"},
+  "extensionsUsed": [
+    "KHR_materials_transmission",
+    "KHR_materials_ior",
+    "KHR_materials_emissive_strength",
+    "KHR_draco_mesh_compression"
+  ],
+  "scene": 0,
+  "scenes": [{"nodes": [0]}],
+  "nodes": [{"name": "root"}],
+  "skins": [{"name": "skin", "joints": [0]}],
+  "materials": [{
+    "name": "glass",
+    "emissiveFactor": [0.1, 0.2, 0.3],
+    "extensions": {
+      "KHR_materials_transmission": {"transmissionFactor": 0.6},
+      "KHR_materials_ior": {"ior": 1.45},
+      "KHR_materials_emissive_strength": {"emissiveStrength": 2.0}
+    }
+  }],
+  "animations": [{
+    "name": "move",
+    "samplers": [{"input": 0, "output": 1, "interpolation": "LINEAR"}],
+    "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}]
+  }],
+  "buffers": [{"uri": "anim.bin", "byteLength": 32}],
+  "bufferViews": [
+    {"buffer": 0, "byteOffset": 0, "byteLength": 8},
+    {"buffer": 0, "byteOffset": 8, "byteLength": 24}
+  ],
+  "accessors": [
+    {"bufferView": 0, "componentType": 5126, "count": 2, "type": "SCALAR", "min": [0.0], "max": [1.0]},
+    {"bufferView": 1, "componentType": 5126, "count": 2, "type": "VEC3"}
+  ]
+}"#,
+    )
+    .unwrap();
+}
+
+fn write_morphed_triangle_gltf(dir: &Path) {
+    fs::create_dir_all(dir).unwrap();
+    fs::write(dir.join("morph.bin"), morphed_triangle_bin()).unwrap();
+    fs::write(
+        dir.join("morph.gltf"),
+        r#"{
+  "asset": {"version": "2.0"},
+  "scene": 0,
+  "scenes": [{"nodes": [0]}],
+  "nodes": [{"name": "tri", "mesh": 0, "skin": 0}],
+  "skins": [{"name": "skin", "joints": [0]}],
+  "meshes": [{
+    "weights": [0.5],
+    "primitives": [{
+      "attributes": {"POSITION": 0, "JOINTS_0": 3, "WEIGHTS_0": 4},
+      "indices": 1,
+      "targets": [{"POSITION": 2}],
+      "material": 0
+    }]
+  }],
+  "materials": [{"name": "mat", "pbrMetallicRoughness": {"baseColorFactor": [1.0, 1.0, 1.0, 1.0]}}],
+  "buffers": [{"uri": "morph.bin", "byteLength": 156}],
+  "bufferViews": [
+    {"buffer": 0, "byteOffset": 0, "byteLength": 36, "target": 34962},
+    {"buffer": 0, "byteOffset": 36, "byteLength": 12, "target": 34963},
+    {"buffer": 0, "byteOffset": 48, "byteLength": 36, "target": 34962},
+    {"buffer": 0, "byteOffset": 84, "byteLength": 24, "target": 34962},
+    {"buffer": 0, "byteOffset": 108, "byteLength": 48, "target": 34962}
+  ],
+  "accessors": [
+    {"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3", "min": [0.0, 0.0, 0.0], "max": [1.0, 1.0, 0.0]},
+    {"bufferView": 1, "componentType": 5125, "count": 3, "type": "SCALAR"},
+    {"bufferView": 2, "componentType": 5126, "count": 3, "type": "VEC3"},
+    {"bufferView": 3, "componentType": 5123, "count": 3, "type": "VEC4"},
+    {"bufferView": 4, "componentType": 5126, "count": 3, "type": "VEC4"}
+  ]
+}"#,
+    )
+    .unwrap();
+}
+
 fn triangle_gltf_json(with_texture: bool) -> String {
     let texture_json = if with_texture {
         r#",
@@ -240,6 +407,39 @@ fn triangle_bin() -> Vec<u8> {
     }
     for index in [0_u32, 1, 2] {
         bytes.extend_from_slice(&index.to_le_bytes());
+    }
+    bytes
+}
+
+fn animation_bin() -> Vec<u8> {
+    let mut bytes = Vec::new();
+    for value in [0.0_f32, 1.0] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for value in [0.0_f32, 0.0, 0.0, 1.0, 2.0, 3.0] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    bytes
+}
+
+fn morphed_triangle_bin() -> Vec<u8> {
+    let mut bytes = triangle_bin();
+    for value in [0.0_f32, 0.0, 0.1, 0.0, 0.0, 0.1, 0.0, 0.0, 0.1] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for joint in [[0_u16, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] {
+        for value in joint {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+    }
+    for weight in [
+        [1.0_f32, 0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0, 0.0],
+    ] {
+        for value in weight {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
     }
     bytes
 }

@@ -111,6 +111,31 @@ path = "../../examples/gltf_scene.rs"
 required-features = ["loader", "renderer", "camera"]
 
 [[example]]
+name = "asset_pipeline"
+path = "../../examples/asset_pipeline.rs"
+required-features = ["loader", "renderer"]
+
+[[example]]
+name = "asset_manager"
+path = "../../examples/asset_manager.rs"
+required-features = ["loader"]
+
+[[example]]
+name = "export_scene"
+path = "../../examples/export_scene.rs"
+required-features = ["loader"]
+
+[[example]]
+name = "animation_import"
+path = "../../examples/animation_import.rs"
+required-features = ["loader"]
+
+[[example]]
+name = "compressed_assets"
+path = "../../examples/compressed_assets.rs"
+required-features = ["loader"]
+
+[[example]]
 name = "post_processing"
 path = "../../examples/post_processing.rs"
 required-features = ["renderer", "post", "scene", "camera", "mesh", "light"]

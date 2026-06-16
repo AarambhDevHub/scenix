@@ -18,6 +18,7 @@ Enable `wasm`. `scenix-wasm::BrowserRenderer` tries WebGPU where it is safe, use
 - `WebRenderer` is the direct WebGPU path.
 - `WebGlRenderer` is the direct WebGL fallback path; it requests WebGL2 first and WebGL1 only if needed.
 - `BrowserRenderer` chooses WebGPU first on safe browsers and WebGL2 otherwise when available.
+- v1.3 asset packages remain CPU-side. Browser apps should fetch bytes through their web framework, then pass bytes to `AssetManager` or `GltfLoader::load_package_bytes`.
 - The website is Leptos CSR and builds with Trunk.
 - Fallback UI should handle unavailable WebGPU and WebGL cleanly.
 

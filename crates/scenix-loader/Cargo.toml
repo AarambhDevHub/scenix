@@ -35,8 +35,8 @@ serde = [
 ]
 
 [dependencies]
-gltf = { workspace = true, features = ["import", "names", "utils", "base64", "image", "urlencoding", "KHR_lights_punctual", "KHR_materials_unlit"] }
-image = { workspace = true, features = ["png", "jpeg", "webp", "hdr", "exr"] }
+gltf = { workspace = true, features = ["import", "names", "utils", "base64", "image", "urlencoding", "extensions", "KHR_lights_punctual", "KHR_materials_emissive_strength", "KHR_materials_ior", "KHR_materials_pbrSpecularGlossiness", "KHR_materials_specular", "KHR_materials_transmission", "KHR_materials_unlit", "KHR_materials_variants", "KHR_materials_volume", "KHR_texture_transform"] }
+image = { workspace = true, features = ["png", "jpeg", "webp", "tga", "tiff", "hdr", "exr"] }
 ktx2 = { workspace = true }
 reqwest = { workspace = true, optional = true }
 scenix-camera = { workspace = true }

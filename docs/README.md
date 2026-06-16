@@ -1,6 +1,6 @@
 # Scenix Developer Documentation
 
-Scenix v1.2.0 is a modular Rust-native 3D scene workspace. These docs are written for application developers who need to choose crates, create scenes, render or load assets, integrate Animato, target WASM, and debug performance.
+Scenix v1.3.0 is a modular Rust-native 3D scene workspace. These docs are written for application developers who need to choose crates, create scenes, render or load assets, integrate Animato, target WASM, and debug performance.
 
 ## Start Here
 
@@ -55,7 +55,7 @@ Scenix v1.2.0 is a modular Rust-native 3D scene workspace. These docs are writte
 - [Deployment](deployment/README.md)
 - [Migration](migration/from-0.9-to-1.0.md)
 - [Reference](reference/feature-matrix.md)
-- [v1.2.0 release notes](release-v1.2.0.md)
+- [v1.3.0 release notes](../.github/release-notes/v1.3.0.md)
 
 ## Feature Flags At A Glance
 
@@ -64,10 +64,10 @@ Scenix v1.2.0 is a modular Rust-native 3D scene workspace. These docs are writte
 | `std` | yes | Standard-library support for CPU crates. |
 | `scene`, `camera`, `mesh`, `material`, `light`, `texture` | yes | CPU scene authoring. |
 | `raycaster`, `helpers` | yes | Picking and debug helper geometry. |
-| `loader` | no | glTF/GLB, OBJ/MTL, STL, image, KTX2, HDR/EXR loading. |
+| `loader` | no | Asset packages, asset manager, glTF extension metadata, importers, and exporters. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
-| `animato` | no | Animato 1.5.0 scene, camera, material, and skeleton animation bridge. |
+| `animato` | no | Animato bridge for scene, camera, material, and skeleton animation; Animato 1.6.0 is the release gate when published. |
 | `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
 | `serde` | no | Serialization support where each crate supports it. |
 

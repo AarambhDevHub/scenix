@@ -10,7 +10,7 @@ Read this page when the subsystem affects your app architecture or dependency ch
 
 ## Relevant Feature Flags
 
-Enable `animato`; it uses `animato = "1.5.0"`.
+Enable `animato`. Scenix v1.3.0 is prepared for `animato = "1.6.0"` once that version is published; Cargo currently resolves Animato `1.5.0`.
 
 ## Key Rules
 

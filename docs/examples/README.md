@@ -7,6 +7,11 @@ Each page maps to a real example file or the standalone WASM viewer crate. Comma
 - [Physical Material](physical-material.md) - `examples/physical_material.rs`
 - [Toon Shading](toon-shading.md) - `examples/toon_shading.rs`
 - [glTF Scene](gltf-scene.md) - `examples/gltf_scene.rs`
+- [Asset Pipeline](asset-pipeline.md) - `examples/asset_pipeline.rs`
+- [Asset Manager](asset-manager.md) - `examples/asset_manager.rs`
+- [Export Scene](export-scene.md) - `examples/export_scene.rs`
+- [Animation Import](animation-import.md) - `examples/animation_import.rs`
+- [Compressed Assets](compressed-assets.md) - `examples/compressed_assets.rs`
 - [Shadow Demo](shadow-demo.md) - `examples/shadow_demo.rs`
 - [Raycasting](raycasting.md) - `examples/raycasting.rs`
 - [Post Processing](post-processing.md) - `examples/post_processing.rs`
