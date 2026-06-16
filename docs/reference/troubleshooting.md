@@ -14,7 +14,7 @@ SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer -p scen
 
 ## Loader Cannot Decode Asset
 
-Confirm the loader feature and format support. `scenix-loader` decodes assets into CPU data; it does not upload textures to the renderer.
+Confirm the loader feature and format support. In v1.3, `AssetPackage::diagnostics` reports recognized-but-unsupported features such as Draco or meshopt compression. `scenix-loader` decodes assets into CPU data; upload remains explicit through renderer registration or `RendererAssetExt`.
 
 ## Raycaster Misses Objects
 

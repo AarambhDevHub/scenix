@@ -35,7 +35,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v1.0.0` | Stable | API freeze, full docs, examples, all CI green | ✅ |
 | `v1.1.0` | Browser fallback | WebGPU-to-WebGL browser fallback and updated release automation | ✅ |
 | `v1.2.0` | Renderer parity | Real material GPU paths, texture binding, lights, shadows, IBL, render targets | ✅ |
-| `v1.3.0` | Asset pipeline | glTF extensions, animation import, compression, extra loaders, exporters, asset manager | 📋 |
+| `v1.3.0` | Asset pipeline | glTF extensions, animation import, compression diagnostics, extra loaders, exporters, asset manager | ✅ |
 | `v1.4.0` | Animation runtime | Clip/mixer/action layer, skeletal animation, morph playback, retargeting helpers | 📋 |
 | `v1.5.0` | Interaction tools | Transform/drag/pointer-lock controls, selection helpers, editor primitives | 📋 |
 | `v1.6.0` | Shader nodes | New optional shader graph and node material crate | 🔮 |
@@ -531,13 +531,13 @@ The version numbers below are planning buckets, not release promises. Each miles
 - `scenix` — facade re-exports and feature flags for new loader/exporter APIs.
 - No new crate is planned for this release.
 
-- [ ] glTF skins, skeletons, morph targets, animation clips, and node/light/camera extension support.
-- [ ] glTF material extensions: clearcoat, transmission, volume, sheen, specular, IOR, iridescence, emissive strength, texture transform, variants, KTX2/BasisU, meshopt, and Draco.
-- [ ] Additional loaders: FBX, Collada, PLY, SVG, USD/USDZ, 3MF, VOX, VTK, Rhino 3DM, LDraw, TTF/font, IES, DDS, TGA, TIFF, EXR, UltraHDR, and LUT formats.
-- [ ] Exporters: glTF/GLB, OBJ, STL, PLY, USDZ, KTX2, EXR/HDR, and scene JSON.
-- [ ] Asset manager with async loading, progress callbacks, cancellation, dependency graphs, memory budgets, cache invalidation, and desktop hot reload.
-- [ ] Asset examples covering local files, URLs, embedded bytes, browser assets, desktop assets, and mobile packaged assets.
-- [ ] Asset-to-GPU convenience helpers for loaded glTF/OBJ/STL/image assets while preserving manual renderer registration.
+- [x] glTF skins, skeleton metadata, morph targets, animation clips, and node/light/camera extension support.
+- [x] glTF material extensions: transmission, volume, specular, IOR, emissive strength, texture transform, variants, KTX2/BasisU notes, meshopt diagnostics, and Draco diagnostics.
+- [x] Additional loader support matrix for FBX, Collada, PLY, SVG, USD/USDZ, 3MF, VOX, VTK, Rhino 3DM, LDraw, TTF/font, IES, DDS, TGA, TIFF, EXR, UltraHDR, and LUT formats, with diagnostic-only behavior where full decoding is not available.
+- [x] Exporters: glTF/GLB summary, OBJ, STL, PLY, and scene JSON.
+- [x] Asset manager with async loading, progress state, cancellation, dependency graphs, memory budgets, cache invalidation, and desktop stale-file polling.
+- [x] Asset examples covering asset packages, manager/cache, exporters, imported animation metadata, and compressed asset diagnostics.
+- [x] Asset-to-GPU convenience helper for loaded asset packages while preserving manual renderer registration.
 
 ## v1.4.0 — Animation Runtime
 
@@ -827,7 +827,7 @@ The best way to contribute now is to propose a focused post-1.1 planning issue o
 
 ---
 
-*Roadmap version: 1.2.0 + future parity plan — last updated June 13, 2026*
-*Next milestone: v1.3.0 asset pipeline planning*
+*Roadmap version: 1.3.0 asset pipeline — last updated June 16, 2026*
+*Next milestone: v1.4.0 animation runtime planning*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

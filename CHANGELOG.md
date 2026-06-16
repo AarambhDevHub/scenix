@@ -7,6 +7,35 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-16
+
+### Added
+
+- Added `AssetPackage`, `AssetManager`, asset requests, async load handles,
+  dependency graphs, diagnostics, memory budget accounting, and stale-cache
+  invalidation for the v1.3 asset pipeline.
+- Added `AssetId`, `SkinId`, and `AnimationClipId`.
+- Added `GltfLoader::load_package_file`, `load_package_bytes`, and
+  `load_package_url` for package imports while preserving `GltfAsset`.
+- Added glTF package sidecars for skins, skin attributes, morph targets,
+  animation clip metadata, material extension metadata, texture transforms,
+  variants, KTX2/BasisU notes, Draco diagnostics, and meshopt diagnostics.
+- Added exporter helpers for glTF summary JSON/GLB bytes, OBJ, STL, PLY, and
+  scene JSON.
+- Added `RendererAssetExt::register_asset_package` through the facade when
+  `loader` and `renderer` are enabled.
+- Added `asset_pipeline`, `asset_manager`, `export_scene`,
+  `animation_import`, and `compressed_assets` examples.
+- Added `.github/release-notes/v1.3.0.md` as the GitHub Release body.
+
+### Changed
+
+- Bumped all workspace crates and internal dependency requirements to `1.3.0`.
+- Prepared release docs for Animato `1.6.0` as a release gate. Cargo remains on
+  Animato `1.5.0` until `1.6.0` is published and resolves.
+- Updated README, loader docs, feature matrix, workflows, examples, roadmap,
+  and architecture notes for the Asset Pipeline release.
+
 ## [1.2.0] - 2026-06-13
 
 ### Added

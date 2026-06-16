@@ -56,6 +56,12 @@ id_type!(MaterialId, "Typed identifier for a material resource.");
 id_type!(TextureId, "Typed identifier for a texture resource.");
 id_type!(LightId, "Typed identifier for a light resource.");
 id_type!(CameraId, "Typed identifier for a camera resource.");
+id_type!(AssetId, "Typed identifier for an imported asset package.");
+id_type!(SkinId, "Typed identifier for imported skinning metadata.");
+id_type!(
+    AnimationClipId,
+    "Typed identifier for an imported animation clip."
+);
 
 #[cfg(all(test, feature = "std"))]
 mod tests {

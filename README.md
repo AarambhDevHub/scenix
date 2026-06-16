@@ -5,7 +5,7 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix `1.2.0` is the current stable release. The public API is frozen around small focused crates: CPU authoring stays lightweight by default, while loading, GPU rendering, post-processing, Animato integration, and browser support remain opt-in.
+scenix `1.3.0` is the current stable release. The public API is frozen around small focused crates: CPU authoring stays lightweight by default, while asset loading, GPU rendering, post-processing, Animato integration, and browser support remain opt-in.
 
 ## Install
 
@@ -65,7 +65,7 @@ scenix-raycaster = { version = "1", default-features = false }
 scenix-helpers = { version = "1", default-features = false }
 ```
 
-`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and `scenix-wasm` are optional `std` paths. The Animato bridge uses `animato = "1.5.0"`.
+`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and `scenix-wasm` are optional `std` paths. v1.3.0 is ready for `animato = "1.6.0"` once it is published; Cargo currently resolves Animato `1.5.0`.
 
 ## Feature Flags
 
@@ -74,10 +74,10 @@ scenix-helpers = { version = "1", default-features = false }
 | `std` | yes | Standard-library support for CPU crates. |
 | `scene`, `camera`, `mesh`, `material`, `light`, `texture` | yes | CPU authoring crates. |
 | `raycaster`, `helpers` | yes | BVH picking and debug line helper data. |
-| `loader` | no | glTF/GLB, OBJ/MTL, STL, image, KTX2, HDR/EXR loading. |
+| `loader` | no | Asset packages, asset manager, glTF/GLB extension metadata, OBJ/MTL, STL, image, KTX2, HDR/EXR loading, and exporters. |
 | `renderer` | no | `wgpu` renderer with surface/headless targets. |
 | `post` | no | Full-screen post-processing stack; use with `renderer`. |
-| `animato` | no | Animato 1.5.0 tracks and scene/camera/material drivers. |
+| `animato` | no | Animato bridge tracks and scene/camera/material drivers; v1.6.0 is the release gate when published. |
 | `wasm` | no | Browser canvas wrapper with WebGPU first, WebGL2 full fallback, WebGL1 reduced fallback, and generated demo scene. |
 | `serde` | no | Serialization support where the focused crate supports it. |
 
@@ -151,11 +151,15 @@ assert!(stats.frame_index > 0);
 ### Loading Assets
 
 ```rust
-use scenix::GltfLoader;
+use scenix::{AssetManager, RendererAssetExt};
 
-# fn run() -> Result<(), scenix::ScenixError> {
-let asset = GltfLoader::new().load_file("scene.gltf")?;
-assert!(!asset.meshes.is_empty());
+# async fn run() -> Result<(), scenix::ScenixError> {
+let mut manager = AssetManager::new();
+let package = manager.load_file("scene.glb")?;
+
+let mut renderer = scenix::Renderer::headless(scenix::RendererConfig::new(512, 512)).await?;
+let uploaded = renderer.register_asset_package(&package)?;
+println!("meshes={}, textures={}", uploaded.meshes, uploaded.textures);
 # Ok(())
 # }
 ```
@@ -204,12 +208,12 @@ assert!(raycaster.cast_ray(ray, &scene, &meshes).is_some());
 | `scenix-material` | GPU-free material descriptions and pipeline keys. |
 | `scenix-light` | Lights, shadow settings, and light probes. |
 | `scenix-texture` | CPU textures, samplers, atlases, video updates, and mipmaps. |
-| `scenix-loader` | Optional CPU asset loaders and asset cache. |
+| `scenix-loader` | Optional CPU asset packages, asset manager, importers, exporters, diagnostics, and cache. |
 | `scenix-renderer` | Optional `wgpu` renderer, real material texture paths, lights, render targets, and resource registries. |
 | `scenix-post` | Optional `wgpu` post-processing effects. |
 | `scenix-raycaster` | BVH scene picking and exact mesh intersections. |
 | `scenix-helpers` | Debug `LineGeometry` generators. |
-| `scenix-animato` | Optional Animato 1.5.0 bridge. |
+| `scenix-animato` | Optional Animato bridge. |
 | `scenix-wasm` | Optional browser canvas wrapper with WebGPU and WebGL paths. |
 
 ## Examples
@@ -222,6 +226,11 @@ cargo run -p scenix --example pbr_sphere --features renderer
 cargo run -p scenix --example physical_material --features renderer
 cargo run -p scenix --example toon_shading --features renderer
 cargo run -p scenix --example gltf_scene --features "loader renderer"
+cargo run -p scenix --example asset_pipeline --features "loader renderer"
+cargo run -p scenix --example asset_manager --features loader
+cargo run -p scenix --example export_scene --features loader
+cargo run -p scenix --example animation_import --features loader
+cargo run -p scenix --example compressed_assets --features loader
 cargo run -p scenix --example shadow_demo --features renderer
 cargo run -p scenix --example raycasting
 cargo run -p scenix --example post_processing --features "renderer post"
@@ -293,12 +302,13 @@ cargo llvm-cov --workspace --all-features
 - [Deployment](./docs/deployment/README.md)
 - [Migration](./docs/migration/from-0.9-to-1.0.md)
 - [Reference](./docs/reference/feature-matrix.md)
-- [v1.2.0 release notes](./docs/release-v1.2.0.md)
+- [v1.3.0 release notes](./.github/release-notes/v1.3.0.md)
 
 ## Known Limitations
 
 - The renderer now uploads material textures, light data, environment descriptors, and render targets through real GPU resources. Advanced physical shading is a pragmatic realtime path, not an offline film renderer.
-- Loader APIs produce CPU-side scenix data; GPU upload stays explicit through `Renderer` registration.
+- Loader APIs produce CPU-side scenix data; `RendererAssetExt` is a convenience bridge that still uploads into renderer-owned GPU resources explicitly.
+- Draco and meshopt compressed glTF assets currently produce explicit diagnostics unless preprocessed by an external converter.
 - WebGL2 is the full browser fallback for the generated renderer scene when WebGPU is unavailable. WebGL1 remains a reduced last-resort fallback for older browsers.
 - The website demo does not vendor large model assets.
 - GPU tests require a Vulkan-capable device or Mesa lavapipe.

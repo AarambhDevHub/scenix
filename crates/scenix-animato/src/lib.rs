@@ -1,10 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-//! Animato 1.5 bridge types for scenix.
+//! Animato bridge types for scenix.
 //!
 //! This crate keeps Animato as the timing/interpolation engine and provides
 //! scenix-native adapters for scene nodes, cameras, PBR materials, and explicit
 //! skeleton pose arrays.
+//!
+//! Scenix v1.3.0 is prepared for Animato 1.6.0 once published; Cargo currently
+//! resolves Animato 1.5.0.
 
 extern crate alloc;
 

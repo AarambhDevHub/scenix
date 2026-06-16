@@ -37,6 +37,16 @@ fn stable_facade_exports_renderer_material_registration_api() {
     assert_eq!(gpu_scene.material_count(), 4);
 }
 
+#[cfg(all(feature = "loader", feature = "renderer"))]
+#[test]
+fn stable_facade_exports_asset_upload_bridge_types() {
+    fn assert_upload_bridge<T: scenix::RendererAssetExt>() {}
+    assert_upload_bridge::<scenix::Renderer>();
+
+    let stats = scenix::UploadedAssetStats::default();
+    assert_eq!(stats.meshes, 0);
+}
+
 #[cfg(feature = "wasm")]
 #[test]
 fn stable_facade_exports_wasm_demo_helpers() {
