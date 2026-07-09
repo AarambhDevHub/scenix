@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 
 use scenix::{
-    CameraAnimationTarget, CameraId, CameraStores, Color, ColorTrack, MaterialAnimationTarget,
-    MaterialAnimator, MaterialId, NodeAnimationTarget, NodeAnimator, PbrMaterial,
-    PerspectiveCamera, ScalarTrack, SceneGraph, SceneNode, ScenixAnimationDriver, SpringConfig,
-    Vec3, Vec3Track,
+    CameraAnimationTarget, CameraId, CameraStores, Color, ColorTrack, DirectionalLight, LightId,
+    LightStores, MaterialAnimationTarget, MaterialAnimator, MaterialId, MeshId,
+    NodeAnimationTarget, NodeAnimator, PbrMaterial, PerspectiveCamera, PointLight, ScalarTrack,
+    SceneGraph, SceneNode, ScenixAnimationDriver, SpotLight, SpringConfig, Vec3, Vec3Track,
 };
 
 fn main() {
@@ -50,10 +50,19 @@ fn main() {
     ));
 
     let mut skeletons = Vec::new();
+    let mut point_lights: BTreeMap<LightId, PointLight> = BTreeMap::new();
+    let mut spot_lights: BTreeMap<LightId, SpotLight> = BTreeMap::new();
+    let mut directional_lights: BTreeMap<LightId, DirectionalLight> = BTreeMap::new();
+    let mut morphs: BTreeMap<MeshId, Vec<f32>> = BTreeMap::new();
     for _frame in 0..60 {
         let mut cameras = CameraStores {
             perspective: &mut perspective,
             orthographic: &mut orthographic,
+        };
+        let mut light_stores = LightStores {
+            point: &mut point_lights,
+            spot: &mut spot_lights,
+            directional: &mut directional_lights,
         };
         driver
             .tick(
@@ -61,6 +70,8 @@ fn main() {
                 &mut scene,
                 &mut cameras,
                 &mut materials,
+                &mut light_stores,
+                &mut morphs,
                 &mut skeletons,
             )
             .expect("animation tick");

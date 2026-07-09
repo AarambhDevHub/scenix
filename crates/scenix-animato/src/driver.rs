@@ -4,8 +4,9 @@ use scenix_core::ValidationError;
 use scenix_scene::SceneGraph;
 
 use crate::{
-    CameraAnimator, CameraStoreMut, MaterialAnimator, NodeAnimator, PbrMaterialStoreMut,
-    SkeletonPose, SkinnedMeshAnimator,
+    CameraAnimator, CameraStoreMut, LightAnimator, LightStoreMut, MaterialAnimator,
+    MorphWeightAnimator, MorphWeightStoreMut, NodeAnimator, PbrMaterialStoreMut, SkeletonPose,
+    SkinnedMeshAnimator,
 };
 
 /// Per-tick animation driver counters.
@@ -20,11 +21,19 @@ pub struct DriverStats {
     pub material_animators: usize,
     /// Skeleton animators updated this tick.
     pub skeleton_animators: usize,
+    /// Light animators updated this tick (v1.4.0).
+    pub light_animators: usize,
+    /// Morph-weight animators updated this tick (v1.4.0).
+    pub morph_animators: usize,
     /// Completed animators pruned after this tick.
     pub completed: usize,
 }
 
-/// Deterministic scene/camera/material/skeleton animation driver.
+/// Deterministic scene/camera/material/light/morph/skeleton animation driver.
+///
+/// This is the **procedural** driver for one-shot Animato tween/spring tracks.
+/// For clip-based playback (loop, crossfade, markers, blending) use
+/// [`crate::mixer::AnimationMixer`].
 #[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ScenixAnimationDriver {
@@ -32,6 +41,8 @@ pub struct ScenixAnimationDriver {
     camera_animators: Vec<CameraAnimator>,
     material_animators: Vec<MaterialAnimator>,
     skeleton_animators: Vec<SkinnedMeshAnimator>,
+    light_animators: Vec<LightAnimator>,
+    morph_animators: Vec<MorphWeightAnimator>,
     paused: bool,
 }
 
@@ -44,6 +55,8 @@ impl ScenixAnimationDriver {
             camera_animators: Vec::new(),
             material_animators: Vec::new(),
             skeleton_animators: Vec::new(),
+            light_animators: Vec::new(),
+            morph_animators: Vec::new(),
             paused: false,
         }
     }
@@ -72,6 +85,18 @@ impl ScenixAnimationDriver {
         self.skeleton_animators.len() - 1
     }
 
+    /// Adds a light animator and returns its index (v1.4.0).
+    pub fn add_light(&mut self, animator: LightAnimator) -> usize {
+        self.light_animators.push(animator);
+        self.light_animators.len() - 1
+    }
+
+    /// Adds a morph-weight animator and returns its index (v1.4.0).
+    pub fn add_morph(&mut self, animator: MorphWeightAnimator) -> usize {
+        self.morph_animators.push(animator);
+        self.morph_animators.len() - 1
+    }
+
     /// Removes a node animator by index.
     pub fn remove_node(&mut self, index: usize) -> Option<NodeAnimator> {
         remove_stable(&mut self.node_animators, index)
@@ -92,12 +117,24 @@ impl ScenixAnimationDriver {
         remove_stable(&mut self.skeleton_animators, index)
     }
 
+    /// Removes a light animator by index (v1.4.0).
+    pub fn remove_light(&mut self, index: usize) -> Option<LightAnimator> {
+        remove_stable(&mut self.light_animators, index)
+    }
+
+    /// Removes a morph-weight animator by index (v1.4.0).
+    pub fn remove_morph(&mut self, index: usize) -> Option<MorphWeightAnimator> {
+        remove_stable(&mut self.morph_animators, index)
+    }
+
     /// Removes every animator.
     pub fn clear(&mut self) {
         self.node_animators.clear();
         self.camera_animators.clear();
         self.material_animators.clear();
         self.skeleton_animators.clear();
+        self.light_animators.clear();
+        self.morph_animators.clear();
     }
 
     /// Pauses the driver.
@@ -125,6 +162,8 @@ impl ScenixAnimationDriver {
             && self.camera_animators.is_empty()
             && self.material_animators.is_empty()
             && self.skeleton_animators.is_empty()
+            && self.light_animators.is_empty()
+            && self.morph_animators.is_empty()
     }
 
     /// Returns total registered animator count.
@@ -134,6 +173,8 @@ impl ScenixAnimationDriver {
             + self.camera_animators.len()
             + self.material_animators.len()
             + self.skeleton_animators.len()
+            + self.light_animators.len()
+            + self.morph_animators.len()
     }
 
     /// Returns registered node animator count.
@@ -160,13 +201,31 @@ impl ScenixAnimationDriver {
         self.skeleton_animators.len()
     }
 
+    /// Returns registered light animator count (v1.4.0).
+    #[inline]
+    pub fn light_len(&self) -> usize {
+        self.light_animators.len()
+    }
+
+    /// Returns registered morph-weight animator count (v1.4.0).
+    #[inline]
+    pub fn morph_len(&self) -> usize {
+        self.morph_animators.len()
+    }
+
     /// Advances every animator in deterministic insertion order.
+    ///
+    /// v1.4.0 adds `lights` and `morphs` store arguments for the new light and
+    /// morph-weight animator families. Pass empty stores if unused.
+    #[allow(clippy::too_many_arguments)]
     pub fn tick(
         &mut self,
         dt: f32,
         scene: &mut SceneGraph,
         cameras: &mut impl CameraStoreMut,
         materials: &mut impl PbrMaterialStoreMut,
+        lights: &mut impl LightStoreMut,
+        morphs: &mut impl MorphWeightStoreMut,
         skeletons: &mut [SkeletonPose],
     ) -> Result<DriverStats, ValidationError> {
         let stats = DriverStats {
@@ -174,6 +233,8 @@ impl ScenixAnimationDriver {
             camera_animators: self.camera_animators.len(),
             material_animators: self.material_animators.len(),
             skeleton_animators: self.skeleton_animators.len(),
+            light_animators: self.light_animators.len(),
+            morph_animators: self.morph_animators.len(),
             completed: 0,
         };
 
@@ -190,6 +251,12 @@ impl ScenixAnimationDriver {
         })?;
         prune_completed(&mut self.material_animators, &mut completed, |animator| {
             animator.update(dt, materials)
+        })?;
+        prune_completed(&mut self.light_animators, &mut completed, |animator| {
+            animator.update(dt, lights)
+        })?;
+        prune_completed(&mut self.morph_animators, &mut completed, |animator| {
+            animator.update(dt, morphs)
         })?;
         prune_completed(&mut self.skeleton_animators, &mut completed, |animator| {
             animator.update(dt, skeletons)

@@ -3,7 +3,7 @@ name: Publish
 on:
   push:
     tags:
-      - "v1.3.0"
+      - "v1.4.0"
       - "v*.*.*"
 
 env:
@@ -48,6 +48,9 @@ jobs:
       - name: Test no-default CPU crates
         run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
 
+      - name: Test animation runtime
+        run: cargo test -p scenix --test animation_runtime --all-features
+
       - name: Test loader all features
         run: cargo test -p scenix-loader --all-features
 
@@ -56,6 +59,9 @@ jobs:
 
       - name: Test animato bridge all features
         run: cargo test -p scenix-animato --all-features
+
+      - name: Check animation examples
+        run: cargo check -p scenix --examples --features animato
 
       - name: Check scenix-wasm
         run: cargo check -p scenix-wasm --target wasm32-unknown-unknown --all-features
@@ -175,5 +181,5 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: "scenix ${{ github.ref_name }}"
-          body_path: .github/release-notes/v1.3.0.md
+          body_path: .github/release-notes/1.4.0.md
           generate_release_notes: true

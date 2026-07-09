@@ -338,6 +338,11 @@ pub struct LoadedAnimationChannel {
     pub interpolation: LoadedAnimationInterpolation,
     /// Keyframe times in seconds.
     pub times: Vec<f32>,
+    /// Decoded output values packed as `output_components` per keyframe (v1.4.0).
+    ///
+    /// For `CubicSpline` interpolation the layout per keyframe is
+    /// `[in_tangent, value, out_tangent]`, matching the glTF spec.
+    pub output: Vec<f32>,
     /// Output component count for one keyframe value.
     pub output_components: usize,
 }

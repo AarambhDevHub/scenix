@@ -82,6 +82,12 @@ jobs:
       - name: Test animato bridge all features
         run: cargo test -p scenix-animato --all-features
 
+      - name: Test animation runtime
+        run: cargo test -p scenix --test animation_runtime --all-features
+
+      - name: Check animation examples
+        run: cargo check -p scenix --examples --features animato
+
   wasm:
     name: WASM compile
     runs-on: ubuntu-latest

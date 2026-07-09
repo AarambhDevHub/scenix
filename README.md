@@ -5,7 +5,7 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix `1.3.0` is the current stable release. The public API is frozen around small focused crates: CPU authoring stays lightweight by default, while asset loading, GPU rendering, post-processing, Animato integration, and browser support remain opt-in.
+scenix `1.4.0` is the current stable release. The public API is frozen around small focused crates: CPU authoring stays lightweight by default, while asset loading, GPU rendering, post-processing, Animato integration, and browser support remain opt-in.
 
 ## Install
 
@@ -65,7 +65,7 @@ scenix-raycaster = { version = "1", default-features = false }
 scenix-helpers = { version = "1", default-features = false }
 ```
 
-`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and `scenix-wasm` are optional `std` paths. v1.3.0 is ready for `animato = "1.6.0"` once it is published; Cargo currently resolves Animato `1.5.0`.
+`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and `scenix-wasm` are optional `std` paths. `scenix-animato` targets Animato `1.7.0` and ships the v1.4.0 clip-based Animation Runtime (`AnimationClip`, `AnimationAction`, `AnimationMixer`, loop modes, crossfade, markers/events, light/morph targets, and CPU/GPU skinning).
 
 ## Feature Flags
 
@@ -77,7 +77,7 @@ scenix-helpers = { version = "1", default-features = false }
 | `loader` | no | Asset packages, asset manager, glTF/GLB extension metadata, OBJ/MTL, STL, image, KTX2, HDR/EXR loading, and exporters. |
 | `renderer` | no | `wgpu` renderer with surface/headless targets. |
 | `post` | no | Full-screen post-processing stack; use with `renderer`. |
-| `animato` | no | Animato bridge tracks and scene/camera/material drivers; v1.6.0 is the release gate when published. |
+| `animato` | no | Animato bridge: procedural tween/spring tracks **and** the clip-based Animation Runtime (clips, actions, mixer, loop modes, crossfade, additive blending, markers/events, light/morph targets, retargeting, CPU skinning). Targets Animato `1.7.0`. |
 | `wasm` | no | Browser canvas wrapper with WebGPU first, WebGL2 full fallback, WebGL1 reduced fallback, and generated demo scene. |
 | `serde` | no | Serialization support where the focused crate supports it. |
 
@@ -164,6 +164,39 @@ println!("meshes={}, textures={}", uploaded.meshes, uploaded.textures);
 # }
 ```
 
+### Animation Runtime
+
+The v1.4.0 `AnimationMixer` plays clip-based animation on top of Animato:
+
+```rust
+use scenix::{
+    AnimationClip, AnimationMixer, ClipChannel, ClipTrack, KeyframeInterpolation,
+    KeyframeVec3, LoopMode, NodeProperty, PropertyBinding, SceneGraph, SceneNode, Vec3,
+};
+
+let mut scene = SceneGraph::new();
+let node = scene.add(SceneNode::new("mover"));
+
+let clip = AnimationClip::empty("move").with_channel(ClipChannel {
+    binding: PropertyBinding::Node { node_id: node, property: NodeProperty::Translation },
+    track: ClipTrack::Vec3(KeyframeVec3::new(
+        vec![0.0, 1.0],
+        vec![Vec3::ZERO, Vec3::new(5.0, 0.0, 0.0)],
+        KeyframeInterpolation::Linear,
+    )),
+});
+
+let mut mixer = AnimationMixer::new();
+let clip_index = mixer.add_clip(clip);
+let action = mixer.add_action(clip_index);
+mixer.action_mut(action).unwrap().set_loop_mode(LoopMode::REPEAT);
+mixer.action_mut(action).unwrap().play(0.0);
+
+// each frame:
+// mixer.tick(dt, &mut scene, &mut cameras, &mut materials,
+//            &mut lights, &mut skeletons, &mut morphs)
+```
+
 ### Raycasting
 
 ```rust
@@ -236,6 +269,10 @@ cargo run -p scenix --example raycasting
 cargo run -p scenix --example post_processing --features "renderer post"
 cargo run -p scenix --example instanced_mesh
 cargo run -p scenix --example animato_integration --features animato
+cargo run -p scenix --example animation_runtime --features "animato scene"
+cargo run -p scenix --example animation_mixer --features "animato scene material light"
+cargo run -p scenix --example skeleton_skinning --features "mesh animato"
+cargo run -p scenix --example animation_events --features "animato scene light"
 cargo run -p scenix --example orbit_camera
 cargo run -p scenix --example lod_demo
 cargo run -p scenix --example morph_targets
@@ -302,6 +339,7 @@ cargo llvm-cov --workspace --all-features
 - [Deployment](./docs/deployment/README.md)
 - [Migration](./docs/migration/from-0.9-to-1.0.md)
 - [Reference](./docs/reference/feature-matrix.md)
+- [v1.4.0 release notes](./.github/release-notes/1.4.0.md)
 - [v1.3.0 release notes](./.github/release-notes/v1.3.0.md)
 
 ## Known Limitations

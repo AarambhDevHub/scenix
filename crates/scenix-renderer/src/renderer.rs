@@ -242,6 +242,8 @@ pub struct Renderer {
     environment: Option<EnvironmentMap>,
     gbuffer: GBuffer,
     shadow_maps: ShadowMapAtlas,
+    /// v1.4.0 GPU skinning + morph-upload registry.
+    skinning: crate::skinning::GpuSkinningRegistry,
     #[cfg(feature = "post")]
     post_stack: Option<scenix_post::PostStack>,
     #[cfg(feature = "post")]
@@ -302,6 +304,7 @@ impl Renderer {
             environment: None,
             gbuffer,
             shadow_maps,
+            skinning: crate::skinning::GpuSkinningRegistry::new(),
             #[cfg(feature = "post")]
             post_stack: None,
             #[cfg(feature = "post")]
@@ -340,6 +343,7 @@ impl Renderer {
             environment: None,
             gbuffer,
             shadow_maps,
+            skinning: crate::skinning::GpuSkinningRegistry::new(),
             #[cfg(feature = "post")]
             post_stack: None,
             #[cfg(feature = "post")]
@@ -669,6 +673,48 @@ impl Renderer {
     #[inline]
     pub fn unregister_light(&mut self, light_id: LightId) -> bool {
         self.gpu_scene.unregister_light(light_id)
+    }
+
+    /// Registers (or replaces) the GPU bone matrix buffer for `mesh_id` (v1.4.0).
+    #[inline]
+    pub fn register_skin(&mut self, mesh_id: MeshId, bones: Vec<Mat4>) {
+        self.skinning.register_skin(mesh_id, bones);
+    }
+
+    /// Updates the GPU bone matrix buffer for `mesh_id` (v1.4.0).
+    #[inline]
+    pub fn update_bone_matrices(&mut self, mesh_id: MeshId, bones: &[Mat4]) -> bool {
+        self.skinning.update_bone_matrices(mesh_id, bones)
+    }
+
+    /// Unregisters the GPU skin for `mesh_id` (v1.4.0).
+    #[inline]
+    pub fn unregister_skin(&mut self, mesh_id: MeshId) -> bool {
+        self.skinning.unregister_skin(mesh_id)
+    }
+
+    /// Registers (or replaces) the GPU morph-weight buffer for `mesh_id` (v1.4.0).
+    #[inline]
+    pub fn register_morph_targets(&mut self, mesh_id: MeshId, weights: Vec<f32>) {
+        self.skinning.register_morph_targets(mesh_id, weights);
+    }
+
+    /// Updates the GPU morph-weight buffer for `mesh_id` (v1.4.0).
+    #[inline]
+    pub fn update_morph_weights(&mut self, mesh_id: MeshId, weights: &[f32]) -> bool {
+        self.skinning.update_morph_weights(mesh_id, weights)
+    }
+
+    /// Unregisters morph weights for `mesh_id` (v1.4.0).
+    #[inline]
+    pub fn unregister_morph(&mut self, mesh_id: MeshId) -> bool {
+        self.skinning.unregister_morph(mesh_id)
+    }
+
+    /// Returns the GPU skinning registry (v1.4.0).
+    #[inline]
+    pub fn skinning(&self) -> &crate::skinning::GpuSkinningRegistry {
+        &self.skinning
     }
 
     /// Clears all registered textures.

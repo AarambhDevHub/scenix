@@ -3,11 +3,12 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use scenix_animato::{
-    CameraStores, MaterialAnimationTarget, MaterialAnimator, NodeAnimationTarget, NodeAnimator,
-    ScalarTrack, ScenixAnimationDriver, SkeletonPose, Vec3Track,
+    CameraStores, LightStores, MaterialAnimationTarget, MaterialAnimator, NodeAnimationTarget,
+    NodeAnimator, ScalarTrack, ScenixAnimationDriver, SkeletonPose, Vec3Track,
 };
 use scenix_camera::{OrthographicCamera, PerspectiveCamera};
-use scenix_core::{CameraId, MaterialId, NodeId};
+use scenix_core::{CameraId, LightId, MaterialId, MeshId, NodeId};
+use scenix_light::{DirectionalLight, PointLight, SpotLight};
 use scenix_material::PbrMaterial;
 use scenix_math::Vec3;
 use scenix_scene::{SceneGraph, SceneNode};
@@ -49,6 +50,15 @@ fn run_tick(count: usize) {
     let mut materials = (0..count)
         .map(|index| (MaterialId::new(index as u64 + 1), PbrMaterial::new()))
         .collect::<BTreeMap<_, _>>();
+    let mut point_lights: BTreeMap<LightId, PointLight> = BTreeMap::new();
+    let mut spot_lights: BTreeMap<LightId, SpotLight> = BTreeMap::new();
+    let mut directional_lights: BTreeMap<LightId, DirectionalLight> = BTreeMap::new();
+    let mut light_stores = LightStores {
+        point: &mut point_lights,
+        spot: &mut spot_lights,
+        directional: &mut directional_lights,
+    };
+    let mut morphs: BTreeMap<MeshId, Vec<f32>> = BTreeMap::new();
     let mut skeletons = Vec::<SkeletonPose>::new();
     black_box(
         driver
@@ -57,6 +67,8 @@ fn run_tick(count: usize) {
                 &mut scene,
                 &mut cameras,
                 &mut materials,
+                &mut light_stores,
+                &mut morphs,
                 &mut skeletons,
             )
             .unwrap(),
