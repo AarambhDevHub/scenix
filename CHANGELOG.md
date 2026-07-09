@@ -7,6 +7,62 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-09
+
+### Added
+
+- Added the clip-based Animation Runtime: `AnimationClip`, `AnimationAction`,
+  `AnimationMixer`, `PropertyBinding`, `ClipTrack` / `ClipChannel`, `LoopMode`
+  (Once / Repeat / PingPong), `AnimationMarker` / `AnimationEvent`, crossfade,
+  additive blending, and deterministic per-tick sampling.
+- Added keyframe tracks `KeyframeScalar`, `KeyframeVec3`, `KeyframeQuat`,
+  `KeyframeColor`, and `KeyframeBool` with `Linear`, `Step`, and `CubicSpline`
+  interpolation (quaternions use slerp + shortest-arc).
+- Added `PropertyBinding` typed targets for nodes, bones, materials, cameras,
+  lights, and morph weights, plus `BindingKey` for stable accumulator lookups.
+- Added `LightAnimator`, `LightAnimationTarget`, `LightStoreMut`, and
+  `LightStores` for animating point / spot / directional light color,
+  intensity, range, and spot angle.
+- Added `MorphWeightAnimator` and `MorphWeightStoreMut` for animating morph
+  target weights.
+- Added `RetargetMap` skeleton-bone retargeting by name.
+- Added `scenix-mesh` skinning data model: `SkinningAttributes`, `SkinningData`,
+  `MorphWeights`, `final_joint_matrices`, `cpu_skin`, and `apply_morph` CPU
+  fallback.
+- Added `scenix-renderer` GPU skinning + morph-upload hooks: `GpuSkinningRegistry`,
+  `register_skin`, `update_bone_matrices`, `register_morph_targets`,
+  `update_morph_weights`, and the `SKINNING_WGSL` snippet.
+- Added `scenix-helpers` `AnimationPathHelper` and `PoseHelper` debug geometry.
+- Added `scenix-loader` decoded animation accessor output bytes into
+  `LoadedAnimationChannel::output`.
+- Added facade `clip_from_loaded` bridge from imported clips to the runtime.
+- Added `examples/animation_runtime.rs`, `examples/animation_mixer.rs`,
+  `examples/skeleton_skinning.rs`, and `examples/animation_events.rs`.
+- Added `tests/animation_runtime.rs` and `benches/animation_mixer_bench.rs`.
+- Added `docs/release-v1.4.0.md` and `docs/examples/animation-runtime.md`.
+- Added `.github/release-notes/1.4.0.md` as the GitHub Release body.
+
+### Changed
+
+- Bumped all workspace crates and internal dependency requirements to `1.4.0`.
+- Bumped Animato to `1.7.0`; the previous `1.6.0` release gate is resolved.
+- `ScenixAnimationDriver::tick` now accepts `lights` and `morphs` stores and
+  prunes `light_animators` and `morph_animators` in addition to the existing
+  node / camera / material / skeleton animators.
+- `DriverStats` gained `light_animators` and `morph_animators` counters.
+- `scenix-animato` now depends on `scenix-light` for the light animator.
+- Updated README, architecture notes, roadmap, feature matrix, CI and publish
+  workflows, examples, and release notes for the Animation Runtime release.
+
+### Migration Notes
+
+- `ScenixAnimationDriver::tick` signature now includes `lights` and `morphs`;
+  pass empty `LightStores` / `BTreeMap<MeshId, Vec<f32>>` stores if unused.
+- `LoadedAnimationChannel` gained an `output: Vec<f32>` field; update struct
+  literals accordingly.
+- Animato `1.5.0` → `1.7.0` is a drop-in for the `std` / `tween` / `spring` /
+  `serde` feature set; no scenix-side code changes required.
+
 ## [1.3.0] - 2026-06-16
 
 ### Added
@@ -361,7 +417,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/AarambhDevHub/scenix/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/AarambhDevHub/scenix/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/AarambhDevHub/scenix/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/AarambhDevHub/scenix/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/AarambhDevHub/scenix/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/AarambhDevHub/scenix/compare/v0.8.0...v0.9.0

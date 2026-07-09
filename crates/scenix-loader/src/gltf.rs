@@ -640,11 +640,32 @@ fn collect_animation_metadata(
                 gltf::animation::Property::Scale => 3,
                 gltf::animation::Property::MorphTargetWeights => output.count() / input_count,
             };
+
+            // v1.4.0: decode the output accessor bytes into flat `f32` values
+            // so the runtime `clip_from_loaded` bridge can build keyframe
+            // tracks without re-reading the glTF accessor.
+            let output_values: Vec<f32> = match reader.read_outputs() {
+                Some(gltf::animation::util::ReadOutputs::Translations(ts)) => {
+                    ts.flat_map(|v| v.into_iter()).collect()
+                }
+                Some(gltf::animation::util::ReadOutputs::Scales(sc)) => {
+                    sc.flat_map(|v| v.into_iter()).collect()
+                }
+                Some(gltf::animation::util::ReadOutputs::Rotations(rs)) => {
+                    rs.into_f32().flat_map(|v| v.into_iter()).collect()
+                }
+                Some(gltf::animation::util::ReadOutputs::MorphTargetWeights(ws)) => {
+                    ws.into_f32().collect()
+                }
+                None => Vec::new(),
+            };
+
             channels.push(LoadedAnimationChannel {
                 node_index: channel.target().node().index(),
                 property: animation_property(channel.target().property()),
                 interpolation: animation_interpolation(sampler.interpolation()),
                 times,
+                output: output_values,
                 output_components,
             });
         }

@@ -14,6 +14,7 @@ pub mod pass;
 pub mod pipeline_cache;
 pub mod renderer;
 mod shadow;
+pub mod skinning;
 
 pub use config::{RenderTargetMode, RendererConfig};
 pub use environment::EnvironmentMap;
@@ -30,5 +31,6 @@ pub use pass::sort::{sort_opaque_front_to_back, sort_transparent_back_to_front};
 pub use pipeline_cache::{PipelineCache, RenderPassKind, RendererPipelineKey};
 pub use renderer::Renderer;
 pub use shadow::ShadowMapAtlas;
+pub use skinning::{GpuSkinningRegistry, SKINNING_WGSL};
 
 pub use wgpu;

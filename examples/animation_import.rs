@@ -16,6 +16,7 @@ fn main() {
                 property: LoadedAnimationProperty::Translation,
                 interpolation: LoadedAnimationInterpolation::Linear,
                 times: vec![0.0, 1.0],
+                output: vec![0.0, 0.0, 0.0, 5.0, 0.0, 0.0],
                 output_components: 3,
             }],
         },

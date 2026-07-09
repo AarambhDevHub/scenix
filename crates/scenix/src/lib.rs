@@ -7,6 +7,8 @@
 //! raycasting, debug helper geometry, optional Animato and WASM integration,
 //! optional post-processing, and optional renderer APIs.
 
+extern crate alloc;
+
 pub use scenix_core::*;
 pub use scenix_input::*;
 pub use scenix_math::*;
@@ -145,4 +147,102 @@ impl RendererAssetExt for scenix_renderer::Renderer {
 
         Ok(stats)
     }
+}
+
+/// Converts a loader-imported [`scenix_loader::LoadedAnimationClip`] into a
+/// runtime [`scenix_animato::AnimationClip`], mapping glTF node indices to
+/// scene [`scenix_core::NodeId`]s through `node_index_to_id`.
+///
+/// Requires both `loader` and `animato` features. The clip's channels use
+/// typed [`scenix_animato::PropertyBinding`]s; unmapped node indices are
+/// skipped. Cubic-spline channels fall back to linear sampling for v1.4.
+#[cfg(all(feature = "loader", feature = "animato"))]
+pub fn clip_from_loaded(
+    loaded: &scenix_loader::LoadedAnimationClip,
+    node_index_to_id: &[scenix_core::NodeId],
+) -> scenix_animato::AnimationClip {
+    use alloc::vec::Vec;
+    use scenix_animato::{
+        AnimationClip, ClipChannel, ClipTrack, KeyframeInterpolation, KeyframeQuat, KeyframeScalar,
+        KeyframeVec3, NodeProperty, PropertyBinding,
+    };
+    use scenix_loader::{LoadedAnimationInterpolation, LoadedAnimationProperty};
+
+    let interp = loaded
+        .channels
+        .first()
+        .map(|c| match c.interpolation {
+            LoadedAnimationInterpolation::Linear => KeyframeInterpolation::Linear,
+            LoadedAnimationInterpolation::Step => KeyframeInterpolation::Step,
+            LoadedAnimationInterpolation::CubicSpline => KeyframeInterpolation::CubicSpline,
+        })
+        .unwrap_or(KeyframeInterpolation::Linear);
+
+    let mut channels = Vec::new();
+    for ch in &loaded.channels {
+        let Some(&node_id) = node_index_to_id.get(ch.node_index) else {
+            continue;
+        };
+
+        // Decode packed `output` bytes into keyframe values. The loader stores
+        // `output_components` per keyframe (1 scalar, 3 vec3, 4 quat/color).
+        let key_count = ch.times.len();
+        let comps = ch.output_components.max(1);
+
+        let track = match ch.property {
+            LoadedAnimationProperty::Translation | LoadedAnimationProperty::Scale => {
+                let mut values = Vec::with_capacity(key_count);
+                for k in 0..key_count {
+                    let base = k * comps;
+                    let x = ch.output.get(base).copied().unwrap_or(0.0);
+                    let y = ch.output.get(base + 1).copied().unwrap_or(0.0);
+                    let z = ch.output.get(base + 2).copied().unwrap_or(0.0);
+                    values.push(scenix_math::Vec3::new(x, y, z));
+                }
+                ClipTrack::Vec3(KeyframeVec3::new(ch.times.clone(), values, interp))
+            }
+            LoadedAnimationProperty::Rotation => {
+                let mut values = Vec::with_capacity(key_count);
+                for k in 0..key_count {
+                    let base = k * comps;
+                    let x = ch.output.get(base).copied().unwrap_or(0.0);
+                    let y = ch.output.get(base + 1).copied().unwrap_or(0.0);
+                    let z = ch.output.get(base + 2).copied().unwrap_or(0.0);
+                    let w = ch.output.get(base + 3).copied().unwrap_or(1.0);
+                    values.push(scenix_math::Quat::new(x, y, z, w));
+                }
+                ClipTrack::Quat(KeyframeQuat::new(ch.times.clone(), values, interp))
+            }
+            LoadedAnimationProperty::MorphTargetWeights => {
+                let mut values = Vec::with_capacity(key_count);
+                for k in 0..key_count {
+                    // First morph target weight per keyframe (multi-target
+                    // morph clips are beyond v1.4 scope; first weight used).
+                    values.push(ch.output.get(k * comps).copied().unwrap_or(0.0));
+                }
+                ClipTrack::Scalar(KeyframeScalar::new(ch.times.clone(), values, interp))
+            }
+        };
+
+        let property = match ch.property {
+            LoadedAnimationProperty::Translation => NodeProperty::Translation,
+            LoadedAnimationProperty::Rotation => NodeProperty::Rotation,
+            LoadedAnimationProperty::Scale => NodeProperty::Scale,
+            LoadedAnimationProperty::MorphTargetWeights => NodeProperty::Scale,
+        };
+
+        channels.push(ClipChannel {
+            binding: PropertyBinding::Node { node_id, property },
+            track,
+        });
+    }
+
+    let mut clip = AnimationClip {
+        name: loaded.name.clone(),
+        duration: loaded.duration,
+        channels,
+        markers: Vec::new(),
+    };
+    clip.recompute_duration();
+    clip
 }

@@ -1,6 +1,6 @@
 [package]
 name = "scenix-animato"
-description = "Animato bridge for scenix scenes, cameras, materials, and skeleton poses."
+description = "Animato bridge and clip-based animation runtime for scenix scenes, cameras, materials, lights, morphs, and skeleton poses."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -15,6 +15,7 @@ std = [
     "animato/std",
     "scenix-camera/std",
     "scenix-core/std",
+    "scenix-light/std",
     "scenix-material/std",
     "scenix-math/std",
     "scenix-scene/std",
@@ -24,6 +25,7 @@ serde = [
     "animato/serde",
     "scenix-camera/serde",
     "scenix-core/serde",
+    "scenix-light/serde",
     "scenix-material/serde",
     "scenix-math/serde",
     "scenix-scene/serde",
@@ -33,6 +35,7 @@ serde = [
 animato = { workspace = true, features = ["spring", "tween"] }
 scenix-camera = { workspace = true }
 scenix-core = { workspace = true }
+scenix-light = { workspace = true }
 scenix-material = { workspace = true }
 scenix-math = { workspace = true }
 scenix-scene = { workspace = true }
@@ -44,6 +47,11 @@ serde_json = { workspace = true }
 [[bench]]
 name = "animato_bridge_bench"
 path = "../../benches/animato_bridge_bench.rs"
+harness = false
+
+[[bench]]
+name = "animation_mixer_bench"
+path = "../../benches/animation_mixer_bench.rs"
 harness = false
 
 [[test]]

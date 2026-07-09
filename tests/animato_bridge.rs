@@ -2,11 +2,13 @@ use std::collections::BTreeMap;
 
 use scenix_animato::{
     BoneAnimation, BoneAnimationTarget, CameraAnimationTarget, CameraAnimator, CameraStores,
-    ColorTrack, MaterialAnimationTarget, MaterialAnimator, NodeAnimationTarget, NodeAnimator,
-    QuatTrack, ScalarTrack, ScenixAnimationDriver, SkeletonPose, SkinnedMeshAnimator, Vec3Track,
+    ColorTrack, LightStores, MaterialAnimationTarget, MaterialAnimator, NodeAnimationTarget,
+    NodeAnimator, QuatTrack, ScalarTrack, ScenixAnimationDriver, SkeletonPose, SkinnedMeshAnimator,
+    Vec3Track,
 };
 use scenix_camera::{OrthographicCamera, PerspectiveCamera};
-use scenix_core::{CameraId, Color, MaterialId};
+use scenix_core::{CameraId, Color, LightId, MaterialId, MeshId};
+use scenix_light::{DirectionalLight, PointLight, SpotLight};
 use scenix_material::{AlphaMode, PbrMaterial};
 use scenix_math::{Quat, Transform, Vec3};
 use scenix_scene::{SceneGraph, SceneNode};
@@ -190,6 +192,15 @@ fn driver_pause_resume_prune_and_clear_work() {
         orthographic: &mut orthographic,
     };
     let mut materials = BTreeMap::<MaterialId, PbrMaterial>::new();
+    let mut point_lights: BTreeMap<LightId, PointLight> = BTreeMap::new();
+    let mut spot_lights: BTreeMap<LightId, SpotLight> = BTreeMap::new();
+    let mut directional_lights: BTreeMap<LightId, DirectionalLight> = BTreeMap::new();
+    let mut light_stores = LightStores {
+        point: &mut point_lights,
+        spot: &mut spot_lights,
+        directional: &mut directional_lights,
+    };
+    let mut morphs: BTreeMap<MeshId, Vec<f32>> = BTreeMap::new();
     let mut skeletons = vec![SkeletonPose::new(vec![Transform::IDENTITY])];
     let mut driver = ScenixAnimationDriver::new();
     driver.add_node(NodeAnimator::new(
@@ -199,14 +210,30 @@ fn driver_pause_resume_prune_and_clear_work() {
 
     driver.pause();
     let stats = driver
-        .tick(1.0, &mut scene, &mut stores, &mut materials, &mut skeletons)
+        .tick(
+            1.0,
+            &mut scene,
+            &mut stores,
+            &mut materials,
+            &mut light_stores,
+            &mut morphs,
+            &mut skeletons,
+        )
         .unwrap();
     assert_eq!(stats.completed, 0);
     assert_eq!(driver.node_len(), 1);
 
     driver.resume();
     let stats = driver
-        .tick(1.0, &mut scene, &mut stores, &mut materials, &mut skeletons)
+        .tick(
+            1.0,
+            &mut scene,
+            &mut stores,
+            &mut materials,
+            &mut light_stores,
+            &mut morphs,
+            &mut skeletons,
+        )
         .unwrap();
     assert_eq!(stats.completed, 1);
     assert_eq!(driver.node_len(), 0);

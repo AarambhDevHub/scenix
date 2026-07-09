@@ -55,6 +55,11 @@ pollster = { workspace = true }
 name = "scenix_foundation"
 path = "../../tests/scenix_foundation.rs"
 
+[[test]]
+name = "animation_runtime"
+path = "../../tests/animation_runtime.rs"
+required-features = ["animato", "loader", "scene", "camera", "material", "light", "mesh", "helpers"]
+
 [[example]]
 name = "materials_and_lights"
 path = "../../examples/materials_and_lights.rs"
@@ -189,6 +194,26 @@ required-features = ["renderer", "scene", "camera", "mesh", "material"]
 name = "animato_integration"
 path = "../../examples/animato_integration.rs"
 required-features = ["animato", "scene", "camera", "material"]
+
+[[example]]
+name = "animation_runtime"
+path = "../../examples/animation_runtime.rs"
+required-features = ["animato", "scene"]
+
+[[example]]
+name = "animation_mixer"
+path = "../../examples/animation_mixer.rs"
+required-features = ["animato", "scene", "material", "light"]
+
+[[example]]
+name = "skeleton_skinning"
+path = "../../examples/skeleton_skinning.rs"
+required-features = ["mesh", "animato", "renderer"]
+
+[[example]]
+name = "animation_events"
+path = "../../examples/animation_events.rs"
+required-features = ["animato", "scene", "light"]
 
 [[test]]
 name = "scenix_v08"

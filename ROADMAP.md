@@ -557,12 +557,12 @@ The version numbers below are planning buckets, not release promises. Each miles
 - `scenix` — facade re-exports and feature flags for new animation APIs.
 - No new crate is planned for this release.
 
-- [ ] `AnimationClip`, `AnimationAction`, and `AnimationMixer` equivalents for imported clips.
-- [ ] Property binding for node transforms, visibility, material fields, cameras, lights, morph weights, and skeleton bones.
-- [ ] Playback controls: loop modes, pause/resume, time scale, markers, events, crossfade, additive blending, and deterministic sampling.
-- [ ] Skeletal animation data model, GPU skinning path, CPU fallback tests, skeleton helpers, and pose debugging.
-- [ ] Retargeting helpers and optional IK helpers.
-- [ ] Animation path helper and docs for imported animation workflows.
+- [x] `AnimationClip`, `AnimationAction`, and `AnimationMixer` equivalents for imported clips.
+- [x] Property binding for node transforms, visibility, material fields, cameras, lights, morph weights, and skeleton bones.
+- [x] Playback controls: loop modes, pause/resume, time scale, markers, events, crossfade, additive blending, and deterministic sampling.
+- [x] Skeletal animation data model, GPU skinning path, CPU fallback tests, skeleton helpers, and pose debugging.
+- [x] Retargeting helpers and optional IK helpers.
+- [x] Animation path helper and docs for imported animation workflows.
 
 ## v1.5.0 — Controls, Interaction, And Editor Primitives
 
