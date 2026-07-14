@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Compiles the standalone browser viewer crate.
+Compiles the standalone browser viewer crate. Its `start` export returns a
+WebGPU-first `BrowserRenderer` with the WebGL fallback, including v1.5 touch,
+pointer-lock, gamepad, transform-mode, selection, and inspector methods.
 
 ## Source
 

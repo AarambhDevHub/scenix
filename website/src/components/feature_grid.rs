@@ -2,14 +2,38 @@ use leptos::prelude::*;
 
 const FEATURES: &[(&str, &str)] = &[
     ("Modular workspace", "Use only the crates your app needs."),
-    ("Renderer-agnostic scene graph", "Author scenes without pulling GPU dependencies."),
-    ("wgpu renderer", "Native and browser rendering through WebGPU backends."),
-    ("Animato bridge", "Drive transforms, cameras, and materials with the optional Animato bridge."),
-    ("WASM support", "Browser canvas wrapper with DOM input forwarding."),
-    ("BVH raycasting", "Fast CPU picking with exact mesh intersections."),
-    ("Debug helpers", "Grid, axes, bounds, camera, light, and skeleton lines."),
-    ("Post-processing", "Bloom, SSAO, tonemap, AA, fog, outline, and blur stack."),
-    ("no_std CPU crates", "Core authoring crates stay lightweight and portable."),
+    (
+        "Renderer-agnostic scene graph",
+        "Author scenes without pulling GPU dependencies.",
+    ),
+    (
+        "wgpu renderer",
+        "Native and browser rendering through WebGPU backends.",
+    ),
+    (
+        "Animato bridge",
+        "Drive transforms, cameras, and materials with the optional Animato bridge.",
+    ),
+    (
+        "WASM support",
+        "DPR-aware touch, gamepad, pointer-lock, and DOM input forwarding.",
+    ),
+    (
+        "BVH raycasting",
+        "Fast CPU picking with exact mesh intersections.",
+    ),
+    (
+        "Debug helpers",
+        "Grid, axes, bounds, camera, light, and skeleton lines.",
+    ),
+    (
+        "Post-processing",
+        "Bloom, SSAO, tonemap, AA, fog, outline, and blur stack.",
+    ),
+    (
+        "no_std CPU crates",
+        "Core authoring crates stay lightweight and portable.",
+    ),
 ];
 
 #[component]

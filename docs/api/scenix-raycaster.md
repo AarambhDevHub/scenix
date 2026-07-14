@@ -2,7 +2,8 @@
 
 ## Role
 
-BVH-accelerated picking and exact mesh intersections.
+BVH-accelerated picking, exact mesh intersections, selection volumes, drag
+planes, and reversible transform interactions.
 
 ## Dependency Weight
 
@@ -17,7 +18,9 @@ scenix-raycaster = "1"
 
 ## Key Public API
 
-Raycaster, Intersection, Bvh, GeometryProvider
+`Raycaster`, `Intersection`, `Bvh`, `GeometryProvider`, `SelectionRect`,
+`SelectionFrustum`, `SelectionContainment`, `DragPlane`, `DragController`, and
+`TransformController`.
 
 ## Common Use
 
@@ -38,4 +41,5 @@ Use this crate directly when you need its boundary in your own public API. Use t
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
+- [Selection and drag example](../examples/selection-and-drag.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)

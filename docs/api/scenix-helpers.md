@@ -2,7 +2,8 @@
 
 ## Role
 
-Debug line geometry generators for editors and diagnostics.
+Debug line geometry, retained transform gizmos, editor selection visuals, snap
+grids, and an optional egui inspector adapter.
 
 ## Dependency Weight
 
@@ -17,7 +18,10 @@ scenix-helpers = "1"
 
 ## Key Public API
 
-LineGeometry, GridHelper, AxesHelper, BoundingBoxHelper, ArrowHelper, CameraHelper, light helpers, SkeletonHelper
+`LineGeometry`, `GridHelper`, `AxesHelper`, `BoundingBoxHelper`, `ArrowHelper`,
+`CameraHelper`, light helpers, `SkeletonHelper`, `TransformGizmoHelper`,
+`GizmoGeometry`, `SelectionHelper`, `BoundsGizmoHelper`, `SnapGridHelper`, and
+`show_inspector` behind `egui`.
 
 ## Common Use
 
@@ -34,4 +38,6 @@ Use this crate directly when you need its boundary in your own public API. Use t
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
+- [Transform gizmo example](../examples/transform-gizmo.md)
+- [Editor inspector example](../examples/editor-inspector.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)

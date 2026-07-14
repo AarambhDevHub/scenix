@@ -1,8 +1,8 @@
 use wasm_bindgen::prelude::*;
 
-/// Creates the generated-scene scenix browser renderer.
+/// Creates the generated-scene renderer with WebGPU-first/WebGL fallback.
 #[wasm_bindgen]
-pub async fn start(canvas: web_sys::HtmlCanvasElement) -> Result<scenix::WebRenderer, JsValue> {
+pub async fn start(canvas: web_sys::HtmlCanvasElement) -> Result<scenix::BrowserRenderer, JsValue> {
     scenix::set_panic_hook();
-    scenix::WebRenderer::new(canvas).await
+    scenix::BrowserRenderer::new(canvas).await
 }

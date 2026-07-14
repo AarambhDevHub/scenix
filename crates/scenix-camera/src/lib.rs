@@ -2,12 +2,19 @@
 
 //! GPU-free camera, frustum, and controller types for scenix.
 
+pub mod advanced_controls;
 pub mod controller;
 pub mod cube_camera;
 pub mod frustum;
+#[cfg(feature = "inspector")]
+mod inspector;
 pub mod orthographic;
 pub mod perspective;
 
+pub use advanced_controls::{
+    ArcballController, FirstPersonController, MapController, PointerLockController,
+    TrackballController,
+};
 pub use controller::{FlyController, OrbitController};
 pub use cube_camera::{CubeCamera, CubeFace};
 pub use frustum::{Frustum, Visibility};

@@ -5,7 +5,11 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix `1.4.0` is the current stable release. The public API is frozen around small focused crates: CPU authoring stays lightweight by default, while asset loading, GPU rendering, post-processing, Animato integration, and browser support remain opt-in.
+scenix `1.5.0` is the current stable release. It adds cross-platform controls,
+touch/gamepad/pointer-lock input, selection and transform primitives, reusable
+gizmos, inspector snapshots, optional egui rendering, and on-demand GPU picking.
+CPU authoring stays lightweight by default while GPU, browser, and UI paths
+remain opt-in.
 
 ## Install
 
@@ -24,6 +28,8 @@ scenix = { version = "1", features = ["loader"] }
 scenix = { version = "1", features = ["renderer", "post"] }
 scenix = { version = "1", features = ["animato"] }
 scenix = { version = "1", features = ["wasm"] }
+scenix = { version = "1", features = ["interaction"] }
+scenix = { version = "1", features = ["editor", "egui"] }
 ```
 
 Focused crates can be used directly:
@@ -65,7 +71,9 @@ scenix-raycaster = { version = "1", default-features = false }
 scenix-helpers = { version = "1", default-features = false }
 ```
 
-`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and `scenix-wasm` are optional `std` paths. `scenix-animato` targets Animato `1.7.0` and ships the v1.4.0 clip-based Animation Runtime (`AnimationClip`, `AnimationAction`, `AnimationMixer`, loop modes, crossfade, markers/events, light/morph targets, and CPU/GPU skinning).
+`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and
+`scenix-wasm` are optional `std` paths. `scenix-animato` continues to target
+Animato `1.7.0`.
 
 ## Feature Flags
 
@@ -74,6 +82,9 @@ scenix-helpers = { version = "1", default-features = false }
 | `std` | yes | Standard-library support for CPU crates. |
 | `scene`, `camera`, `mesh`, `material`, `light`, `texture` | yes | CPU authoring crates. |
 | `raycaster`, `helpers` | yes | BVH picking and debug line helper data. |
+| `interaction` | no | Convenience bundle for scene, camera, raycaster, and helpers. |
+| `editor` | no | Inspector snapshots and editor-facing selection/transform data. |
+| `egui` | no | Read-only egui inspector adapter; the host owns its window/render loop. |
 | `loader` | no | Asset packages, asset manager, glTF/GLB extension metadata, OBJ/MTL, STL, image, KTX2, HDR/EXR loading, and exporters. |
 | `renderer` | no | `wgpu` renderer with surface/headless targets. |
 | `post` | no | Full-screen post-processing stack; use with `renderer`. |
@@ -82,6 +93,32 @@ scenix-helpers = { version = "1", default-features = false }
 | `serde` | no | Serialization support where the focused crate supports it. |
 
 ## Quick Start
+
+### Controls and interaction
+
+```rust
+use scenix::{
+    ArcballController, InputState, PerspectiveCamera, PointerButton, Vec2, Vec3,
+    ViewportMetrics,
+};
+
+let mut input = InputState::new(ViewportMetrics::new(Vec2::new(1280.0, 720.0), 2.0));
+input.on_pointer_down(PointerButton::Left);
+input.on_pointer_move(Vec2::new(24.0, 12.0));
+input.on_scroll(-0.25);
+
+let mut controls = ArcballController::new(Vec3::ZERO, 5.0);
+let mut camera = PerspectiveCamera::default();
+controls.update_from_input(&input, 1.0 / 60.0);
+controls.apply_to_perspective(&mut camera);
+input.end_frame();
+```
+
+`InputState` also accepts fixed-capacity touch contacts, two-finger gestures,
+four standard gamepads, and pointer-lock relative motion without allocating in
+the event/control hot path.
+
+### Scene authoring and animation
 
 ```rust
 use std::collections::BTreeMap;
@@ -234,18 +271,18 @@ assert!(raycaster.cast_ray(ray, &scene, &meshes).is_some());
 | `scenix` | Facade crate with stable v1 feature flags. |
 | `scenix-math` | `no_std` vectors, matrices, quaternions, transforms, rays, and bounds. |
 | `scenix-core` | IDs, colors, errors, and shared traits. |
-| `scenix-input` | Platform-neutral pointer and keyboard state. |
-| `scenix-scene` | Scene graph, transforms, traversal, fog, sprites, and LOD helpers. |
-| `scenix-camera` | Perspective, orthographic, cube cameras, frustums, and controllers. |
+| `scenix-input` | Pointer, keyboard, touch, gesture, gamepad, pointer-lock, and viewport state. |
+| `scenix-scene` | Scene graph plus editor metadata, layers, snapping, and selection state. |
+| `scenix-camera` | Cameras plus orbit, fly, arcball, trackball, map, first-person, and pointer-lock controls. |
 | `scenix-mesh` | Geometry buffers, primitives, instancing, batching, and morph targets. |
 | `scenix-material` | GPU-free material descriptions and pipeline keys. |
 | `scenix-light` | Lights, shadow settings, and light probes. |
 | `scenix-texture` | CPU textures, samplers, atlases, video updates, and mipmaps. |
 | `scenix-loader` | Optional CPU asset packages, asset manager, importers, exporters, diagnostics, and cache. |
-| `scenix-renderer` | Optional `wgpu` renderer, real material texture paths, lights, render targets, and resource registries. |
+| `scenix-renderer` | Optional `wgpu` renderer with on-demand ID/normal/depth editor picking. |
 | `scenix-post` | Optional `wgpu` post-processing effects. |
-| `scenix-raycaster` | BVH scene picking and exact mesh intersections. |
-| `scenix-helpers` | Debug `LineGeometry` generators. |
+| `scenix-raycaster` | BVH ray picking, marquee selection, drag planes, and transform interactions. |
+| `scenix-helpers` | Debug lines, reusable gizmos, selection visuals, snap grids, and optional egui. |
 | `scenix-animato` | Optional Animato bridge. |
 | `scenix-wasm` | Optional browser canvas wrapper with WebGPU and WebGL paths. |
 
@@ -278,6 +315,11 @@ cargo run -p scenix --example lod_demo
 cargo run -p scenix --example morph_targets
 cargo run -p scenix --example fog_demo
 cargo run -p scenix --example helpers_demo
+cargo run -p scenix --example controls_showcase
+cargo run -p scenix --example selection_and_drag
+cargo run -p scenix --example transform_gizmo
+cargo run -p scenix --example editor_inspector --features egui
+cargo run -p scenix --example renderer_picking --features renderer
 cargo run -p scenix --example sprite_particles
 cargo run -p scenix --example environment_map --features renderer
 cargo run -p scenix --example render_target_capture --features renderer
@@ -313,6 +355,10 @@ cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scen
 cargo test -p scenix-loader --all-features
 cargo test -p scenix-raycaster -p scenix-helpers --all-features
 cargo test -p scenix-animato --all-features
+cargo test -p scenix --test scenix_v15 --all-features
+cargo check -p scenix --no-default-features --features interaction
+cargo check -p scenix --no-default-features --features editor
+cargo check -p scenix --no-default-features --features egui
 cargo check -p scenix-wasm --target wasm32-unknown-unknown --all-features
 cargo check --manifest-path examples/wasm_viewer/Cargo.toml --target wasm32-unknown-unknown
 SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer -p scenix-post --all-features
@@ -339,6 +385,7 @@ cargo llvm-cov --workspace --all-features
 - [Deployment](./docs/deployment/README.md)
 - [Migration](./docs/migration/from-0.9-to-1.0.md)
 - [Reference](./docs/reference/feature-matrix.md)
+- [v1.5.0 release notes](./.github/release-notes/1.5.0.md)
 - [v1.4.0 release notes](./.github/release-notes/1.4.0.md)
 - [v1.3.0 release notes](./.github/release-notes/v1.3.0.md)
 

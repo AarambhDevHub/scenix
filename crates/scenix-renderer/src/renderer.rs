@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use scenix_camera::PerspectiveCamera;
-use scenix_core::{GpuError, LightId, MaterialId, MeshId, ScenixError, TextureId};
+use scenix_core::{GpuError, LightId, MaterialId, MeshId, ScenixError, TextureId, ValidationError};
 use scenix_light::{
     AmbientLight, AreaLight, DirectionalLight, HemisphereLight, LightProbe, PointLight, SpotLight,
 };
@@ -14,9 +14,11 @@ use scenix_mesh::Geometry;
 use scenix_scene::SceneGraph;
 use scenix_texture::{Sampler, Texture2D, Texture3D, TextureCube, TextureFormat};
 
+use crate::editor_picking::EditorRenderRequest;
 use crate::gbuffer::TextureTarget;
 use crate::pass::culling::collect_visible_draws;
 use crate::pass::sort::{sort_opaque_front_to_back, sort_transparent_back_to_front};
+use crate::{EditorBufferStats, EditorBuffers, EditorPickRequest, EditorPickResult};
 use crate::{
     EnvironmentMap, FrameContext, FrameStats, GBuffer, GpuScene, MaterialUniform, PackedVertex,
     PipelineCache, PipelineCacheStats, RenderTargetDescriptor, RenderTargetKind, RenderTargetMode,
@@ -249,6 +251,8 @@ pub struct Renderer {
     #[cfg(feature = "post")]
     post_source: Option<TextureTarget>,
     frame_index: u64,
+    editor_buffers: Option<EditorBuffers>,
+    editor_pick_requests: u64,
 }
 
 impl Renderer {
@@ -310,6 +314,8 @@ impl Renderer {
             #[cfg(feature = "post")]
             post_source: None,
             frame_index: 0,
+            editor_buffers: None,
+            editor_pick_requests: 0,
         })
     }
 
@@ -349,6 +355,8 @@ impl Renderer {
             #[cfg(feature = "post")]
             post_source: None,
             frame_index: 0,
+            editor_buffers: None,
+            editor_pick_requests: 0,
         })
     }
 
@@ -357,6 +365,9 @@ impl Renderer {
         self.config = self.config.clone().resized(width, height);
         self.config.validate()?;
         self.gbuffer.resize(&self.device, width, height);
+        if let Some(editor) = &mut self.editor_buffers {
+            editor.resize(&self.device, width, height);
+        }
         #[cfg(feature = "post")]
         {
             self.post_source = None;
@@ -923,6 +934,98 @@ impl Renderer {
     #[inline]
     pub const fn gbuffer(&self) -> &GBuffer {
         &self.gbuffer
+    }
+
+    /// Returns allocated editor buffers, if an editor pass has been requested.
+    #[inline]
+    pub const fn editor_buffers(&self) -> Option<&EditorBuffers> {
+        self.editor_buffers.as_ref()
+    }
+
+    /// Renders reusable full-size editor ID, normal, and depth buffers.
+    pub fn render_editor_buffers(
+        &mut self,
+        scene: &SceneGraph,
+        camera: &PerspectiveCamera,
+        layers: u32,
+        selectable_only: bool,
+    ) -> Result<u32, ScenixError> {
+        let editor = self.editor_buffers.get_or_insert_with(|| {
+            EditorBuffers::new(&self.device, self.config.width, self.config.height)
+        });
+        let draws = editor.render(
+            &self.device,
+            &self.queue,
+            &self.gpu_scene,
+            EditorRenderRequest {
+                scene,
+                camera,
+                layers,
+                selectable_only,
+                scissor: None,
+            },
+        )?;
+        self.editor_pick_requests = self.editor_pick_requests.saturating_add(1);
+        Ok(draws)
+    }
+
+    /// Reads an already-rendered editor pixel. This is a blocking tooling path.
+    pub fn read_editor_pixel(
+        &self,
+        camera: &PerspectiveCamera,
+        x: u32,
+        y: u32,
+    ) -> Result<EditorPickResult, ScenixError> {
+        self.editor_buffers
+            .as_ref()
+            .ok_or(ScenixError::Validation(ValidationError::InvalidState))?
+            .read_pixel(&self.device, &self.queue, camera, x, y)
+    }
+
+    /// Renders a one-pixel-scissored editor pass and returns its decoded result.
+    pub fn pick(
+        &mut self,
+        scene: &SceneGraph,
+        camera: &PerspectiveCamera,
+        request: EditorPickRequest,
+    ) -> Result<EditorPickResult, ScenixError> {
+        if request.x >= self.config.width || request.y >= self.config.height {
+            return Err(ScenixError::Validation(ValidationError::OutOfRange));
+        }
+        let editor = self.editor_buffers.get_or_insert_with(|| {
+            EditorBuffers::new(&self.device, self.config.width, self.config.height)
+        });
+        editor.render(
+            &self.device,
+            &self.queue,
+            &self.gpu_scene,
+            EditorRenderRequest {
+                scene,
+                camera,
+                layers: request.layers,
+                selectable_only: request.selectable_only,
+                scissor: Some((request.x, request.y)),
+            },
+        )?;
+        self.editor_pick_requests = self.editor_pick_requests.saturating_add(1);
+        editor.read_pixel(&self.device, &self.queue, camera, request.x, request.y)
+    }
+
+    /// Returns optional editor-buffer allocation and request counters.
+    pub fn editor_buffer_stats(&self) -> EditorBufferStats {
+        self.editor_buffers.as_ref().map_or(
+            EditorBufferStats {
+                pick_requests: self.editor_pick_requests,
+                ..EditorBufferStats::default()
+            },
+            |editor| EditorBufferStats {
+                allocated: true,
+                width: editor.width(),
+                height: editor.height(),
+                memory_bytes: editor.memory_bytes(),
+                pick_requests: self.editor_pick_requests,
+            },
+        )
     }
 
     /// Returns shadow maps.

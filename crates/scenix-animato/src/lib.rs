@@ -23,6 +23,8 @@ mod camera;
 mod clip;
 mod driver;
 mod events;
+#[cfg(feature = "inspector")]
+mod inspector;
 mod keyframe;
 mod light;
 mod loop_mode;

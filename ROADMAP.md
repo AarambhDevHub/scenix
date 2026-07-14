@@ -36,8 +36,8 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v1.1.0` | Browser fallback | WebGPU-to-WebGL browser fallback and updated release automation | ✅ |
 | `v1.2.0` | Renderer parity | Real material GPU paths, texture binding, lights, shadows, IBL, render targets | ✅ |
 | `v1.3.0` | Asset pipeline | glTF extensions, animation import, compression diagnostics, extra loaders, exporters, asset manager | ✅ |
-| `v1.4.0` | Animation runtime | Clip/mixer/action layer, skeletal animation, morph playback, retargeting helpers | 📋 |
-| `v1.5.0` | Interaction tools | Transform/drag/pointer-lock controls, selection helpers, editor primitives | 📋 |
+| `v1.4.0` | Animation runtime | Clip/mixer/action layer, skeletal animation, morph playback, retargeting helpers | ✅ |
+| `v1.5.0` | Interaction tools | Transform/drag/pointer-lock controls, selection helpers, editor primitives | ✅ |
 | `v1.6.0` | Shader nodes | New optional shader graph and node material crate | 🔮 |
 | `v1.7.0` | Particles | New optional CPU/GPU particle crate | 🔮 |
 | `v1.8.0` | Environment systems | New optional terrain, sky, and water crates | 🔮 |
@@ -473,7 +473,9 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 
 ## Current Focus
 
-The project is now in post-1.1 planning and maintenance. New work should preserve the stable modular API, keep heavy dependencies optional, and add deprecations before removing public APIs.
+The project has completed v1.5.0 and is preparing the optional shader-node work
+planned for v1.6.0. New work must preserve the stable modular API, keep heavy
+dependencies optional, and add deprecations before removing public APIs.
 
 Scenix is not only a website or WASM demo library. Future work must treat **desktop, mobile, and web** as first-class runtime targets:
 
@@ -580,12 +582,12 @@ The version numbers below are planning buckets, not release promises. Each miles
 - `scenix` — facade re-exports and feature flags for new controls/input/helper APIs.
 - No new crate is planned for this release; `scenix-editor` should wait until these primitives are ready.
 
-- [ ] Arcball, Trackball, Map, FirstPerson, PointerLock, Drag, and Transform controls.
-- [ ] Translation, rotation, scale, bounds, camera, light, and skeleton gizmos.
-- [ ] Selection box/frustum picking, hover/active/selected state model, drag planes, snapping, grid constraints, and layer masks.
-- [ ] Inspector data model for scene graph, cameras, lights, materials, textures, animations, renderer stats, and GPU resources.
-- [ ] Web overlay support and native overlay integration for egui or Iced.
-- [ ] Mobile touch gesture mapping for orbit, pan, pinch zoom, drag, and transform operations.
+- [x] Arcball, Trackball, Map, FirstPerson, PointerLock, Drag, and Transform controls.
+- [x] Translation, rotation, scale, bounds, camera, light, and skeleton gizmos.
+- [x] Selection box/frustum picking, hover/active/selected state model, drag planes, snapping, grid constraints, and layer masks.
+- [x] Inspector data model for scene graph, cameras, lights, materials, textures, animations, renderer stats, and GPU resources.
+- [x] Web overlay support and optional native egui inspector integration.
+- [x] Mobile touch gesture mapping for orbit, pan, pinch zoom, drag, and transform operations.
 
 ## v1.6.0 — Shader Nodes And Node Materials
 
@@ -827,7 +829,7 @@ The best way to contribute now is to propose a focused post-1.1 planning issue o
 
 ---
 
-*Roadmap version: 1.3.0 asset pipeline — last updated June 16, 2026*
-*Next milestone: v1.4.0 animation runtime planning*
+*Roadmap version: 1.5.0 controls, interaction, and editor primitives — last updated July 14, 2026*
+*Next milestone: v1.6.0 shader nodes and node materials*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

@@ -7,7 +7,8 @@ use scenix_material::{PbrMaterial, PipelineKey};
 use scenix_math::Vec3;
 use scenix_mesh::box_geometry;
 use scenix_renderer::{
-    PipelineCache, RenderPassKind, RenderTargetMode, Renderer, RendererConfig, RendererPipelineKey,
+    EditorPickRequest, PipelineCache, RenderPassKind, RenderTargetMode, Renderer, RendererConfig,
+    RendererPipelineKey,
 };
 use scenix_scene::{SceneGraph, SceneNode};
 
@@ -105,6 +106,28 @@ fn resize_recreates_offscreen_targets() -> Result<(), ScenixError> {
         assert_eq!(renderer.config().height, 96);
         assert_eq!(renderer.gbuffer().width(), 128);
         assert_eq!(renderer.gbuffer().height(), 96);
+        Ok(())
+    })
+}
+
+#[test]
+fn editor_pick_returns_object_depth_normal_and_world_position() -> Result<(), ScenixError> {
+    if !run_gpu_tests() {
+        return Ok(());
+    }
+
+    pollster::block_on(async {
+        let (mut renderer, scene, camera) = cube_renderer().await?;
+        assert!(!renderer.editor_buffer_stats().allocated);
+        let result = renderer.pick(&scene, &camera, EditorPickRequest::new(32, 32))?;
+        assert_eq!(result.node_id.map(|id| id.get()), Some(1));
+        assert!(result.depth > 0.0 && result.depth < 1.0);
+        assert!(result.normal.length_squared() > 0.9);
+        assert!(result.world_position.is_some());
+        let stats = renderer.editor_buffer_stats();
+        assert!(stats.allocated);
+        assert_eq!(stats.pick_requests, 1);
+        assert!(stats.memory_bytes > 0);
         Ok(())
     })
 }

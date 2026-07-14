@@ -3,7 +3,6 @@ name: Publish
 on:
   push:
     tags:
-      - "v1.4.0"
       - "v*.*.*"
 
 env:
@@ -12,11 +11,16 @@ env:
 
 jobs:
   verify:
-    name: Pre-publish verification
+    name: Verify release contract
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      notes: ${{ steps.release.outputs.notes }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -25,6 +29,52 @@ jobs:
           targets: wasm32-unknown-unknown
 
       - uses: Swatinem/rust-cache@v2
+
+      - name: Verify tag, versions, main ancestry, and release notes
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Expected a stable semver tag such as v1.5.0, got $tag" >&2
+            exit 1
+          fi
+
+          workspace_version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "scenix") | .version')"
+          if [[ "$workspace_version" != "$version" ]]; then
+            echo "Tag $tag does not match workspace version $workspace_version" >&2
+            exit 1
+          fi
+
+          mismatches="$(cargo metadata --no-deps --format-version 1 | jq -r --arg version "$version" '.packages[] | select(.source == null and .version != $version) | "\(.name)=\(.version)"')"
+          if [[ -n "$mismatches" ]]; then
+            echo "Workspace package versions do not match $version:" >&2
+            echo "$mismatches" >&2
+            exit 1
+          fi
+
+          for manifest in website/Cargo.toml examples/wasm_viewer/Cargo.toml; do
+            manifest_version="$(awk -F'"' '/^version = / { print $2; exit }' "$manifest")"
+            if [[ "$manifest_version" != "$version" ]]; then
+              echo "$manifest has version $manifest_version, expected $version" >&2
+              exit 1
+            fi
+          done
+
+          notes=".github/release-notes/${version}.md"
+          test -s "$notes" || { echo "Missing release notes: $notes" >&2; exit 1; }
+
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+            echo "Release tag must point to a commit on origin/main" >&2
+            exit 1
+          }
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "notes=$notes" >> "$GITHUB_OUTPUT"
 
       - name: Install Mesa Vulkan software driver
         run: |
@@ -48,20 +98,17 @@ jobs:
       - name: Test no-default CPU crates
         run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
 
-      - name: Test animation runtime
-        run: cargo test -p scenix --test animation_runtime --all-features
+      - name: Test v1.5 interaction surface
+        run: cargo test -p scenix --test scenix_v15 --all-features
 
-      - name: Test loader all features
-        run: cargo test -p scenix-loader --all-features
+      - name: Check v1.5 facade feature lanes
+        run: |
+          cargo check -p scenix --no-default-features --features interaction
+          cargo check -p scenix --no-default-features --features editor
+          cargo check -p scenix --no-default-features --features egui
 
-      - name: Test raycaster and helpers all features
-        run: cargo test -p scenix-raycaster -p scenix-helpers --all-features
-
-      - name: Test animato bridge all features
-        run: cargo test -p scenix-animato --all-features
-
-      - name: Check animation examples
-        run: cargo check -p scenix --examples --features animato
+      - name: Check all examples
+        run: cargo check -p scenix --examples --all-features
 
       - name: Check scenix-wasm
         run: cargo check -p scenix-wasm --target wasm32-unknown-unknown --all-features
@@ -87,8 +134,7 @@ jobs:
           RUSTDOCFLAGS: "-D warnings"
 
       - name: Package crates
-        run: |
-          cargo package --workspace --no-verify
+        run: cargo package --workspace --no-verify
 
   publish:
     name: Publish to crates.io
@@ -104,6 +150,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Publish crates in dependency order
+        shell: bash
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
@@ -121,7 +168,7 @@ jobs:
               status="${PIPESTATUS[0]}"
               set -e
 
-              if [ "$status" -eq 0 ]; then
+              if [[ "$status" -eq 0 ]]; then
                 return 0
               fi
 
@@ -130,7 +177,7 @@ jobs:
                 return 0
               fi
 
-              if grep -Eiq "failed to select a version|no matching package named|perhaps a crate was updated and forgotten" "$log" && [ "$attempt" -lt 5 ]; then
+              if grep -Eiq "failed to select a version|no matching package named|perhaps a crate was updated and forgotten" "$log" && [[ "$attempt" -lt 5 ]]; then
                 echo "crates.io index has not caught up for $crate; retrying in 60 seconds."
                 sleep 60
                 continue
@@ -161,7 +208,7 @@ jobs:
             scenix
           do
             publish_crate "$crate"
-            if [ "$crate" != "scenix" ]; then
+            if [[ "$crate" != "scenix" ]]; then
               sleep 30
             fi
           done
@@ -169,7 +216,7 @@ jobs:
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: publish
+    needs: [verify, publish]
     permissions:
       contents: write
 
@@ -180,6 +227,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: "scenix ${{ github.ref_name }}"
-          body_path: .github/release-notes/1.4.0.md
-          generate_release_notes: true
+          name: "scenix v${{ needs.verify.outputs.version }} — Controls, Interaction, And Editor Primitives"
+          body_path: ${{ needs.verify.outputs.notes }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false

@@ -10,6 +10,8 @@ extern crate alloc;
 
 pub mod atlas;
 pub mod format;
+#[cfg(feature = "inspector")]
+mod inspector;
 pub mod mipmap;
 pub mod sampler;
 pub mod texture;

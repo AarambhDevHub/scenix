@@ -3,9 +3,9 @@ use std::collections::BTreeMap;
 use js_sys::{Float32Array, Reflect, Uint16Array};
 use scenix_animato::ScalarTrack;
 use scenix_camera::{OrbitController, PerspectiveCamera};
-use scenix_core::{Color, LightId, MaterialId, MeshId, NodeId, ScenixError};
+use scenix_core::{Color, Inspectable, LightId, MaterialId, MeshId, NodeId, ScenixError};
 use scenix_helpers::{AxesHelper, BoundingBoxHelper, GridHelper, LineGeometry};
-use scenix_input::{KeyboardState, PointerState};
+use scenix_input::{GamepadId, InputState, TouchId, ViewportMetrics};
 use scenix_light::{DirectionalLight, PointLight};
 use scenix_material::{
     LambertMaterial, PbrMaterial, PhysicalMaterial, ToonMaterial, UnlitMaterial, WireframeMaterial,
@@ -14,7 +14,7 @@ use scenix_math::{Aabb, Quat, Transform, Vec2, Vec3};
 use scenix_mesh::{Geometry, box_geometry, plane_geometry, sphere_geometry, torus_geometry};
 use scenix_raycaster::Raycaster;
 use scenix_renderer::{Renderer, RendererConfig, wgpu};
-use scenix_scene::{NodeKind, SceneGraph, SceneNode};
+use scenix_scene::{NodeKind, SceneGraph, SceneNode, SelectionMode, TransformMode};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use web_sys::{
@@ -22,7 +22,10 @@ use web_sys::{
     WebGlShader, WebGlTexture, WebGlUniformLocation, window,
 };
 
-use crate::{WebGlCapabilityLevel, clamp_canvas_size, key_code_from_dom, pointer_button_from_dom};
+use crate::{
+    CanvasMetrics, WebGlCapabilityLevel, clamp_canvas_size, gamepad_axis_from_standard,
+    gamepad_button_from_standard, key_code_from_dom, pointer_button_from_dom, touch_phase_from_dom,
+};
 
 const OBJECT_LAYER: u32 = 1;
 const HELPER_LAYER: u32 = 2;
@@ -39,8 +42,7 @@ struct LabRuntime {
     scene: SceneGraph,
     camera: PerspectiveCamera,
     orbit: OrbitController,
-    pointer: PointerState,
-    keyboard: KeyboardState,
+    input: InputState,
     geometries: BTreeMap<MeshId, Geometry>,
     raycaster: Raycaster,
     objects: Vec<DemoObject>,
@@ -49,7 +51,6 @@ struct LabRuntime {
     pulse_track: ScalarTrack,
     pulse_forward: bool,
     last_timestamp_ms: Option<f64>,
-    scroll_delta: f32,
     fps: f32,
     paused: bool,
     helpers_visible: bool,
@@ -60,6 +61,7 @@ struct LabRuntime {
     selected_name: String,
     selected_distance: f32,
     active_material: String,
+    transform_mode: TransformMode,
 }
 
 struct WebGlMesh {
@@ -472,6 +474,13 @@ pub fn canvas_size(canvas: &HtmlCanvasElement) -> (u32, u32) {
     clamp_canvas_size(width, height)
 }
 
+/// Returns logical and physical canvas measurements using the browser DPR.
+pub fn canvas_metrics(canvas: &HtmlCanvasElement) -> CanvasMetrics {
+    let (logical_width, logical_height) = canvas_size(canvas);
+    let dpr = window().map_or(1.0, |window| window.device_pixel_ratio()) as f32;
+    CanvasMetrics::new(logical_width, logical_height, dpr)
+}
+
 /// Browser renderer wrapper with generated scene and DOM input state.
 #[wasm_bindgen]
 pub struct WebRenderer {
@@ -557,8 +566,10 @@ impl LabRuntime {
             scene,
             camera,
             orbit,
-            pointer: PointerState::new(),
-            keyboard: KeyboardState::new(),
+            input: InputState::new(ViewportMetrics::new(
+                Vec2::new(width as f32, height as f32),
+                1.0,
+            )),
             geometries,
             raycaster: Raycaster::with_layers(OBJECT_LAYER),
             objects: vec![
@@ -586,7 +597,6 @@ impl LabRuntime {
             pulse_track: ScalarTrack::tween(0.0, 1.0, 1.8),
             pulse_forward: true,
             last_timestamp_ms: None,
-            scroll_delta: 0.0,
             fps: 0.0,
             paused: false,
             helpers_visible: true,
@@ -597,6 +607,7 @@ impl LabRuntime {
             selected_name: String::from("None"),
             selected_distance: 0.0,
             active_material: String::from("None"),
+            transform_mode: TransformMode::Translate,
         }
     }
 
@@ -609,11 +620,9 @@ impl LabRuntime {
             self.fps = 1.0 / dt.max(1.0 / 240.0);
         }
 
-        self.orbit
-            .update_from_pointer(self.pointer, self.scroll_delta, dt);
+        self.orbit.update_from_input(&self.input, dt);
         self.orbit.apply_to_perspective(&mut self.camera);
-        self.scroll_delta = 0.0;
-        self.pointer.clear_delta();
+        self.input.end_frame();
 
         if !self.paused {
             self.animate_lab(dt);
@@ -628,15 +637,20 @@ impl WebRenderer {
     /// Creates a renderer for `canvas` and registers the generated Scenix Engine Lab scene.
     pub async fn new(canvas: HtmlCanvasElement) -> Result<WebRenderer, JsValue> {
         crate::set_panic_hook();
-        let (width, height) = canvas_size(&canvas);
-        canvas.set_width(width);
-        canvas.set_height(height);
+        let metrics = canvas_metrics(&canvas);
+        canvas.set_width(metrics.physical_width);
+        canvas.set_height(metrics.physical_height);
 
-        let config = RendererConfig::new(width, height).vsync(true);
+        let config =
+            RendererConfig::new(metrics.physical_width, metrics.physical_height).vsync(true);
         let mut renderer = Renderer::new(wgpu::SurfaceTarget::Canvas(canvas), config)
             .await
             .map_err(js_error)?;
-        let lab = generated_lab(&mut renderer, width, height)?;
+        let mut lab = generated_lab(&mut renderer, metrics.logical_width, metrics.logical_height)?;
+        lab.input.viewport = ViewportMetrics::new(
+            Vec2::new(metrics.logical_width as f32, metrics.logical_height as f32),
+            metrics.device_pixel_ratio,
+        );
 
         Ok(Self { renderer, lab })
     }
@@ -653,8 +667,16 @@ impl WebRenderer {
     /// Resizes the canvas and renderer. Zero dimensions are clamped to one pixel.
     pub fn resize(&mut self, width: u32, height: u32) -> Result<(), JsValue> {
         let (width, height) = clamp_canvas_size(width, height);
+        let dpr = window().map_or(1.0, |window| window.device_pixel_ratio()) as f32;
+        let metrics = CanvasMetrics::new(width, height, dpr);
         self.lab.resize(width, height);
-        self.renderer.resize(width, height).map_err(js_error)
+        self.lab.input.viewport = ViewportMetrics::new(
+            Vec2::new(width as f32, height as f32),
+            metrics.device_pixel_ratio,
+        );
+        self.renderer
+            .resize(metrics.physical_width, metrics.physical_height)
+            .map_err(js_error)
     }
 
     /// Updates pointer position.
@@ -669,8 +691,8 @@ impl WebRenderer {
 
     /// Updates pointer position, pressed state, and selected object.
     pub fn on_pointer_up(&mut self, button: i16, x: f32, y: f32) {
-        let width = self.renderer.config().width.max(1) as f32;
-        let height = self.renderer.config().height.max(1) as f32;
+        let width = self.lab.input.viewport.logical_size.x;
+        let height = self.lab.input.viewport.logical_size.y;
         self.lab.on_pointer_up(button, x, y, width, height);
     }
 
@@ -687,6 +709,36 @@ impl WebRenderer {
     /// Marks a DOM key as released when it maps to scenix input.
     pub fn on_key_up(&mut self, code: &str) {
         self.lab.on_key_up(code);
+    }
+
+    /// Forwards a compact touch event (`0=start, 1=move, 2=end, 3=cancel`).
+    pub fn on_touch(&mut self, id: u64, phase: u8, x: f32, y: f32, pressure: f32) {
+        self.lab.on_touch(id, phase, x, y, pressure);
+    }
+
+    /// Updates browser pointer-lock ownership.
+    pub fn set_pointer_locked(&mut self, locked: bool) {
+        self.lab.set_pointer_locked(locked);
+    }
+
+    /// Forwards relative pointer movement while locked.
+    pub fn on_pointer_motion(&mut self, delta_x: f32, delta_y: f32) {
+        self.lab.on_pointer_motion(delta_x, delta_y);
+    }
+
+    /// Updates one standard gamepad connection slot.
+    pub fn set_gamepad_connected(&mut self, index: u8, connected: bool) {
+        self.lab.set_gamepad_connected(index, connected);
+    }
+
+    /// Updates one standard gamepad axis (`0..=3`).
+    pub fn set_gamepad_axis(&mut self, index: u8, axis: u8, value: f32) {
+        self.lab.set_gamepad_axis(index, axis, value);
+    }
+
+    /// Updates one standard gamepad button (`0..=16`).
+    pub fn set_gamepad_button(&mut self, index: u8, button: u8, value: f32) {
+        self.lab.set_gamepad_button(index, button, value);
     }
 
     /// Enables or pauses animation.
@@ -762,6 +814,21 @@ impl WebRenderer {
     /// Returns the raw selected node ID, or zero when nothing is selected.
     pub fn selected_node_id(&self) -> u64 {
         self.lab.selected_node_id()
+    }
+
+    /// Sets the active editor transform mode.
+    pub fn set_transform_mode(&mut self, mode: &str) {
+        self.lab.set_transform_mode(mode);
+    }
+
+    /// Returns `translate`, `rotate`, or `scale`.
+    pub fn transform_mode(&self) -> String {
+        String::from(self.lab.transform_mode_label())
+    }
+
+    /// Serializes the current scene inspector snapshot.
+    pub fn inspector_snapshot_json(&self) -> String {
+        self.lab.inspector_snapshot_json()
     }
 
     /// Returns the current raycast hit distance.
@@ -904,6 +971,54 @@ impl BrowserRenderer {
         }
     }
 
+    /// Forwards a compact touch event to the active backend.
+    pub fn on_touch(&mut self, id: u64, phase: u8, x: f32, y: f32, pressure: f32) {
+        match &mut self.backend {
+            BrowserBackend::WebGpu(renderer) => renderer.on_touch(id, phase, x, y, pressure),
+            BrowserBackend::WebGl(renderer) => renderer.on_touch(id, phase, x, y, pressure),
+        }
+    }
+
+    /// Updates pointer-lock ownership.
+    pub fn set_pointer_locked(&mut self, locked: bool) {
+        match &mut self.backend {
+            BrowserBackend::WebGpu(renderer) => renderer.set_pointer_locked(locked),
+            BrowserBackend::WebGl(renderer) => renderer.set_pointer_locked(locked),
+        }
+    }
+
+    /// Forwards relative pointer movement.
+    pub fn on_pointer_motion(&mut self, delta_x: f32, delta_y: f32) {
+        match &mut self.backend {
+            BrowserBackend::WebGpu(renderer) => renderer.on_pointer_motion(delta_x, delta_y),
+            BrowserBackend::WebGl(renderer) => renderer.on_pointer_motion(delta_x, delta_y),
+        }
+    }
+
+    /// Updates one standard gamepad connection slot.
+    pub fn set_gamepad_connected(&mut self, index: u8, connected: bool) {
+        match &mut self.backend {
+            BrowserBackend::WebGpu(renderer) => renderer.set_gamepad_connected(index, connected),
+            BrowserBackend::WebGl(renderer) => renderer.set_gamepad_connected(index, connected),
+        }
+    }
+
+    /// Updates one standard gamepad axis.
+    pub fn set_gamepad_axis(&mut self, index: u8, axis: u8, value: f32) {
+        match &mut self.backend {
+            BrowserBackend::WebGpu(renderer) => renderer.set_gamepad_axis(index, axis, value),
+            BrowserBackend::WebGl(renderer) => renderer.set_gamepad_axis(index, axis, value),
+        }
+    }
+
+    /// Updates one standard gamepad button.
+    pub fn set_gamepad_button(&mut self, index: u8, button: u8, value: f32) {
+        match &mut self.backend {
+            BrowserBackend::WebGpu(renderer) => renderer.set_gamepad_button(index, button, value),
+            BrowserBackend::WebGl(renderer) => renderer.set_gamepad_button(index, button, value),
+        }
+    }
+
     /// Enables or pauses animation.
     pub fn set_paused(&mut self, paused: bool) {
         match &mut self.backend {
@@ -1038,6 +1153,30 @@ impl BrowserRenderer {
         }
     }
 
+    /// Sets the active editor transform mode.
+    pub fn set_transform_mode(&mut self, mode: &str) {
+        match &mut self.backend {
+            BrowserBackend::WebGpu(renderer) => renderer.set_transform_mode(mode),
+            BrowserBackend::WebGl(renderer) => renderer.set_transform_mode(mode),
+        }
+    }
+
+    /// Returns the active editor transform mode.
+    pub fn transform_mode(&self) -> String {
+        match &self.backend {
+            BrowserBackend::WebGpu(renderer) => renderer.transform_mode(),
+            BrowserBackend::WebGl(renderer) => renderer.transform_mode(),
+        }
+    }
+
+    /// Serializes the active backend scene inspector snapshot.
+    pub fn inspector_snapshot_json(&self) -> String {
+        match &self.backend {
+            BrowserBackend::WebGpu(renderer) => renderer.inspector_snapshot_json(),
+            BrowserBackend::WebGl(renderer) => renderer.inspector_snapshot_json(),
+        }
+    }
+
     /// Returns the current raycast hit distance.
     pub fn raycast_distance(&self) -> f32 {
         match &self.backend {
@@ -1162,6 +1301,36 @@ impl WebGlRenderer {
         self.lab.on_key_up(code);
     }
 
+    /// Forwards a compact touch event.
+    pub fn on_touch(&mut self, id: u64, phase: u8, x: f32, y: f32, pressure: f32) {
+        self.lab.on_touch(id, phase, x, y, pressure);
+    }
+
+    /// Updates pointer-lock ownership.
+    pub fn set_pointer_locked(&mut self, locked: bool) {
+        self.lab.set_pointer_locked(locked);
+    }
+
+    /// Forwards relative pointer movement.
+    pub fn on_pointer_motion(&mut self, delta_x: f32, delta_y: f32) {
+        self.lab.on_pointer_motion(delta_x, delta_y);
+    }
+
+    /// Updates one standard gamepad connection slot.
+    pub fn set_gamepad_connected(&mut self, index: u8, connected: bool) {
+        self.lab.set_gamepad_connected(index, connected);
+    }
+
+    /// Updates one standard gamepad axis.
+    pub fn set_gamepad_axis(&mut self, index: u8, axis: u8, value: f32) {
+        self.lab.set_gamepad_axis(index, axis, value);
+    }
+
+    /// Updates one standard gamepad button.
+    pub fn set_gamepad_button(&mut self, index: u8, button: u8, value: f32) {
+        self.lab.set_gamepad_button(index, button, value);
+    }
+
     /// Enables or pauses animation.
     pub fn set_paused(&mut self, paused: bool) {
         self.lab.set_paused(paused);
@@ -1235,6 +1404,21 @@ impl WebGlRenderer {
     /// Returns the selected node ID, or zero when nothing is selected.
     pub fn selected_node_id(&self) -> u64 {
         self.lab.selected_node_id()
+    }
+
+    /// Sets the active editor transform mode.
+    pub fn set_transform_mode(&mut self, mode: &str) {
+        self.lab.set_transform_mode(mode);
+    }
+
+    /// Returns the active editor transform mode.
+    pub fn transform_mode(&self) -> String {
+        String::from(self.lab.transform_mode_label())
+    }
+
+    /// Serializes the current scene inspector snapshot.
+    pub fn inspector_snapshot_json(&self) -> String {
+        self.lab.inspector_snapshot_json()
     }
 
     /// Returns the current raycast hit distance.
@@ -1802,41 +1986,99 @@ impl LabRuntime {
 
     fn resize(&mut self, width: u32, height: u32) {
         self.camera.aspect = width as f32 / height.max(1) as f32;
+        self.input.viewport = ViewportMetrics::new(Vec2::new(width as f32, height as f32), 1.0);
     }
 
     fn on_pointer_move(&mut self, x: f32, y: f32) {
-        self.pointer.set_position(Vec2::new(x, y));
+        self.input.on_pointer_move(Vec2::new(x, y));
     }
 
     fn on_pointer_down(&mut self, button: i16, x: f32, y: f32) {
-        self.pointer.set_position(Vec2::new(x, y));
+        self.input.on_pointer_move(Vec2::new(x, y));
         if let Some(button) = pointer_button_from_dom(button) {
-            self.pointer.on_button_down(button);
+            self.input.on_pointer_down(button);
         }
     }
 
     fn on_pointer_up(&mut self, button: i16, x: f32, y: f32, width: f32, height: f32) {
-        self.pointer.set_position(Vec2::new(x, y));
+        self.input.on_pointer_move(Vec2::new(x, y));
         if let Some(button) = pointer_button_from_dom(button) {
-            self.pointer.on_button_up(button);
+            self.input.on_pointer_up(button);
         }
         self.pick_at(x, y, width, height);
     }
 
     fn on_wheel(&mut self, delta_y: f32) {
-        self.scroll_delta += delta_y.signum() * 0.12;
+        self.input.on_scroll(delta_y.signum() * 0.12);
     }
 
     fn on_key_down(&mut self, code: &str) {
         if let Some(code) = key_code_from_dom(code) {
-            self.keyboard.on_key_down(code);
+            self.input.on_key_down(code);
         }
     }
 
     fn on_key_up(&mut self, code: &str) {
         if let Some(code) = key_code_from_dom(code) {
-            self.keyboard.on_key_up(code);
+            self.input.on_key_up(code);
         }
+    }
+
+    fn on_touch(&mut self, id: u64, phase: u8, x: f32, y: f32, pressure: f32) {
+        if let Some(phase) = touch_phase_from_dom(phase) {
+            let _ = self
+                .input
+                .on_touch(TouchId(id), phase, Vec2::new(x, y), pressure);
+        }
+    }
+
+    fn set_pointer_locked(&mut self, locked: bool) {
+        self.input.set_pointer_locked(locked);
+    }
+
+    fn on_pointer_motion(&mut self, delta_x: f32, delta_y: f32) {
+        self.input.on_pointer_motion(Vec2::new(delta_x, delta_y));
+    }
+
+    fn set_gamepad_connected(&mut self, index: u8, connected: bool) {
+        let _ = self
+            .input
+            .set_gamepad_connected(GamepadId(index), connected);
+    }
+
+    fn set_gamepad_axis(&mut self, index: u8, axis: u8, value: f32) {
+        if let Some(axis) = gamepad_axis_from_standard(axis) {
+            let _ = self.input.set_gamepad_axis(GamepadId(index), axis, value);
+        }
+    }
+
+    fn set_gamepad_button(&mut self, index: u8, button: u8, value: f32) {
+        if let Some(button) = gamepad_button_from_standard(button) {
+            let _ = self
+                .input
+                .set_gamepad_button(GamepadId(index), button, value);
+        }
+    }
+
+    fn set_transform_mode(&mut self, mode: &str) {
+        self.transform_mode = match mode {
+            "rotate" => TransformMode::Rotate,
+            "scale" => TransformMode::Scale,
+            _ => TransformMode::Translate,
+        };
+    }
+
+    fn transform_mode_label(&self) -> &'static str {
+        match self.transform_mode {
+            TransformMode::Translate => "translate",
+            TransformMode::Rotate => "rotate",
+            TransformMode::Scale => "scale",
+        }
+    }
+
+    fn inspector_snapshot_json(&self) -> String {
+        serde_json::to_string(&self.scene.inspector_snapshot())
+            .unwrap_or_else(|_| String::from("{\"roots\":[]}"))
     }
 
     fn set_paused(&mut self, paused: bool) {
@@ -1936,6 +2178,7 @@ impl LabRuntime {
             return;
         };
         self.selected_node = Some(hit.node_id);
+        let _ = self.scene.select(hit.node_id, SelectionMode::Replace);
         self.selected_distance = hit.distance;
         self.selected_name = self
             .scene
@@ -1952,6 +2195,7 @@ impl LabRuntime {
     }
 
     fn clear_selection(&mut self) {
+        self.scene.clear_selection();
         self.selected_node = None;
         self.selected_distance = 0.0;
         self.selected_name = String::from("None");

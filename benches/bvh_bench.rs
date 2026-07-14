@@ -2,10 +2,11 @@ use std::collections::BTreeMap;
 use std::hint::black_box;
 use std::time::Instant;
 
+use scenix_camera::PerspectiveCamera;
 use scenix_core::{MaterialId, MeshId};
-use scenix_math::{Ray3, Transform, Vec3};
+use scenix_math::{Ray3, Transform, Vec2, Vec3};
 use scenix_mesh::{Geometry, box_geometry};
-use scenix_raycaster::Raycaster;
+use scenix_raycaster::{Raycaster, SelectionFrustum, SelectionRect};
 use scenix_scene::{SceneGraph, SceneNode};
 
 fn bench(name: &str, iterations: usize, mut f: impl FnMut()) {
@@ -56,5 +57,20 @@ fn main() {
         for ray in &rays {
             black_box(raycaster.cast_ray(black_box(*ray), black_box(&scene), black_box(&meshes)));
         }
+    });
+
+    let camera = PerspectiveCamera::default().position(Vec3::new(31.0, 0.0, 20.0));
+    let frustum = SelectionFrustum::from_perspective(
+        &camera,
+        SelectionRect::from_ndc(Vec2::new(-0.25, -0.25), Vec2::new(0.25, 0.25)),
+    );
+    let mut selected = Vec::with_capacity(1_024);
+    bench("bvh_marquee_reused_output", 10_000, || {
+        raycaster.select_in_frustum_into(
+            black_box(frustum),
+            black_box(&scene),
+            black_box(&meshes),
+            black_box(&mut selected),
+        );
     });
 }

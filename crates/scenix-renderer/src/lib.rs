@@ -5,10 +5,13 @@
 //! allocation, render-pass scheduling, and pipeline caching.
 
 pub mod config;
+pub mod editor_picking;
 pub mod environment;
 pub mod frame;
 pub mod gbuffer;
 pub mod gpu_scene;
+#[cfg(feature = "inspector")]
+mod inspector;
 pub mod material;
 pub mod pass;
 pub mod pipeline_cache;
@@ -17,6 +20,7 @@ mod shadow;
 pub mod skinning;
 
 pub use config::{RenderTargetMode, RendererConfig};
+pub use editor_picking::{EditorBufferStats, EditorBuffers, EditorPickRequest, EditorPickResult};
 pub use environment::EnvironmentMap;
 pub use frame::{FrameContext, FrameStats, PipelineCacheStats, RendererDiagnostics, ResourceStats};
 pub use gbuffer::{GBuffer, RenderTargetDescriptor, RenderTargetKind};

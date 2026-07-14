@@ -77,10 +77,21 @@ impl Bvh {
     /// Returns all nodes potentially hit by `ray`.
     pub fn traverse(&self, ray: Ray3) -> Vec<NodeId> {
         let mut node_ids = Vec::new();
-        for entry_index in self.traverse_entry_indices(ray) {
-            node_ids.push(self.entries[entry_index].node_id);
-        }
+        self.traverse_into(ray, &mut node_ids);
         node_ids
+    }
+
+    /// Writes all potentially hit node IDs into a reusable vector.
+    pub fn traverse_into(&self, ray: Ray3, node_ids: &mut Vec<NodeId>) {
+        node_ids.clear();
+        self.visit_ray(ray, |node_id| node_ids.push(node_id));
+    }
+
+    /// Visits potentially hit node IDs without allocating.
+    pub fn visit_ray(&self, ray: Ray3, mut visitor: impl FnMut(NodeId)) {
+        if !self.nodes.is_empty() {
+            self.visit_ray_node(0, ray, &mut visitor);
+        }
     }
 
     /// Returns whether the BVH has no entries.
@@ -101,47 +112,58 @@ impl Bvh {
         self.nodes.len()
     }
 
-    pub(crate) fn traverse_entry_indices(&self, ray: Ray3) -> Vec<usize> {
-        let mut hits = Vec::new();
-        if self.nodes.is_empty() {
-            return hits;
+    /// Visits entries whose bounds match a hierarchical broad-phase predicate.
+    pub fn visit_bounds(
+        &self,
+        intersects: &impl Fn(Aabb) -> bool,
+        mut visitor: impl FnMut(NodeId),
+    ) {
+        if !self.nodes.is_empty() {
+            self.visit_bounds_node(0, intersects, &mut visitor);
         }
+    }
 
-        let mut stack = Vec::from([0usize]);
-        while let Some(index) = stack.pop() {
-            let node = self.nodes[index];
-            if ray.intersect_aabb(node.aabb).is_none() {
-                continue;
-            }
-            if node.is_leaf() {
-                let start = node.start as usize;
-                let end = start + node.count as usize;
-                for entry_index in start..end {
-                    if ray.intersect_aabb(self.entries[entry_index].aabb).is_some() {
-                        hits.push(entry_index);
-                    }
-                }
-            } else {
-                let left = node.left as usize;
-                let right = node.right as usize;
-                let left_t = ray.intersect_aabb(self.nodes[left].aabb);
-                let right_t = ray.intersect_aabb(self.nodes[right].aabb);
-                match (left_t, right_t) {
-                    (Some(a), Some(b)) if a <= b => {
-                        stack.push(right);
-                        stack.push(left);
-                    }
-                    (Some(_), Some(_)) => {
-                        stack.push(left);
-                        stack.push(right);
-                    }
-                    (Some(_), None) => stack.push(left),
-                    (None, Some(_)) => stack.push(right),
-                    (None, None) => {}
-                }
-            }
+    fn visit_ray_node(&self, index: usize, ray: Ray3, visitor: &mut impl FnMut(NodeId)) {
+        let node = self.nodes[index];
+        if ray.intersect_aabb(node.aabb).is_none() {
+            return;
         }
-        hits
+        if node.is_leaf() {
+            let start = node.start as usize;
+            let end = start + node.count as usize;
+            for entry in &self.entries[start..end] {
+                if ray.intersect_aabb(entry.aabb).is_some() {
+                    visitor(entry.node_id);
+                }
+            }
+        } else {
+            self.visit_ray_node(node.left as usize, ray, visitor);
+            self.visit_ray_node(node.right as usize, ray, visitor);
+        }
+    }
+
+    fn visit_bounds_node(
+        &self,
+        index: usize,
+        intersects: &impl Fn(Aabb) -> bool,
+        visitor: &mut impl FnMut(NodeId),
+    ) {
+        let node = self.nodes[index];
+        if !intersects(node.aabb) {
+            return;
+        }
+        if node.is_leaf() {
+            let start = node.start as usize;
+            let end = start + node.count as usize;
+            for entry in &self.entries[start..end] {
+                if intersects(entry.aabb) {
+                    visitor(entry.node_id);
+                }
+            }
+        } else {
+            self.visit_bounds_node(node.left as usize, intersects, visitor);
+            self.visit_bounds_node(node.right as usize, intersects, visitor);
+        }
     }
 
     fn build_node(&mut self, start: usize, end: usize) -> usize {

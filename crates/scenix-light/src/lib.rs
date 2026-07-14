@@ -10,6 +10,8 @@ pub mod ambient;
 pub mod area;
 pub mod directional;
 pub mod hemisphere;
+#[cfg(feature = "inspector")]
+mod inspector;
 pub mod point;
 pub mod probe;
 pub mod shadow;

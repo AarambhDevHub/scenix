@@ -17,7 +17,10 @@ scenix = "1"
 
 ## Key Public API
 
-SceneGraph, SceneNode, PerspectiveCamera, Geometry, PbrMaterial, Raycaster, Renderer, GltfLoader, PostStack, ScenixAnimationDriver, BrowserRenderer, WebRenderer
+`InputState`, `SceneGraph`, `SceneNode`, `PerspectiveCamera`, camera controllers,
+`Geometry`, `PbrMaterial`, `Raycaster`, drag/transform controls, gizmos,
+`Inspectable`, `Renderer`, `GltfLoader`, `PostStack`, `AnimationMixer`,
+`BrowserRenderer`, and `WebRenderer`.
 
 ## Common Use
 
@@ -41,4 +44,5 @@ Use this crate directly when you need its boundary in your own public API. Use t
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
+- [Interaction and editor primitives](../concepts/interaction-and-editor.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)

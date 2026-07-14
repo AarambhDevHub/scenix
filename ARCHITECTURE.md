@@ -2364,6 +2364,54 @@ impl MyApp {
 
 ---
 
+## 16.1 v1.5 Interaction And Editor Data Flow
+
+v1.5 keeps platform events, CPU interaction, optional UI, and GPU picking in
+separate layers:
+
+```text
+DOM / winit / mobile events
+        │
+        ▼
+scenix-input::InputState
+        ├── camera controls ───────────────► camera pose
+        ├── touch / gamepad / pointer lock
+        └── logical ⇄ physical ⇄ NDC conversion
+                         │
+                         ▼
+SceneGraph editor sidecars ◄── Raycaster / BVH / drag / transform controls
+        │                                  │
+        ├── selection + metadata           └── reusable gizmo hit shapes
+        └── InspectorSnapshot
+                 ├── optional egui adapter
+                 └── WASM inspector JSON
+
+Renderer (optional): on-demand ID + normal + depth pass
+        └── NodeId, normal, depth, reconstructed world position
+```
+
+Editor state is deliberately stored outside public `SceneNode` fields so the
+stable v1 struct-literal API is not broken. Sparse metadata defaults to
+selectable/draggable/transformable; selection is graph-local and sorted by
+`NodeId`. Input and camera updates use fixed-capacity state and do not allocate
+in their event/update hot paths. BVH, hit, gizmo, and inspector callers can
+retain output capacity across frames.
+
+The facade exposes `interaction`, `editor`, and `egui` convenience features.
+`editor` enables the renderer-neutral inspector model; `egui` adds only the
+view adapter. Applications continue to own native windowing, event routing,
+and egui paint integration. WebGPU/native rendering can request the dedicated
+GPU picking pass, while the WebGL fallback uses the same CPU BVH selection
+model.
+
+The v1.5 architecture examples are:
+
+- `controls_showcase` — mouse, gamepad, arcball, and first-person input;
+- `selection_and_drag` — marquee selection and reversible plane dragging;
+- `transform_gizmo` — reusable line geometry and analytic handle picking;
+- `editor_inspector` — renderer-agnostic snapshot rendered through egui;
+- `renderer_picking` — on-demand GPU ID/depth/normal picking.
+
 ## 17. Future Three.js Parity Plan
 
 This section records the long-term feature direction. It does not change the stable v1 contract: future work should remain modular, additive, feature-gated, and usable across desktop, mobile, and web wherever the underlying platform allows it.
@@ -2377,7 +2425,7 @@ The roadmap assigns future work to concrete planning versions so contributors kn
 | `v1.2.0` | Renderer and material parity | None | `scenix-renderer`, `scenix-material`, `scenix-texture`, `scenix-light`, `scenix-post`, `scenix-wasm`, `scenix` |
 | `v1.3.0` | Asset pipeline | None | `scenix-loader`, `scenix-mesh`, `scenix-material`, `scenix-texture`, `scenix-scene`, `scenix-camera`, `scenix-light`, `scenix-animato`, `scenix-renderer`, `scenix` |
 | `v1.4.0` | Animation runtime | None | `scenix-animato`, `scenix-loader`, `scenix-mesh`, `scenix-scene`, `scenix-material`, `scenix-camera`, `scenix-light`, `scenix-renderer`, `scenix-helpers`, `scenix` |
-| `v1.5.0` | Controls, interaction, and editor primitives | None | `scenix-camera`, `scenix-input`, `scenix-raycaster`, `scenix-helpers`, `scenix-scene`, `scenix-renderer`, `scenix-wasm`, `scenix` |
+| `v1.5.0` | Controls, interaction, and editor primitives | None | `scenix-core`, `scenix-input`, `scenix-camera`, `scenix-scene`, `scenix-raycaster`, `scenix-helpers`, `scenix-material`, `scenix-light`, `scenix-texture`, `scenix-animato`, `scenix-renderer`, `scenix-wasm`, `scenix` |
 | `v1.6.0` | Shader nodes and node materials | `scenix-nodes` | `scenix-material`, `scenix-renderer`, `scenix-post`, `scenix-wasm`, `scenix` |
 | `v1.7.0` | Particles | `scenix-particles` | `scenix-scene`, `scenix-mesh`, `scenix-material`, `scenix-texture`, `scenix-renderer`, `scenix-wasm`, `scenix` |
 | `v1.8.0` | Terrain, sky, and water | `scenix-terrain`, `scenix-sky`, `scenix-water` | `scenix-renderer`, `scenix-material`, `scenix-texture`, `scenix-light`, `scenix-scene`, `scenix` |
@@ -2392,7 +2440,7 @@ Future crates become active workspace members only when their crate directory, d
 |----------|-------|--------------------|
 | P0 | Renderer and material parity | v1.2.0 adds real texture binding, light upload, environment descriptors, render targets, diagnostics, and WebGL capability reporting. |
 | P1 | Asset pipeline depth | v1.3.0 adds asset packages, manager/cache, glTF metadata sidecars, exporters, diagnostics, and explicit renderer upload helpers. |
-| P2 | Controls, interaction, and editor primitives | Product viewers, tools, games, and editors need transform gizmos, drag controls, pointer lock, selection volumes, and inspectors. |
+| P2 | Controls, interaction, and editor primitives | Shipped in v1.5.0: transform gizmos, drag/transform controls, pointer lock, selection volumes, inspectors, and on-demand GPU picking. |
 | P3 | Scene effects and simulation bridges | Sky, water, terrain, particles, audio, physics, and XR should arrive as optional crates or optional renderer modules. |
 | P4 | Resource lifecycle and quality gates | Production users need predictable upload, update, cleanup, diagnostics, visual tests, and platform compatibility notes. |
 
@@ -2467,11 +2515,14 @@ Future capabilities:
 - skeletal animation import, skinning data model, GPU skinning path, retargeting helpers, inverse kinematics helpers, and skeleton utilities;
 - animation path helpers and visual debugging.
 
-### Interaction, Controls, And Editor Primitives
+### Interaction, Controls, And Editor Primitives (Shipped In v1.5.0)
 
-Scenix should support viewers, editors, CAD-like tools, games, and data visualization without making those applications implement every interaction primitive from scratch.
+Scenix supports viewers, editors, CAD-like tools, games, and data visualization
+without making those applications implement every interaction primitive from
+scratch. The full data flow and ownership boundary are specified in Section
+16.1.
 
-Future controls and helpers:
+Shipped controls and helpers:
 
 - Arcball, Trackball, Map, FirstPerson, PointerLock, Drag, and Transform controls;
 - translation, rotation, scale, bounds, camera, light, and skeleton gizmos;
@@ -2551,7 +2602,7 @@ Every new feature should declare where it works.
 
 ---
 
-*Document version: 1.3.0 asset pipeline — updated June 16, 2026*
+*Document version: 1.5.0 controls, interaction, and editor primitives — updated July 14, 2026*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*
-*Total crates: 17 shipped through v1.3.0; future optional crates are listed in Section 17*
+*Total crates: 17 shipped through v1.5.0; future optional crates are listed in Section 17*

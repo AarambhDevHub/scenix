@@ -2,8 +2,11 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use scenix_core::Color;
-use scenix_helpers::{AxesHelper, BoundingBoxHelper, GridHelper, LineGeometry};
-use scenix_math::{Aabb, Vec3};
+use scenix_helpers::{
+    AxesHelper, BoundingBoxHelper, GizmoGeometry, GridHelper, LineGeometry, TransformGizmoHelper,
+};
+use scenix_math::{Aabb, Ray3, Vec3};
+use scenix_scene::TransformMode;
 
 fn bench(name: &str, iterations: usize, mut f: impl FnMut()) {
     let start = Instant::now();
@@ -27,5 +30,13 @@ fn main() {
             &BoundingBoxHelper::new(Aabb::new(-Vec3::ONE, Vec3::ONE), Color::WHITE).to_geometry(),
         );
         black_box(lines);
+    });
+
+    let helper = TransformGizmoHelper::new(Vec3::ZERO, TransformMode::Translate);
+    let mut geometry = GizmoGeometry::default();
+    let ray = Ray3::new(Vec3::new(1.0, 0.04, 4.0), Vec3::NEG_Z);
+    bench("transform_gizmo_reused_geometry_and_hit", 100_000, || {
+        helper.write_geometry(black_box(&mut geometry));
+        black_box(geometry.hit_test(black_box(ray)));
     });
 }

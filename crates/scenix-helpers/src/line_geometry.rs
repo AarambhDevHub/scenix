@@ -48,6 +48,21 @@ impl LineGeometry {
         self.positions.is_empty()
     }
 
+    /// Clears all geometry while retaining allocated capacity.
+    #[inline]
+    pub fn clear(&mut self) {
+        self.positions.clear();
+        self.colors.clear();
+        self.indices.clear();
+    }
+
+    /// Reserves storage for additional vertices and optional indices.
+    pub fn reserve(&mut self, vertices: usize, indices: usize) {
+        self.positions.reserve(vertices);
+        self.colors.reserve(vertices);
+        self.indices.reserve(indices);
+    }
+
     /// Adds a segment with one color on both endpoints.
     #[inline]
     pub fn push_segment(&mut self, start: Vec3, end: Vec3, color: Color) {

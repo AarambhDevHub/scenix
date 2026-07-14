@@ -561,6 +561,61 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
+name = "ecolor"
+version = "0.33.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71ddb8ac7643d1dba1bb02110e804406dd459a838efcb14011ced10556711a8e"
+dependencies = [
+ "emath",
+]
+
+[[package]]
+name = "egui"
+version = "0.33.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a9b567d356674e9a5121ed3fedfb0a7c31e059fe71f6972b691bcd0bfc284e3"
+dependencies = [
+ "ahash",
+ "bitflags 2.11.1",
+ "emath",
+ "epaint",
+ "log",
+ "nohash-hasher",
+ "profiling",
+ "smallvec",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "emath"
+version = "0.33.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "491bdf728bf25ddd9ad60d4cf1c48588fa82c013a2440b91aa7fc43e34a07c32"
+
+[[package]]
+name = "epaint"
+version = "0.33.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "009d0dd3c2163823a0abdb899451ecbc78798dec545ee91b43aff1fa790bab62"
+dependencies = [
+ "ab_glyph",
+ "ahash",
+ "ecolor",
+ "emath",
+ "epaint_default_fonts",
+ "log",
+ "nohash-hasher",
+ "parking_lot",
+ "profiling",
+]
+
+[[package]]
+name = "epaint_default_fonts"
+version = "0.33.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c4fbe202b6578d3d56428fa185cdf114a05e49da05f477b3c7f0fbb221f1862"
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1475,6 +1530,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "nohash-hasher"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
+
+[[package]]
 name = "num-traits"
 version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2327,8 +2388,9 @@ dependencies = [
 
 [[package]]
 name = "scenix"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
+ "egui",
  "pollster",
  "scenix-animato",
  "scenix-camera",
@@ -2350,7 +2412,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-animato"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "animato",
  "scenix-camera",
@@ -2365,7 +2427,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-camera"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "scenix-core",
  "scenix-input",
@@ -2376,7 +2438,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-core"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "bytemuck",
  "scenix-math",
@@ -2386,19 +2448,21 @@ dependencies = [
 
 [[package]]
 name = "scenix-helpers"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
+ "egui",
  "scenix-camera",
  "scenix-core",
  "scenix-light",
  "scenix-math",
+ "scenix-scene",
  "serde",
  "serde_json",
 ]
 
 [[package]]
 name = "scenix-input"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "scenix-math",
  "serde",
@@ -2406,7 +2470,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-light"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2417,7 +2481,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-loader"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "gltf",
  "image",
@@ -2439,7 +2503,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-material"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2449,7 +2513,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-math"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "approx",
  "libm",
@@ -2458,7 +2522,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-mesh"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2468,7 +2532,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-post"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "bytemuck",
  "pollster",
@@ -2481,7 +2545,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-raycaster"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "scenix-camera",
  "scenix-core",
@@ -2494,7 +2558,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-renderer"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "bytemuck",
  "pollster",
@@ -2516,7 +2580,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-scene"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -2527,7 +2591,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-texture"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "scenix-core",
  "serde",
@@ -2536,7 +2600,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-wasm"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
@@ -2552,6 +2616,7 @@ dependencies = [
  "scenix-raycaster",
  "scenix-renderer",
  "scenix-scene",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",

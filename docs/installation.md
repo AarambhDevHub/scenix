@@ -1,6 +1,8 @@
 # Installation
 
-This page explains the supported ways to depend on Scenix v1.3.0. Use the facade crate for application code and focused crates when you are building a library or a very small tool.
+This page explains the supported ways to depend on Scenix v1.5.0. Use the facade
+crate for application code and focused crates when you are building a library
+or a very small tool.
 
 ## Facade Install
 
@@ -20,6 +22,8 @@ scenix = { version = "1", features = ["renderer"] }
 scenix = { version = "1", features = ["renderer", "post"] }
 scenix = { version = "1", features = ["animato"] }
 scenix = { version = "1", features = ["wasm"] }
+scenix = { version = "1", features = ["interaction"] }
+scenix = { version = "1", features = ["editor", "egui"] }
 ```
 
 ## Selected Crates
@@ -54,9 +58,12 @@ Loader, renderer, post, and WASM paths are `std`-oriented.
 | `std` | yes | Standard-library support for CPU crates. |
 | `scene`, `camera`, `mesh`, `material`, `light`, `texture` | yes | CPU scene authoring. |
 | `raycaster`, `helpers` | yes | Picking and debug helper geometry. |
+| `interaction` | no | Controls, selection, dragging, transforms, and gizmos. |
+| `editor` | no | Typed inspector snapshots for editor-facing systems. |
+| `egui` | no | Read-only egui adapter for inspector snapshots. |
 | `loader` | no | Asset packages, asset manager, glTF extension metadata, importers, and exporters. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
-| `animato` | no | Animato bridge for scene, camera, material, and skeleton animation; Animato 1.6.0 is the release gate when published. |
+| `animato` | no | Animato 1.7 bridge and clip-based animation runtime. |
 | `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
 | `serde` | no | Serialization support where each crate supports it. |
