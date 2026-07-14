@@ -36,6 +36,7 @@ serde = [
     "scenix-texture/serde",
     "wgpu/serde",
 ]
+inspector = ["scenix-core/inspector"]
 
 [dependencies]
 bytemuck = { workspace = true }

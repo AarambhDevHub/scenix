@@ -2,7 +2,8 @@
 
 ## Role
 
-Platform-neutral keyboard and pointer state.
+Platform-neutral keyboard, pointer, touch, gesture, gamepad, pointer-lock, and
+viewport state.
 
 ## Dependency Weight
 
@@ -17,14 +18,21 @@ scenix-input = "1"
 
 ## Key Public API
 
-KeyboardState, PointerState, KeyCode, PointerButton
+`InputState`, `KeyboardState`, `PointerState`, `TouchState`, `GestureState`,
+`GamepadStates`, `PointerLockState`, `ViewportMetrics`, `KeyCode`, and
+`PointerButton`.
 
 ## Common Use
 
 ```rust
-use scenix_input::PointerState;
-let pointer = PointerState::default();
-# let _ = pointer;
+use scenix_input::{InputState, PointerButton};
+use scenix_math::Vec2;
+
+let mut input = InputState::default();
+input.on_pointer_down(PointerButton::Left);
+input.on_pointer_move(Vec2::new(20.0, 8.0));
+assert!(input.was_pointer_pressed(PointerButton::Left));
+input.end_frame();
 ```
 
 ## Notes
@@ -34,4 +42,5 @@ Use this crate directly when you need its boundary in your own public API. Use t
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
+- [Interaction and editor primitives](../concepts/interaction-and-editor.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)

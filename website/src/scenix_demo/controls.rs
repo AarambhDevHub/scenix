@@ -9,6 +9,7 @@ pub fn DemoControls(
     wireframe: RwSignal<bool>,
     bloom: RwSignal<bool>,
     ssao: RwSignal<bool>,
+    transform_mode: RwSignal<&'static str>,
 ) -> impl IntoView {
     view! {
         <div class="controls" aria-label="Demo controls">
@@ -37,6 +38,19 @@ pub fn DemoControls(
                 ssao.set(next);
                 bridge::set_ssao_enabled(next);
             }>{move || if ssao.get() { "SSAO On" } else { "SSAO Off" }}</button>
+            <button type="button" class:active=move || transform_mode.get() == "translate" aria-pressed=move || (transform_mode.get() == "translate").to_string() on:click=move |_| {
+                transform_mode.set("translate");
+                bridge::set_transform_mode("translate");
+            }>"Translate"</button>
+            <button type="button" class:active=move || transform_mode.get() == "rotate" aria-pressed=move || (transform_mode.get() == "rotate").to_string() on:click=move |_| {
+                transform_mode.set("rotate");
+                bridge::set_transform_mode("rotate");
+            }>"Rotate"</button>
+            <button type="button" class:active=move || transform_mode.get() == "scale" aria-pressed=move || (transform_mode.get() == "scale").to_string() on:click=move |_| {
+                transform_mode.set("scale");
+                bridge::set_transform_mode("scale");
+            }>"Scale"</button>
+            <button type="button" on:click=move |_| bridge::toggle_pointer_lock()>"Pointer Lock"</button>
             <button type="button" on:click=move |_| bridge::reset_camera()>"Reset Camera"</button>
         </div>
     }

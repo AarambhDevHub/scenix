@@ -23,6 +23,23 @@ post = ["dep:scenix-post", "scenix-renderer?/post"]
 renderer = ["dep:scenix-renderer"]
 raycaster = ["dep:scenix-raycaster"]
 helpers = ["dep:scenix-helpers"]
+interaction = ["scene", "camera", "raycaster", "helpers"]
+editor = [
+    "std",
+    "interaction",
+    "material",
+    "light",
+    "texture",
+    "scenix-core/inspector",
+    "scenix-scene/inspector",
+    "scenix-camera/inspector",
+    "scenix-material/inspector",
+    "scenix-light/inspector",
+    "scenix-texture/inspector",
+    "scenix-animato?/inspector",
+    "scenix-renderer?/inspector",
+]
+egui = ["editor", "scenix-helpers/egui"]
 animato = ["dep:scenix-animato"]
 wasm = ["dep:scenix-wasm"]
 libm = ["scenix-math/libm"]
@@ -49,6 +66,7 @@ scenix-animato = { workspace = true, optional = true }
 scenix-wasm = { workspace = true, optional = true }
 
 [dev-dependencies]
+egui = { workspace = true }
 pollster = { workspace = true }
 
 [[test]]
@@ -226,3 +244,33 @@ path = "../../tests/scenix_v09.rs"
 [[test]]
 name = "scenix_v10"
 path = "../../tests/scenix_v10.rs"
+
+[[test]]
+name = "scenix_v15"
+path = "../../tests/scenix_v15.rs"
+required-features = ["interaction", "mesh"]
+
+[[example]]
+name = "controls_showcase"
+path = "../../examples/controls_showcase.rs"
+required-features = ["camera"]
+
+[[example]]
+name = "selection_and_drag"
+path = "../../examples/selection_and_drag.rs"
+required-features = ["interaction", "mesh"]
+
+[[example]]
+name = "transform_gizmo"
+path = "../../examples/transform_gizmo.rs"
+required-features = ["interaction"]
+
+[[example]]
+name = "editor_inspector"
+path = "../../examples/editor_inspector.rs"
+required-features = ["editor", "egui"]
+
+[[example]]
+name = "renderer_picking"
+path = "../../examples/renderer_picking.rs"
+required-features = ["renderer", "scene", "camera", "mesh", "material"]

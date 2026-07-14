@@ -88,6 +88,32 @@ jobs:
       - name: Check animation examples
         run: cargo check -p scenix --examples --features animato
 
+      - name: Test v1.5 interaction surface
+        run: cargo test -p scenix --test scenix_v15 --all-features
+
+      - name: Check v1.5 facade feature lanes
+        run: |
+          cargo check -p scenix --no-default-features --features interaction
+          cargo check -p scenix --no-default-features --features editor
+          cargo check -p scenix --no-default-features --features egui
+
+  msrv:
+    name: Minimum supported Rust 1.89
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust 1.89
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.89"
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check workspace at MSRV
+        run: cargo check --workspace --all-features
+
   wasm:
     name: WASM compile
     runs-on: ubuntu-latest

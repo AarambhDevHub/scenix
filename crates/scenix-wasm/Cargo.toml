@@ -27,6 +27,10 @@ std = [
     "scenix-animato/std",
     "scenix-renderer/std",
     "scenix-scene/std",
+    "scenix-core/inspector",
+    "scenix-core/serde",
+    "scenix-scene/inspector",
+    "dep:serde_json",
 ]
 serde = [
     "scenix-camera/serde",
@@ -58,15 +62,22 @@ scenix-raycaster = { workspace = true }
 scenix-animato = { workspace = true }
 scenix-renderer = { workspace = true }
 scenix-scene = { workspace = true }
+serde_json = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
 web-sys = { workspace = true, features = [
     "Document",
+    "DomRect",
     "Element",
     "Event",
     "HtmlCanvasElement",
     "KeyboardEvent",
+    "Gamepad",
+    "GamepadButton",
+    "Navigator",
     "PointerEvent",
+    "Touch",
+    "TouchEvent",
     "WebGlBuffer",
     "WebGl2RenderingContext",
     "WebGlFramebuffer",

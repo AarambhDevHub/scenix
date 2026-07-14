@@ -9,6 +9,7 @@ pub fn DemoPanel() -> impl IntoView {
     let wireframe = RwSignal::new(false);
     let bloom = RwSignal::new(false);
     let ssao = RwSignal::new(false);
+    let transform_mode = RwSignal::new("translate");
     let status = RwSignal::new(String::from("Starting browser demo"));
     let fps = RwSignal::new(String::from("0"));
     let selected = RwSignal::new(String::from("None"));
@@ -51,7 +52,7 @@ pub fn DemoPanel() -> impl IntoView {
                     <p class="demo-side-copy">
                         "Drive the scene controls, pick objects in the canvas, and switch debug views without leaving the page."
                     </p>
-                    <DemoControls playing helpers wireframe bloom ssao />
+                    <DemoControls playing helpers wireframe bloom ssao transform_mode />
                     <dl class="stats">
                         <div><dt>"FPS"</dt><dd>{move || fps.get()}</dd></div>
                         <div><dt>"Selected"</dt><dd>{move || selected.get()}</dd></div>

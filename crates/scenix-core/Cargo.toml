@@ -14,6 +14,7 @@ default = ["std"]
 std = ["scenix-math/std"]
 serde = ["dep:serde", "scenix-math/serde"]
 gpu = ["dep:bytemuck"]
+inspector = []
 
 [dependencies]
 bytemuck = { workspace = true, optional = true }

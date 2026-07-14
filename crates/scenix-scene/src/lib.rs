@@ -8,13 +8,20 @@
 
 extern crate alloc;
 
+pub mod editor;
 pub mod fog;
 pub mod graph;
+#[cfg(feature = "inspector")]
+mod inspector;
 pub mod iter;
 pub mod lod;
 pub mod node;
 pub mod sprite;
 
+pub use editor::{
+    LayerMask, LayerPolicy, NodeEditorMetadata, SelectionChange, SelectionMode, SelectionState,
+    SnapSettings, TransformConstraint, TransformMode, TransformSpace,
+};
 pub use fog::Fog;
 pub use graph::SceneGraph;
 pub use iter::{BreadthFirstIter, DepthFirstIter};

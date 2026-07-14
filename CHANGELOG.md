@@ -7,6 +7,51 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-14
+
+### Added
+
+- Added allocation-free aggregate input for touch, gestures, four standard
+  gamepads, pointer lock, logical/physical viewport metrics, and transient
+  keyboard/pointer transitions.
+- Added Arcball, Trackball, Map, FirstPerson, and PointerLock controllers plus
+  aggregate-input updates for existing Orbit and Fly controls.
+- Added scene editor metadata, layer policies, deterministic selection state,
+  transform modes/spaces/constraints, and translation/rotation/scale snapping.
+- Added BVH reuse APIs, marquee selection for perspective and orthographic
+  cameras, drag planes, reversible drag controls, and reversible transform
+  controls.
+- Added reusable transform/bounds/selection/snap-grid gizmos with analytic
+  handle hit testing and retained line buffers.
+- Added typed inspector snapshots for scenes, cameras, materials, lights,
+  textures, animation mixers, renderer diagnostics, and GPU resources, plus an
+  optional egui adapter pinned to `0.33.3`.
+- Added on-demand renderer ID/normal/depth picking with dense `NodeId` mapping,
+  scissored pixel requests, reusable GPU/readback resources, and world-position
+  reconstruction.
+- Added DPR-aware browser metrics and primitive forwarding for touch, pointer
+  lock, gamepad, transform modes, selection, and inspector JSON.
+- Added five v1.5 examples, focused integration tests, GPU picking coverage,
+  interaction hot-path benchmarks, release documentation, and version-derived
+  publishing automation.
+
+### Changed
+
+- Bumped all 17 workspace crates and internal dependency requirements to
+  `1.5.0`; Rust 1.89, edition 2024, and existing default features are retained.
+- `LineGeometry` and BVH/raycast paths now expose reusable-output methods to
+  avoid repeated hot-loop allocations.
+- Website and standalone WASM viewer manifests now match the workspace release.
+
+### Compatibility and Migration Notes
+
+- Existing v1.4 controller, scene, raycaster, and helper APIs remain available;
+  v1.5 additions are additive.
+- `editor` and `egui` are opt-in facade features. GPU picking requires the
+  renderer/WebGPU path; WebGL continues to use CPU BVH picking.
+- The egui integration renders the shared inspector model but deliberately does
+  not provide the full editor shell planned for v1.10.
+
 ## [1.4.0] - 2026-07-09
 
 ### Added
@@ -417,7 +462,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/AarambhDevHub/scenix/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/AarambhDevHub/scenix/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/AarambhDevHub/scenix/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/AarambhDevHub/scenix/compare/v1.1.0...v1.2.0

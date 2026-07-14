@@ -4,7 +4,8 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{
-    CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent, PointerEvent, WheelEvent, window,
+    CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent, PointerEvent, TouchEvent,
+    WheelEvent, window,
 };
 
 type RafClosure = Closure<dyn FnMut(f64)>;
@@ -34,6 +35,7 @@ struct FallbackState {
     wireframe: bool,
     bloom: bool,
     ssao: bool,
+    transform_mode: &'static str,
     angle: f64,
     last_timestamp: Option<f64>,
     fps: f32,
@@ -55,6 +57,7 @@ impl FallbackState {
             wireframe: false,
             bloom: false,
             ssao: false,
+            transform_mode: "translate",
             angle: 0.0,
             last_timestamp: None,
             fps: 0.0,
@@ -63,9 +66,9 @@ impl FallbackState {
     }
 
     fn tick(&mut self, timestamp: f64) {
-        let dt = self
-            .last_timestamp
-            .map_or(1.0 / 60.0, |last| ((timestamp - last) * 0.001).clamp(0.0, 0.08));
+        let dt = self.last_timestamp.map_or(1.0 / 60.0, |last| {
+            ((timestamp - last) * 0.001).clamp(0.0, 0.08)
+        });
         self.last_timestamp = Some(timestamp);
         self.fps = if dt > 0.0 { (1.0 / dt) as f32 } else { 0.0 };
         if self.playing {
@@ -113,8 +116,8 @@ impl FallbackState {
 
     fn flags(&self) -> String {
         format!(
-            "fallback-canvas, helpers={}, wireframe={}, bloom={}, ssao={}, animated={}",
-            self.helpers, self.wireframe, self.bloom, self.ssao, self.playing
+            "fallback-canvas, helpers={}, wireframe={}, bloom={}, ssao={}, animated={}, transform={}",
+            self.helpers, self.wireframe, self.bloom, self.ssao, self.playing, self.transform_mode
         )
     }
 }
@@ -224,6 +227,25 @@ pub fn set_ssao_enabled(enabled: bool) {
     with_renderer(|renderer| renderer.set_ssao_enabled(enabled));
 }
 
+pub fn set_transform_mode(mode: &'static str) {
+    FALLBACK.with(|fallback| fallback.borrow_mut().transform_mode = mode);
+    with_renderer(|renderer| renderer.set_transform_mode(mode));
+}
+
+pub fn toggle_pointer_lock() {
+    let Some(document) = window().and_then(|window| window.document()) else {
+        return;
+    };
+    if document.pointer_lock_element().is_some() {
+        document.exit_pointer_lock();
+    } else if let Some(canvas) = document
+        .get_element_by_id("scenix-canvas")
+        .and_then(|element| element.dyn_into::<HtmlCanvasElement>().ok())
+    {
+        canvas.request_pointer_lock();
+    }
+}
+
 pub fn reset_camera() {
     FALLBACK.with(|fallback| {
         let mut fallback = fallback.borrow_mut();
@@ -315,7 +337,13 @@ fn draw_canvas_environment(
         context.set_global_alpha(0.18);
         context.set_fill_style_str("#38bdf8");
         context.begin_path();
-        let _ = context.arc(width * 0.68, height * 0.22, height * 0.28, 0.0, core::f64::consts::TAU);
+        let _ = context.arc(
+            width * 0.68,
+            height * 0.22,
+            height * 0.28,
+            0.0,
+            core::f64::consts::TAU,
+        );
         context.fill();
         context.set_global_alpha(1.0);
     }
@@ -344,7 +372,13 @@ fn draw_canvas_environment(
 
     context.set_fill_style_str("#facc15");
     context.begin_path();
-    let _ = context.arc(width * 0.78, height * 0.22, 22.0, 0.0, core::f64::consts::TAU);
+    let _ = context.arc(
+        width * 0.78,
+        height * 0.22,
+        22.0,
+        0.0,
+        core::f64::consts::TAU,
+    );
     context.fill();
 }
 
@@ -378,7 +412,15 @@ fn draw_axes(context: &CanvasRenderingContext2d, height: f64) {
     draw_axis(context, x, y, x + 38.0, y - 28.0, "#3b82f6", "Z");
 }
 
-fn draw_axis(context: &CanvasRenderingContext2d, x0: f64, y0: f64, x1: f64, y1: f64, color: &str, label: &str) {
+fn draw_axis(
+    context: &CanvasRenderingContext2d,
+    x0: f64,
+    y0: f64,
+    x1: f64,
+    y1: f64,
+    color: &str,
+    label: &str,
+) {
     context.set_stroke_style_str(color);
     context.set_fill_style_str(color);
     context.set_line_width(2.0);
@@ -464,7 +506,13 @@ fn draw_rover(context: &CanvasRenderingContext2d, width: f64, height: f64, state
     context.restore();
 }
 
-fn draw_wheel(context: &CanvasRenderingContext2d, x: f64, y: f64, radius: f64, state: &FallbackState) {
+fn draw_wheel(
+    context: &CanvasRenderingContext2d,
+    x: f64,
+    y: f64,
+    radius: f64,
+    state: &FallbackState,
+) {
     context.set_fill_style_str("#020617");
     context.begin_path();
     let _ = context.arc(x, y, radius, 0.0, core::f64::consts::TAU);
@@ -515,7 +563,11 @@ fn draw_scene_labels(context: &CanvasRenderingContext2d, state: &FallbackState) 
     let _ = context.fill_text("Scenix Engine Lab", 24.0, 34.0);
     context.set_font("500 12px Inter, sans-serif");
     context.set_fill_style_str("#7dd3fc");
-    let _ = context.fill_text("Interactive Canvas preview: controls and picking are active", 24.0, 55.0);
+    let _ = context.fill_text(
+        "Interactive Canvas preview: controls and picking are active",
+        24.0,
+        55.0,
+    );
 
     context.set_font("600 12px Inter, sans-serif");
     context.set_fill_style_str("#cbd5e1");
@@ -553,38 +605,89 @@ fn start_single_frame_loop() {
 fn attach_renderer_events(canvas: &HtmlCanvasElement) {
     let move_closure = Closure::wrap(Box::new(move |event: PointerEvent| {
         with_renderer(|renderer| {
-            renderer.on_pointer_move(event.offset_x() as f32, event.offset_y() as f32)
+            renderer.on_pointer_move(event.offset_x() as f32, event.offset_y() as f32);
+            renderer.on_pointer_motion(event.movement_x() as f32, event.movement_y() as f32);
         });
     }) as Box<dyn FnMut(_)>);
-    let _ =
-        canvas.add_event_listener_with_callback("pointermove", move_closure.as_ref().unchecked_ref());
+    let _ = canvas
+        .add_event_listener_with_callback("pointermove", move_closure.as_ref().unchecked_ref());
     move_closure.forget();
 
     let down_closure = Closure::wrap(Box::new(move |event: PointerEvent| {
         with_renderer(|renderer| {
-            renderer.on_pointer_down(event.button(), event.offset_x() as f32, event.offset_y() as f32)
+            renderer.on_pointer_down(
+                event.button(),
+                event.offset_x() as f32,
+                event.offset_y() as f32,
+            )
         });
     }) as Box<dyn FnMut(_)>);
-    let _ =
-        canvas.add_event_listener_with_callback("pointerdown", down_closure.as_ref().unchecked_ref());
+    let _ = canvas
+        .add_event_listener_with_callback("pointerdown", down_closure.as_ref().unchecked_ref());
     down_closure.forget();
 
     let up_closure = Closure::wrap(Box::new(move |event: PointerEvent| {
         with_renderer(|renderer| {
-            renderer.on_pointer_up(event.button(), event.offset_x() as f32, event.offset_y() as f32)
+            renderer.on_pointer_up(
+                event.button(),
+                event.offset_x() as f32,
+                event.offset_y() as f32,
+            )
         });
     }) as Box<dyn FnMut(_)>);
-    let _ = canvas.add_event_listener_with_callback("pointerup", up_closure.as_ref().unchecked_ref());
+    let _ =
+        canvas.add_event_listener_with_callback("pointerup", up_closure.as_ref().unchecked_ref());
     up_closure.forget();
 
     let wheel_closure = Closure::wrap(Box::new(move |event: WheelEvent| {
         event.prevent_default();
         with_renderer(|renderer| renderer.on_wheel(event.delta_y() as f32));
     }) as Box<dyn FnMut(_)>);
-    let _ = canvas.add_event_listener_with_callback("wheel", wheel_closure.as_ref().unchecked_ref());
+    let _ =
+        canvas.add_event_listener_with_callback("wheel", wheel_closure.as_ref().unchecked_ref());
     wheel_closure.forget();
 
+    attach_touch_event(canvas, "touchstart", 0);
+    attach_touch_event(canvas, "touchmove", 1);
+    attach_touch_event(canvas, "touchend", 2);
+    attach_touch_event(canvas, "touchcancel", 3);
+
+    if let Some(document) = window().and_then(|window| window.document()) {
+        let lock_document = document.clone();
+        let lock_closure = Closure::wrap(Box::new(move || {
+            let locked = lock_document.pointer_lock_element().is_some();
+            with_renderer(|renderer| renderer.set_pointer_locked(locked));
+        }) as Box<dyn FnMut()>);
+        let _ = document.add_event_listener_with_callback(
+            "pointerlockchange",
+            lock_closure.as_ref().unchecked_ref(),
+        );
+        lock_closure.forget();
+    }
+
     attach_keyboard_events();
+}
+
+fn attach_touch_event(canvas: &HtmlCanvasElement, event_name: &str, phase: u8) {
+    let event_canvas = canvas.clone();
+    let closure = Closure::wrap(Box::new(move |event: TouchEvent| {
+        event.prevent_default();
+        let rect = event_canvas.get_bounding_client_rect();
+        let changed = event.changed_touches();
+        for index in 0..changed.length() {
+            let Some(touch) = changed.item(index) else {
+                continue;
+            };
+            let id = touch.identifier() as u32 as u64;
+            let x = touch.client_x() as f64 - rect.left();
+            let y = touch.client_y() as f64 - rect.top();
+            with_renderer(|renderer| {
+                renderer.on_touch(id, phase, x as f32, y as f32, touch.force() as f32);
+            });
+        }
+    }) as Box<dyn FnMut(_)>);
+    let _ = canvas.add_event_listener_with_callback(event_name, closure.as_ref().unchecked_ref());
+    closure.forget();
 }
 
 fn attach_fallback_events(canvas: &HtmlCanvasElement) {
@@ -597,7 +700,8 @@ fn attach_fallback_events(canvas: &HtmlCanvasElement) {
             event.offset_y() as f64,
         );
     }) as Box<dyn FnMut(_)>);
-    let _ = canvas.add_event_listener_with_callback("pointerup", up_closure.as_ref().unchecked_ref());
+    let _ =
+        canvas.add_event_listener_with_callback("pointerup", up_closure.as_ref().unchecked_ref());
     up_closure.forget();
 
     let wheel_closure = Closure::wrap(Box::new(move |event: WheelEvent| {
@@ -607,7 +711,8 @@ fn attach_fallback_events(canvas: &HtmlCanvasElement) {
             fallback.angle += event.delta_y().signum() * 0.12;
         });
     }) as Box<dyn FnMut(_)>);
-    let _ = canvas.add_event_listener_with_callback("wheel", wheel_closure.as_ref().unchecked_ref());
+    let _ =
+        canvas.add_event_listener_with_callback("wheel", wheel_closure.as_ref().unchecked_ref());
     wheel_closure.forget();
 
     attach_keyboard_events();
@@ -624,7 +729,8 @@ fn attach_keyboard_events() {
                 });
             }
         }) as Box<dyn FnMut(_)>);
-        let _ = window.add_event_listener_with_callback("keydown", key_down.as_ref().unchecked_ref());
+        let _ =
+            window.add_event_listener_with_callback("keydown", key_down.as_ref().unchecked_ref());
         key_down.forget();
 
         let key_up = Closure::wrap(Box::new(move |event: KeyboardEvent| {

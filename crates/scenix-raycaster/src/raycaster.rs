@@ -126,12 +126,30 @@ impl Raycaster {
         scene: &SceneGraph,
         geometries: &G,
     ) -> Vec<Intersection> {
-        let candidates = if let Some(bvh) = &self.bvh {
-            bvh.traverse(ray)
+        let mut hits = Vec::new();
+        self.cast_ray_all_into(ray, scene, geometries, &mut hits);
+        hits
+    }
+
+    /// Writes all sorted intersections into reusable caller-owned storage.
+    pub fn cast_ray_all_into<G: GeometryProvider + ?Sized>(
+        &self,
+        ray: Ray3,
+        scene: &SceneGraph,
+        geometries: &G,
+        hits: &mut Vec<Intersection>,
+    ) {
+        hits.clear();
+        if let Some(bvh) = &self.bvh {
+            bvh.visit_ray(ray, |node_id| {
+                self.cast_candidate(ray, scene, geometries, node_id, hits)
+            });
         } else {
-            mesh_nodes(scene, self.layers)
-        };
-        self.cast_candidates(ray, scene, geometries, &candidates)
+            for node_id in scene.iter_depth_first() {
+                self.cast_candidate(ray, scene, geometries, node_id, hits);
+            }
+        }
+        sort_hits(hits);
     }
 
     /// Brute-force all-hit path used to validate BVH results.
@@ -141,8 +159,12 @@ impl Raycaster {
         scene: &SceneGraph,
         geometries: &G,
     ) -> Vec<Intersection> {
-        let candidates = mesh_nodes(scene, self.layers);
-        self.cast_candidates(ray, scene, geometries, &candidates)
+        let mut hits = Vec::new();
+        for node_id in scene.iter_depth_first() {
+            self.cast_candidate(ray, scene, geometries, node_id, &mut hits);
+        }
+        sort_hits(&mut hits);
+        hits
     }
 
     /// Builds a ray from perspective-camera normalized device coordinates.
@@ -151,45 +173,29 @@ impl Raycaster {
         camera.screen_to_ray(ndc)
     }
 
-    fn cast_candidates<G: GeometryProvider + ?Sized>(
+    fn cast_candidate<G: GeometryProvider + ?Sized>(
         &self,
         ray: Ray3,
         scene: &SceneGraph,
         geometries: &G,
-        candidates: &[NodeId],
-    ) -> Vec<Intersection> {
-        let mut hits = Vec::new();
-        for node_id in candidates {
-            let Some((mesh_id, material_id)) = mesh_node(scene, *node_id, self.layers) else {
-                continue;
-            };
-            let Some(geometry) = geometries.geometry(mesh_id) else {
-                continue;
-            };
-            if geometry.is_empty() {
-                continue;
-            }
-            let world = scene.world_matrix(*node_id).unwrap_or(Mat4::IDENTITY);
-            let world_aabb = geometry.aabb().transform(world);
-            if ray.intersect_aabb(world_aabb).is_none() {
-                continue;
-            }
-            intersect_geometry(
-                ray,
-                *node_id,
-                mesh_id,
-                material_id,
-                world,
-                geometry,
-                &mut hits,
-            );
+        node_id: NodeId,
+        hits: &mut Vec<Intersection>,
+    ) {
+        let Some((mesh_id, material_id)) = mesh_node(scene, node_id, self.layers) else {
+            return;
+        };
+        let Some(geometry) = geometries.geometry(mesh_id) else {
+            return;
+        };
+        if geometry.is_empty() {
+            return;
         }
-        hits.sort_by(|a, b| {
-            a.distance
-                .total_cmp(&b.distance)
-                .then_with(|| a.node_id.get().cmp(&b.node_id.get()))
-        });
-        hits
+        let world = scene.world_matrix(node_id).unwrap_or(Mat4::IDENTITY);
+        let world_aabb = geometry.aabb().transform(world);
+        if ray.intersect_aabb(world_aabb).is_none() {
+            return;
+        }
+        intersect_geometry(ray, node_id, mesh_id, material_id, world, geometry, hits);
     }
 }
 
@@ -214,11 +220,12 @@ fn mesh_node(scene: &SceneGraph, node_id: NodeId, layers: u32) -> Option<(MeshId
     }
 }
 
-fn mesh_nodes(scene: &SceneGraph, layers: u32) -> Vec<NodeId> {
-    scene
-        .iter_depth_first()
-        .filter(|id| mesh_node(scene, *id, layers).is_some())
-        .collect()
+fn sort_hits(hits: &mut [Intersection]) {
+    hits.sort_by(|a, b| {
+        a.distance
+            .total_cmp(&b.distance)
+            .then_with(|| a.node_id.get().cmp(&b.node_id.get()))
+    });
 }
 
 fn intersect_geometry(

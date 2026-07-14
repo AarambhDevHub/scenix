@@ -5,7 +5,11 @@ use scenix_core::{NodeId, ValidationError};
 use scenix_math::{Mat4, Transform};
 use slotmap::{SlotMap, new_key_type};
 
-use crate::{BreadthFirstIter, DepthFirstIter, Fog, SceneNode};
+use crate::editor::{apply_selection, replace_selection};
+use crate::{
+    BreadthFirstIter, DepthFirstIter, Fog, LayerPolicy, NodeEditorMetadata, SceneNode,
+    SelectionChange, SelectionMode, SelectionState,
+};
 
 new_key_type! {
     pub(crate) struct PrivateSceneKey;
@@ -41,6 +45,9 @@ pub struct SceneGraph {
     next_id: u64,
     dirty_roots: Vec<NodeId>,
     fog: Option<Fog>,
+    editor_metadata: Vec<Option<NodeEditorMetadata>>,
+    selection: SelectionState,
+    layer_policy: LayerPolicy,
 }
 
 impl SceneGraph {
@@ -61,6 +68,9 @@ impl SceneGraph {
             next_id: 1,
             dirty_roots: Vec::new(),
             fog: None,
+            editor_metadata: Vec::with_capacity(capacity.saturating_add(1)),
+            selection: SelectionState::default(),
+            layer_policy: LayerPolicy::default(),
         }
     }
 
@@ -117,9 +127,36 @@ impl SceneGraph {
         for (removed_id, key) in &removed {
             self.nodes.remove(*key);
             self.clear_id(*removed_id);
+            if let Some(metadata) = self.editor_metadata.get_mut(removed_id.get() as usize) {
+                *metadata = None;
+            }
+        }
+        let mut removed_ids: Vec<_> = removed.iter().map(|(id, _)| *id).collect();
+        removed_ids.sort_unstable();
+        let retained: Vec<_> = self
+            .selection
+            .selected()
+            .iter()
+            .copied()
+            .filter(|id| removed_ids.binary_search(id).is_err())
+            .collect();
+        replace_selection(&mut self.selection, retained);
+        if self
+            .selection
+            .hovered
+            .is_some_and(|id| removed_ids.binary_search(&id).is_ok())
+        {
+            self.selection.hovered = None;
+        }
+        if self
+            .selection
+            .active
+            .is_some_and(|id| removed_ids.binary_search(&id).is_ok())
+        {
+            self.selection.active = None;
         }
         self.dirty_roots
-            .retain(|dirty| !removed.iter().any(|(removed_id, _)| removed_id == dirty));
+            .retain(|dirty| removed_ids.binary_search(dirty).is_err());
 
         Ok(())
     }
@@ -263,6 +300,179 @@ impl SceneGraph {
         self.fog = fog;
     }
 
+    /// Returns sparse editor metadata, or `None` when defaults apply.
+    pub fn editor_metadata(&self, id: NodeId) -> Option<&NodeEditorMetadata> {
+        let index = id_index(id)?;
+        self.key(id)?;
+        self.editor_metadata.get(index).and_then(Option::as_ref)
+    }
+
+    /// Returns editor metadata by value, falling back to defaults.
+    pub fn editor_metadata_or_default(&self, id: NodeId) -> Option<NodeEditorMetadata> {
+        self.key(id)?;
+        Some(self.editor_metadata(id).cloned().unwrap_or_default())
+    }
+
+    /// Associates editor metadata with a node. Passing default metadata keeps
+    /// the sidecar sparse.
+    pub fn set_editor_metadata(
+        &mut self,
+        id: NodeId,
+        metadata: NodeEditorMetadata,
+    ) -> Result<(), ValidationError> {
+        self.key_or_err(id)?;
+        let index = id_index(id).ok_or(ValidationError::InvalidId)?;
+        if self.editor_metadata.len() <= index {
+            self.editor_metadata.resize(index + 1, None);
+        }
+        self.editor_metadata[index] = if metadata == NodeEditorMetadata::default() {
+            None
+        } else {
+            Some(metadata)
+        };
+        Ok(())
+    }
+
+    /// Removes sparse metadata so defaults apply again.
+    pub fn clear_editor_metadata(&mut self, id: NodeId) -> Result<(), ValidationError> {
+        self.key_or_err(id)?;
+        if let Some(slot) = self.editor_metadata.get_mut(id_index(id).unwrap_or(0)) {
+            *slot = None;
+        }
+        Ok(())
+    }
+
+    /// Returns the interaction layer policy.
+    #[inline]
+    pub const fn layer_policy(&self) -> LayerPolicy {
+        self.layer_policy
+    }
+
+    /// Replaces the interaction layer policy.
+    #[inline]
+    pub fn set_layer_policy(&mut self, policy: LayerPolicy) {
+        self.layer_policy = policy;
+    }
+
+    /// Returns whether a node can be selected under current metadata/layers.
+    pub fn is_selectable(&self, id: NodeId) -> bool {
+        self.get(id).is_some_and(|node| {
+            let (selectable, locked) = self.editor_metadata(id).map_or((true, false), |metadata| {
+                (metadata.selectable, metadata.locked)
+            });
+            node.visible
+                && selectable
+                && !locked
+                && self.layer_policy.selectable.matches_node(node.layer)
+        })
+    }
+
+    /// Returns whether a node can be dragged under current metadata/layers.
+    pub fn is_draggable(&self, id: NodeId) -> bool {
+        self.get(id).is_some_and(|node| {
+            let (draggable, locked) = self.editor_metadata(id).map_or((true, false), |metadata| {
+                (metadata.draggable, metadata.locked)
+            });
+            node.visible
+                && draggable
+                && !locked
+                && self.layer_policy.draggable.matches_node(node.layer)
+        })
+    }
+
+    /// Returns whether a node can be transformed under current metadata/layers.
+    pub fn is_transformable(&self, id: NodeId) -> bool {
+        self.get(id).is_some_and(|node| {
+            let (transformable, locked) =
+                self.editor_metadata(id).map_or((true, false), |metadata| {
+                    (metadata.transformable, metadata.locked)
+                });
+            node.visible
+                && transformable
+                && !locked
+                && self.layer_policy.transformable.matches_node(node.layer)
+        })
+    }
+
+    /// Returns current graph-local selection state.
+    #[inline]
+    pub const fn selection(&self) -> &SelectionState {
+        &self.selection
+    }
+
+    /// Selects one eligible node using the requested combination mode.
+    pub fn select(
+        &mut self,
+        id: NodeId,
+        mode: SelectionMode,
+    ) -> Result<SelectionChange, ValidationError> {
+        self.key_or_err(id)?;
+        if !matches!(mode, SelectionMode::Remove) && !self.is_selectable(id) {
+            return Err(ValidationError::InvalidState);
+        }
+        Ok(apply_selection(&mut self.selection, id, mode))
+    }
+
+    /// Replaces selection with eligible, valid IDs.
+    pub fn select_many<I>(&mut self, ids: I) -> Result<SelectionChange, ValidationError>
+    where
+        I: IntoIterator<Item = NodeId>,
+    {
+        let mut selected = Vec::new();
+        for id in ids {
+            self.key_or_err(id)?;
+            if self.is_selectable(id) {
+                selected.push(id);
+            }
+        }
+        Ok(replace_selection(&mut self.selection, selected))
+    }
+
+    /// Clears the selected set.
+    pub fn clear_selection(&mut self) -> SelectionChange {
+        replace_selection(&mut self.selection, Vec::new())
+    }
+
+    /// Sets the hovered node after validating it is selectable.
+    pub fn set_hovered(&mut self, id: Option<NodeId>) -> Result<(), ValidationError> {
+        if let Some(id) = id {
+            self.key_or_err(id)?;
+            if !self.is_selectable(id) {
+                return Err(ValidationError::InvalidState);
+            }
+        }
+        self.selection.hovered = id;
+        Ok(())
+    }
+
+    /// Sets the node receiving an active interaction.
+    pub fn set_active(&mut self, id: Option<NodeId>) -> Result<(), ValidationError> {
+        if let Some(id) = id {
+            self.key_or_err(id)?;
+            if !self.is_transformable(id) && !self.is_draggable(id) {
+                return Err(ValidationError::InvalidState);
+            }
+        }
+        self.selection.active = id;
+        Ok(())
+    }
+
+    /// Sets a local transform only when editor policy permits it.
+    pub fn set_editor_transform(
+        &mut self,
+        id: NodeId,
+        transform: Transform,
+    ) -> Result<(), ValidationError> {
+        if !self.is_transformable(id) && !self.is_draggable(id) {
+            return Err(if self.get(id).is_some() {
+                ValidationError::InvalidState
+            } else {
+                ValidationError::InvalidId
+            });
+        }
+        self.set_local_transform(id, transform)
+    }
+
     fn key(&self, id: NodeId) -> Option<PrivateSceneKey> {
         let index = id_index(id)?;
         self.id_to_key.get(index).copied().flatten()
@@ -287,6 +497,9 @@ impl SceneGraph {
             self.id_to_key.resize(index + 1, None);
         }
         self.id_to_key[index] = Some(key);
+        if self.editor_metadata.len() <= index {
+            self.editor_metadata.resize(index + 1, None);
+        }
         id
     }
 

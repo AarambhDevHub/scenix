@@ -12,6 +12,10 @@ pub mod arrow;
 pub mod axes;
 pub mod bounding_box;
 pub mod camera_helper;
+pub mod editor_helpers;
+#[cfg(feature = "egui")]
+pub mod egui_inspector;
+pub mod gizmo;
 pub mod grid;
 pub mod light_helper;
 pub mod line_geometry;
@@ -23,6 +27,10 @@ pub use arrow::ArrowHelper;
 pub use axes::AxesHelper;
 pub use bounding_box::BoundingBoxHelper;
 pub use camera_helper::CameraHelper;
+pub use editor_helpers::{BoundsGizmoHelper, SelectionHelper, SnapGridHelper};
+#[cfg(feature = "egui")]
+pub use egui_inspector::{EguiInspectorResponse, show_inspector};
+pub use gizmo::{GizmoGeometry, GizmoHandle, GizmoHandleId, GizmoHitShape, TransformGizmoHelper};
 pub use grid::GridHelper;
 pub use light_helper::{DirectionalLightHelper, PointLightHelper, SpotLightHelper};
 pub use line_geometry::LineGeometry;

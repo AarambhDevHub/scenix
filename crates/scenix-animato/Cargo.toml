@@ -30,6 +30,7 @@ serde = [
     "scenix-math/serde",
     "scenix-scene/serde",
 ]
+inspector = ["scenix-core/inspector"]
 
 [dependencies]
 animato = { workspace = true, features = ["spring", "tween"] }

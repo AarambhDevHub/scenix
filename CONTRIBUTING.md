@@ -46,7 +46,7 @@ You do not need to write code to contribute:
 
 ### Prerequisites
 
-- Rust stable, 1.85 or later (`rustup update stable`)
+- Rust stable, 1.89 or later (`rustup update stable`)
 - A GPU or software renderer for GPU crate tests:
   - Linux: Mesa/lavapipe for headless GPU tests (`sudo apt install mesa-vulkan-drivers`)
   - macOS/Windows: your native GPU works out of the box
@@ -69,7 +69,7 @@ cargo test --workspace
 cargo test --workspace --all-features
 
 # Verify no_std compatibility for GPU-free crates:
-cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-mesh --no-default-features
+cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
 
 # Lint:
 cargo clippy --workspace --all-features -- -D warnings

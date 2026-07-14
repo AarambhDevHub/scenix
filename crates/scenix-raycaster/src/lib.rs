@@ -9,9 +9,14 @@
 extern crate alloc;
 
 pub mod bvh;
+pub mod interaction;
 pub mod intersection;
 pub mod raycaster;
 
 pub use bvh::{Bvh, BvhEntry, BvhNode};
+pub use interaction::{
+    DragController, DragPlane, InteractionError, InteractionUpdate, SelectionContainment,
+    SelectionFrustum, SelectionRect, TransformController,
+};
 pub use intersection::Intersection;
 pub use raycaster::{GeometryProvider, Raycaster};

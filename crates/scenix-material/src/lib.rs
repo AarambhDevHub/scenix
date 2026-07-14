@@ -9,6 +9,8 @@
 extern crate alloc;
 
 pub mod depth;
+#[cfg(feature = "inspector")]
+mod inspector;
 pub mod lambert;
 pub mod line;
 pub mod normal;

@@ -1,4 +1,6 @@
-use scenix_input::{KeyCode, KeyboardState, PointerButton, PointerState};
+use scenix_input::{
+    GamepadAxis, GamepadButton, InputState, KeyCode, KeyboardState, PointerButton, PointerState,
+};
 use scenix_math::{Quat, Spherical, Transform, Vec2, Vec3};
 
 use crate::{PerspectiveCamera, clamp};
@@ -109,6 +111,36 @@ impl OrbitController {
         }
     }
 
+    /// Consumes the aggregate input snapshot, including touch and gamepad data.
+    pub fn update_from_input(&mut self, input: &InputState, dt: f32) {
+        let response = 1.0 / (1.0 + self.damping.max(0.0) * dt.max(0.0));
+        self.update_from_pointer(input.pointer, input.scroll_delta, dt);
+        match input.gesture.contact_count {
+            1 => self.on_drag(input.gesture.pan_delta * response, dt),
+            2.. => {
+                self.on_pan(input.gesture.pan_delta * response, dt);
+                if input.gesture.pinch_delta != 0.0 {
+                    self.on_scroll(-input.gesture.pinch_delta, dt);
+                }
+            }
+            _ => {}
+        }
+        if let Some((_, gamepad)) = input.gamepads.connected().next() {
+            let look = Vec2::new(
+                gamepad.axis(GamepadAxis::RightX),
+                gamepad.axis(GamepadAxis::RightY),
+            );
+            if look.length_squared() > crate::EPSILON {
+                self.on_drag(look * (200.0 * dt.max(0.0) * response), dt);
+            }
+            let zoom = gamepad.button_value(GamepadButton::RightTrigger)
+                - gamepad.button_value(GamepadButton::LeftTrigger);
+            if zoom.abs() > crate::EPSILON {
+                self.on_scroll(-zoom * dt.max(0.0) * 5.0, dt);
+            }
+        }
+    }
+
     /// Clamps distance and polar angle.
     #[inline]
     pub fn update(&mut self, _dt: f32) {
@@ -205,6 +237,31 @@ impl FlyController {
         }
 
         Transform::new(self.position, rotation, Vec3::ONE)
+    }
+
+    /// Consumes aggregate input, using relative motion while pointer lock is active.
+    pub fn update_from_input(&mut self, input: &InputState, dt: f32) -> Transform {
+        let mut pointer = input.pointer;
+        if input.pointer_lock.locked {
+            pointer.delta = input.pointer_lock.delta;
+        }
+        let mut transform = self.update(input.keyboard, pointer, dt);
+        if let Some((_, gamepad)) = input.gamepads.connected().next() {
+            self.yaw -= gamepad.axis(GamepadAxis::RightX) * self.sensitivity * 300.0 * dt.max(0.0);
+            self.pitch -=
+                gamepad.axis(GamepadAxis::RightY) * self.sensitivity * 300.0 * dt.max(0.0);
+            self.pitch = clamp(self.pitch, -self.pitch_limit, self.pitch_limit);
+            let rotation = self.rotation();
+            let forward = rotation.mul_vec3(Vec3::NEG_Z).normalize();
+            let right = rotation.mul_vec3(Vec3::X).normalize();
+            let movement = right * gamepad.axis(GamepadAxis::LeftX)
+                - forward * gamepad.axis(GamepadAxis::LeftY);
+            if movement.length_squared() > crate::EPSILON {
+                self.position += movement.normalize() * self.speed * dt.max(0.0);
+            }
+            transform = Transform::new(self.position, rotation, Vec3::ONE);
+        }
+        transform
     }
 
     /// Returns the current rotation.

@@ -1,6 +1,9 @@
 # Scenix Developer Documentation
 
-Scenix v1.3.0 is a modular Rust-native 3D scene workspace. These docs are written for application developers who need to choose crates, create scenes, render or load assets, integrate Animato, target WASM, and debug performance.
+Scenix v1.5.0 is a modular Rust-native 3D scene workspace. These docs are
+written for application developers who need to choose crates, create scenes,
+add interaction/editor primitives, render or load assets, integrate Animato,
+target WASM, and debug performance.
 
 ## Start Here
 
@@ -23,6 +26,7 @@ Scenix v1.3.0 is a modular Rust-native 3D scene workspace. These docs are writte
 - [Renderer](concepts/renderer.md)
 - [Post-processing](concepts/post-processing.md)
 - [Raycasting](concepts/raycasting.md)
+- [Interaction and editor primitives](concepts/interaction-and-editor.md)
 - [Helpers](concepts/helpers.md)
 - [Animation with Animato](concepts/animation-with-animato.md)
 - [WASM and browser](concepts/wasm-and-browser.md)
@@ -55,7 +59,7 @@ Scenix v1.3.0 is a modular Rust-native 3D scene workspace. These docs are writte
 - [Deployment](deployment/README.md)
 - [Migration](migration/from-0.9-to-1.0.md)
 - [Reference](reference/feature-matrix.md)
-- [v1.3.0 release notes](../.github/release-notes/v1.3.0.md)
+- [v1.5.0 release notes](../.github/release-notes/1.5.0.md)
 
 ## Feature Flags At A Glance
 
@@ -64,10 +68,13 @@ Scenix v1.3.0 is a modular Rust-native 3D scene workspace. These docs are writte
 | `std` | yes | Standard-library support for CPU crates. |
 | `scene`, `camera`, `mesh`, `material`, `light`, `texture` | yes | CPU scene authoring. |
 | `raycaster`, `helpers` | yes | Picking and debug helper geometry. |
+| `interaction` | no | Controls, selection, dragging, transforms, and gizmos. |
+| `editor` | no | Typed inspector snapshots for editor-facing systems. |
+| `egui` | no | Read-only egui adapter for inspector snapshots. |
 | `loader` | no | Asset packages, asset manager, glTF extension metadata, importers, and exporters. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
-| `animato` | no | Animato bridge for scene, camera, material, and skeleton animation; Animato 1.6.0 is the release gate when published. |
+| `animato` | no | Animato 1.7 bridge and clip-based animation runtime. |
 | `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
 | `serde` | no | Serialization support where each crate supports it. |
 
@@ -77,5 +84,6 @@ Scenix v1.3.0 is a modular Rust-native 3D scene workspace. These docs are writte
 ```sh
 cargo fmt --check
 cargo test --workspace --all-features
+cargo test -p scenix --test scenix_v15 --all-features
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 ```

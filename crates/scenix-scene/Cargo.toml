@@ -13,6 +13,7 @@ readme.workspace = true
 default = ["std"]
 std = ["scenix-math/std", "scenix-core/std", "slotmap/std"]
 serde = ["dep:serde", "scenix-math/serde", "scenix-core/serde"]
+inspector = ["scenix-core/inspector"]
 
 [dependencies]
 scenix-core = { workspace = true }

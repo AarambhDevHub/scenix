@@ -2,7 +2,9 @@
 
 ## Role
 
-Optional browser canvas wrapper, DOM input mapping, generated scene setup, WebGPU/WebGL backend selection, and demo state getters.
+Optional browser canvas wrapper, DPR-aware DOM input mapping, touch,
+pointer-lock and gamepad forwarding, generated scene setup, WebGPU/WebGL backend
+selection, transform modes, scene selection, inspector JSON, and demo getters.
 
 ## Dependency Weight
 
@@ -17,7 +19,11 @@ scenix-wasm = "1"
 
 ## Key Public API
 
-BrowserRenderer, BrowserBackendPreference, BrowserBackendKind, WebRenderer, WebGlRenderer, WebGlCapabilityLevel, set_panic_hook, key_code_from_dom, pointer_button_from_dom, canvas_size
+`BrowserRenderer`, `BrowserBackendPreference`, `BrowserBackendKind`,
+`WebRenderer`, `WebGlRenderer`, `WebGlCapabilityLevel`, `CanvasMetrics`,
+`set_panic_hook`, `key_code_from_dom`, `pointer_button_from_dom`,
+`touch_phase_from_dom`, standard gamepad mapping, `canvas_metrics`, touch and
+pointer-lock methods, `set_transform_mode`, and `inspector_snapshot_json`.
 
 ## Backend Choice
 
@@ -59,4 +65,5 @@ Use this crate directly when you need its boundary in your own public API. Use t
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
+- [Interaction and editor primitives](../concepts/interaction-and-editor.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)

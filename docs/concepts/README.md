@@ -13,6 +13,7 @@ These pages explain how Scenix systems fit together before you copy guide code. 
 - [Renderer](renderer.md)
 - [Post-Processing](post-processing.md)
 - [Raycasting](raycasting.md)
+- [Interaction And Editor Primitives](interaction-and-editor.md)
 - [Helpers](helpers.md)
 - [Animation With Animato](animation-with-animato.md)
 - [WASM And Browser](wasm-and-browser.md)

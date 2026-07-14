@@ -244,6 +244,12 @@ impl AnimationMixer {
         self.global_time_scale = scale;
     }
 
+    /// Returns the global action time scale.
+    #[inline]
+    pub const fn global_time_scale(&self) -> f32 {
+        self.global_time_scale
+    }
+
     /// Advances every active action, samples clips, blends, and applies results.
     ///
     /// Deterministic: actions advance in insertion order, channels in clip

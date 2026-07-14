@@ -2,6 +2,16 @@
 
 Each page maps to a real example file or the standalone WASM viewer crate. Commands match the example registrations in `crates/scenix/Cargo.toml`.
 
+## v1.5 Interaction And Editor Examples
+
+- [Controls Showcase](controls-showcase.md) - `examples/controls_showcase.rs`
+- [Selection And Drag](selection-and-drag.md) - `examples/selection_and_drag.rs`
+- [Transform Gizmo](transform-gizmo.md) - `examples/transform_gizmo.rs`
+- [Editor Inspector](editor-inspector.md) - `examples/editor_inspector.rs`
+- [Renderer Picking](renderer-picking.md) - `examples/renderer_picking.rs`
+
+## Rendering, Assets, And Animation
+
 - [Hello Cube](hello-cube.md) - `examples/hello_cube.rs`
 - [PBR Sphere](pbr-sphere.md) - `examples/pbr_sphere.rs`
 - [Physical Material](physical-material.md) - `examples/physical_material.rs`
