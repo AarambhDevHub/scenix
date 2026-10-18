@@ -32,7 +32,7 @@ impl ParticleBlend {
 ///
 /// A flipbook treat the particle texture as a uniform grid of frames; every
 /// frame the renderer maps the particle's age to one grid cell. Pair the grid
-/// with [`scenix_texture::FlipbookGrid`] data when authoring atlases.
+/// with `scenix-texture` `FlipbookGrid` data when authoring atlases.
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FlipbookParams {

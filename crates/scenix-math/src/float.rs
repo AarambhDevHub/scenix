@@ -140,9 +140,17 @@ pub fn cbrt(value: f32) -> f32 {
         }
         let sign = value.signum();
         let abs = value.abs();
-        let mut x = if abs >= 1.0 { abs } else { 1.0 };
+        // Seed with a power-of-two cube root of the input's exponent floor:
+        // for `abs` in `[2^k, 2^(k+1))` the root lies in
+        // `[2^(k/3), 2^((k+1)/3))`, so one `div_euclid` step bounds the
+        // relative gap by ~2.67 and the six Newton steps converge to f32
+        // precision. Plain Newton from `abs` needs a third of the exponent
+        // in iterations first.
+        let biased_decay = ((abs.to_bits() >> 23) & 0xff) as i32 - 127;
+        let seed_bits = ((biased_decay.div_euclid(3) + 127) << 23) as u32;
+        let mut x = f32::from_bits(seed_bits);
         let mut i = 0;
-        while i < 24 {
+        while i < 6 {
             x = (2.0 * x + abs / (x * x)) / 3.0;
             i += 1;
         }
