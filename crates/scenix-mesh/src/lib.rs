@@ -15,6 +15,7 @@ pub mod instanced;
 pub mod mesh;
 pub mod morph;
 pub mod primitives;
+pub mod quads;
 pub mod shape;
 pub mod skin;
 
@@ -31,6 +32,7 @@ pub use primitives::{
     extrude_geometry, icosphere_geometry, lathe_geometry, plane_geometry, ring_geometry,
     shape_geometry, sphere_geometry, torus_geometry, torus_knot_geometry, tube_geometry,
 };
+pub use quads::quad_geometry;
 pub use shape::Shape;
 pub use skin::{
     MorphWeights, SkinningAttributes, SkinningData, apply_morph, cpu_skin, final_joint_matrices,

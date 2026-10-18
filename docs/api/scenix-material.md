@@ -31,6 +31,11 @@ let material = PbrMaterial::new();
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 
+## Added In
+
+v1.7.0 adds `ParticleMaterial` (tint, sprite, flipbook, soft edge, `ParticleBlend`), the `FEATURE_SOFT_PARTICLES`/`FEATURE_FLIPBOOK` bits, and `ShaderKind::Particles`.
+
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)

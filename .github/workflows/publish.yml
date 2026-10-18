@@ -96,7 +96,7 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no-default CPU crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
 
       - name: Test v1.5 interaction surface
         run: cargo test -p scenix --test scenix_v15 --all-features
@@ -105,6 +105,11 @@ jobs:
         run: |
           cargo test -p scenix-nodes --all-features
           cargo test -p scenix --test scenix_v16 --all-features
+
+      - name: Test v1.7 particle surface
+        run: |
+          cargo test -p scenix-particles --all-features
+          cargo test -p scenix --test scenix_v17 --all-features
 
       - name: Check v1.5 facade feature lanes
         run: |
@@ -117,6 +122,11 @@ jobs:
           cargo check -p scenix --no-default-features --features nodes
           cargo check -p scenix --no-default-features --features nodes,material
           cargo check -p scenix --no-default-features --features nodes,material,renderer,scene,camera,mesh
+
+      - name: Check v1.7 facade feature lanes
+        run: |
+          cargo check -p scenix --no-default-features --features particles
+          cargo check -p scenix --no-default-features --features particles,renderer
 
       - name: Check all examples
         run: cargo check -p scenix --examples --all-features
@@ -212,6 +222,7 @@ jobs:
             scenix-scene \
             scenix-camera \
             scenix-mesh \
+            scenix-particles \
             scenix-material \
             scenix-nodes \
             scenix-light \
@@ -245,7 +256,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: "scenix v${{ needs.verify.outputs.version }} — Shader Nodes And Node Materials"
+          name: "scenix v${{ needs.verify.outputs.version }} — Particles"
           body_path: ${{ needs.verify.outputs.notes }}
           draft: false
           prerelease: false

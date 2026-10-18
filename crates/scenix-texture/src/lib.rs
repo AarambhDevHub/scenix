@@ -9,6 +9,7 @@
 extern crate alloc;
 
 pub mod atlas;
+pub mod flipbook;
 pub mod format;
 #[cfg(feature = "inspector")]
 mod inspector;
@@ -18,6 +19,7 @@ pub mod texture;
 pub mod video;
 
 pub use atlas::{AtlasEntry, AtlasRect, TextureAtlas, UvRect};
+pub use flipbook::FlipbookGrid;
 pub use format::TextureFormat;
 pub use sampler::{AddressMode, CompareFunction, FilterMode, Sampler};
 pub use texture::{Texture2D, Texture3D, TextureCube};

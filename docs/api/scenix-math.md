@@ -31,6 +31,11 @@ let t = Transform::from_translation(Vec3::new(1.0, 2.0, 3.0));
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 
+## Added In
+
+v1.7.0 publishes the `float` shim module (`sqrt`, trig, `atan2`, `cbrt`) that `libm` builds share with std builds.
+
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)

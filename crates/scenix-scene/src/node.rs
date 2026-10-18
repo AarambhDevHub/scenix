@@ -2,7 +2,7 @@ use alloc::string::String;
 
 #[cfg(feature = "std")]
 use scenix_core::Named;
-use scenix_core::{CameraId, LightId, MaterialId, MeshId};
+use scenix_core::{CameraId, LightId, MaterialId, MeshId, ParticleSystemId};
 use scenix_math::Transform;
 
 use crate::Sprite;
@@ -35,6 +35,11 @@ pub enum NodeKind {
     },
     /// Sprite attachment.
     Sprite(Sprite),
+    /// Particle system attachment.
+    Particles {
+        /// Particle system resource identifier.
+        system_id: ParticleSystemId,
+    },
 }
 
 /// A node's public, user-editable scene data.
@@ -97,6 +102,12 @@ impl SceneNode {
     #[inline]
     pub fn camera(name: impl Into<String>, camera_id: CameraId) -> Self {
         Self::new(name).kind(NodeKind::Camera { camera_id })
+    }
+
+    /// Creates a particle-system node.
+    #[inline]
+    pub fn particles(name: impl Into<String>, system_id: ParticleSystemId) -> Self {
+        Self::new(name).kind(NodeKind::Particles { system_id })
     }
 
     /// Creates a sprite node.

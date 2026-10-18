@@ -32,6 +32,7 @@ fn inspect_node(scene: &SceneGraph, id: scenix_core::NodeId) -> Option<Inspector
         NodeKind::Light { .. } => "light",
         NodeKind::Camera { .. } => "camera",
         NodeKind::Sprite(_) => "sprite",
+        NodeKind::Particles { .. } => "particles",
     };
     let mut item = InspectorItem::new(InspectorId(id.get()), label, kind)
         .field("id", id.get())

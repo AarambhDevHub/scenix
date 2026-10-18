@@ -1,6 +1,6 @@
 # Scenix Developer Documentation
 
-Scenix v1.5.0 is a modular Rust-native 3D scene workspace. These docs are
+Scenix v1.7.0 is a modular Rust-native 3D scene workspace. These docs are
 written for application developers who need to choose crates, create scenes,
 add interaction/editor primitives, render or load assets, integrate Animato,
 target WASM, and debug performance.
@@ -59,7 +59,7 @@ target WASM, and debug performance.
 - [Deployment](deployment/README.md)
 - [Migration](migration/from-0.9-to-1.0.md)
 - [Reference](reference/feature-matrix.md)
-- [v1.5.0 release notes](../.github/release-notes/1.5.0.md)
+- [v1.7.0 release notes](../.github/release-notes/1.7.0.md)
 
 ## Feature Flags At A Glance
 
@@ -74,6 +74,8 @@ target WASM, and debug performance.
 | `loader` | no | Asset packages, asset manager, glTF extension metadata, importers, and exporters. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
+| `nodes` | no | Typed shader graphs, node materials, and post node effects (the `scenix-nodes` crate) with WGSL/GLSL backends. |
+| `particles` | no | Deterministic CPU particle systems (the `scenix-particles` crate) with the billboard GPU path and optional compute simulation. |
 | `animato` | no | Animato 1.7 bridge and clip-based animation runtime. |
 | `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
 | `serde` | no | Serialization support where each crate supports it. |

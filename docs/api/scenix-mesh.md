@@ -31,6 +31,11 @@ let cube = box_geometry(1.0, 1.0, 1.0, 1, 1, 1);
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 
+## Added In
+
+v1.7.0 adds `quad_geometry(width, height)` for billboard/sprite quads (CCW +Z, plane UV convention).
+
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
