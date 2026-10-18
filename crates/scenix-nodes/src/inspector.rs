@@ -4,7 +4,6 @@
 //! like built-in materials: one row per artifact with read-only typed
 //! fields the egui/WASM frontends can render.
 
-use alloc::string::ToString;
 use scenix_core::inspector::{Inspectable, InspectorId, InspectorItem, InspectorSnapshot};
 
 use crate::material::NodeMaterial;
@@ -16,7 +15,7 @@ struct IdSource(u64);
 impl IdSource {
     fn next(&mut self) -> InspectorId {
         self.0 += 1;
-        InspectorId::new(self.0)
+        InspectorId(self.0)
     }
 }
 

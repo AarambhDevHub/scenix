@@ -367,7 +367,7 @@ pub fn icosphere_geometry(radius: f32, subdivisions: u32) -> Geometry {
     if radius <= 0.0 {
         return Geometry::new();
     }
-    let t = 1.618_034_f32;
+    let t = core::f32::consts::GOLDEN_RATIO;
     let mut vertices = alloc::vec![
         Vec3::new(-1.0, t, 0.0),
         Vec3::new(1.0, t, 0.0),
