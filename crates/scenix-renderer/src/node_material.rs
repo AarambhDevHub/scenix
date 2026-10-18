@@ -3,7 +3,7 @@
 //!
 //! Node materials compile from WGSL produced by `scenix-nodes` and reuse the
 //! built-in bind-group layout tuple (frame, object, material, lights) plus
-//! the shared [`PackedVertex`] buffer layout. Per-draw CPU state lands in the
+//! the shared [`crate::gpu_scene::PackedVertex`] buffer layout. Per-draw CPU state lands in the
 //! same material uniform buffer used by built-in shaders, tagged with shader
 //! kind `7.0` so preview fallbacks can detect node artifacts.
 
