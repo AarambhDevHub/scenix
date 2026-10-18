@@ -474,7 +474,7 @@ edition      = "2024"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/AarambhDevHub/scenix"
 authors      = ["Aarambh Dev Hub"]
-rust-version = "1.89"
+rust-version = "1.98"
 
 [workspace.dependencies]
 # internal crates — version pinned to workspace

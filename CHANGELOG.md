@@ -69,7 +69,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 
 - Bumped all 18 workspace crates and internal dependency requirements to
-  `1.6.0`; Rust 1.89, edition 2024, and existing default features are retained.
+  `1.6.0`; Rust 1.98, edition 2024, and existing default features are retained.
 - Bumped Animato to `1.7.2`; the previous `1.7.0` gate is superseded with no
   scenix-side code changes.
 - `scenix-renderer`'s frame uniform now packs resolution as
