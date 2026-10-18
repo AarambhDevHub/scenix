@@ -41,11 +41,10 @@ fn main() {
     let (scene, meshes) = scene(1_024);
     bench("bvh_build_1k", 100, || {
         let mut raycaster = Raycaster::new();
-        black_box(
-            raycaster
-                .build_bvh(black_box(&scene), black_box(&meshes))
-                .unwrap(),
-        );
+        let () = raycaster
+            .build_bvh(black_box(&scene), black_box(&meshes))
+            .unwrap();
+        black_box(raycaster);
     });
 
     let mut raycaster = Raycaster::new();

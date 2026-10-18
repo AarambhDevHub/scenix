@@ -46,7 +46,7 @@ pub fn obj_string(package: &AssetPackage) -> String {
             out.push_str(&format!("vn {} {} {}\n", normal.x, normal.y, normal.z));
         }
         let indices = effective_indices(geometry);
-        for triangle in indices.chunks_exact(3) {
+        for triangle in indices.as_chunks::<3>().0 {
             out.push_str(&format!(
                 "f {} {} {}\n",
                 triangle[0] + vertex_offset,
@@ -86,7 +86,7 @@ pub fn ply_ascii_string(package: &AssetPackage) -> Result<String, ScenixError> {
     for position in &geometry.positions {
         out.push_str(&format!("{} {} {}\n", position.x, position.y, position.z));
     }
-    for triangle in indices.chunks_exact(3) {
+    for triangle in indices.as_chunks::<3>().0 {
         out.push_str(&format!(
             "3 {} {} {}\n",
             triangle[0], triangle[1], triangle[2]
@@ -114,7 +114,7 @@ pub fn glb_summary_bytes(package: &AssetPackage) -> Vec<u8> {
 
 fn write_stl_geometry(out: &mut String, geometry: &Geometry) {
     let indices = effective_indices(geometry);
-    for triangle in indices.chunks_exact(3) {
+    for triangle in indices.as_chunks::<3>().0 {
         let a = geometry.positions[triangle[0] as usize];
         let b = geometry.positions[triangle[1] as usize];
         let c = geometry.positions[triangle[2] as usize];

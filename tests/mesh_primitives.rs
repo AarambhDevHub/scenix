@@ -84,10 +84,10 @@ fn every_primitive_validates_and_has_uvs_in_range() {
 #[test]
 fn primitive_normals_face_triangle_winding() {
     for (name, geometry) in representative_primitives() {
-        for triangle in geometry.indices.chunks_exact(3) {
-            let a = triangle[0] as usize;
-            let b = triangle[1] as usize;
-            let c = triangle[2] as usize;
+        for &[a, b, c] in geometry.indices.as_chunks::<3>().0 {
+            let a = a as usize;
+            let b = b as usize;
+            let c = c as usize;
             let face = (geometry.positions[b] - geometry.positions[a])
                 .cross(geometry.positions[c] - geometry.positions[a])
                 .normalize();

@@ -221,6 +221,19 @@ scenix/
 │   │       ├── points.rs               ← PointsMaterial (point size, attenuation)
 │   │       └── shader.rs               ← ShaderMaterial (custom WGSL, uniform slots)
 │   │
+│   ├── scenix-nodes/                    ← Optional shader graph and node material system (no_std)
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs                  ← Root re-exports and NODE_GRAPH_LIMIT
+│   │       ├── value.rs                ← NodeValue / NodeValueKind typed unions
+│   │       ├── node.rs                 ← ShaderNodeKind, NodeInput, Stage / StageKind matrix
+│   │       ├── graph.rs                ← ShaderGraph, ShaderNodeId, validation, NodeDiagnostic
+│   │       ├── material.rs             ← NodeMaterial CPU state, pipeline key, serde
+│   │       ├── post.rs                 ← PostNodeEffect presets and parameter slots
+│   │       ├── wgsl.rs                 ← WGSL backend (scenix renderer bind contract)
+│   │       ├── glsl.rs                 ← GLSL ES 3.00 backend (WebGL tooling)
+│   │       └── inspector.rs            ← Node graph inspector snapshots (serde)
+│   │
 │   ├── scenix-light/                    ← Light types and shadow map management
 │   │   ├── Cargo.toml
 │   │   └── src/
@@ -394,13 +407,12 @@ scenix/
 
 ### Future Workspace Expansion
 
-The layout above describes the shipped v1.1 workspace. Future systems such as audio, physics, XR, editor tooling, particles, terrain, sky, water, and shader nodes should be added as **new optional crates** only when implementation begins. They should not be listed as active workspace members in `Cargo.toml` until the crate directory, tests, docs, examples, and feature flags exist.
+The layout above describes the shipped v1.1 workspace. Future systems such as audio, physics, XR, editor tooling, particles, terrain, sky, and water should be added as **new optional crates** only when implementation begins. They should not be listed as active workspace members in `Cargo.toml` until the crate directory, tests, docs, examples, and feature flags exist. The v1.6.0 shader-node work followed exactly this path and shipped as `scenix-nodes`.
 
 Planned future crates may extend the workspace like this:
 
 ```text
 crates/
-├── scenix-nodes/       ← optional shader graph and node material system
 ├── scenix-particles/   ← optional CPU/GPU particle systems
 ├── scenix-terrain/     ← optional heightmap terrain and chunked LOD
 ├── scenix-sky/         ← optional procedural sky and atmosphere
@@ -472,6 +484,7 @@ scenix-scene      = { path = "crates/scenix-scene",      version = "1" }
 scenix-camera     = { path = "crates/scenix-camera",     version = "1" }
 scenix-mesh       = { path = "crates/scenix-mesh",       version = "1" }
 scenix-material   = { path = "crates/scenix-material",   version = "1" }
+scenix-nodes      = { path = "crates/scenix-nodes",      version = "1" }
 scenix-light      = { path = "crates/scenix-light",      version = "1" }
 scenix-texture    = { path = "crates/scenix-texture",    version = "1" }
 scenix-loader     = { path = "crates/scenix-loader",     version = "1" }
@@ -1572,7 +1585,7 @@ Memory: ~48 bytes per node (AABB + child indices)
 
 **Responsibility:** The bridge between Animato animation values and scenix data. It exposes two layers: (1) procedural Animato `Tween`/`Spring` tracks that drive scene node transforms, camera fields, PBR material fields, light fields, morph weights, and explicit skeleton pose arrays; and (2) a clip-based Animation Runtime (`AnimationClip`/`AnimationAction`/`AnimationMixer`) with keyframe tracks, typed `PropertyBinding`s, loop modes, markers/events, crossfade, additive blending, retargeting, and deterministic per-tick sampling — comparable to Three.js's mixer, layered on top of Animato as the value engine.
 
-**Depends on:** `scenix-math`, `scenix-core`, `scenix-scene`, `scenix-camera`, `scenix-material`, `scenix-light`, `animato = "1.7.0"`
+**Depends on:** `scenix-math`, `scenix-core`, `scenix-scene`, `scenix-camera`, `scenix-material`, `scenix-light`, `animato = "1.7.2"`
 
 **Status in v1.4.0:** shipped as an optional facade feature. The procedural bridge uses local `AnimVec3`, `AnimQuat`, and `AnimColor` wrappers so scenix math/color types can participate in Animato interpolation without changing the underlying CPU crates. The v1.4.0 clip runtime adds `KeyframeScalar`/`Vec3`/`Quat`/`Color`/`Bool` tracks (Linear/Step/CubicSpline), `PropertyBinding` typed targets, `LoopMode` (Once/Repeat/PingPong), `AnimationMarker`/`AnimationEvent`, `LightAnimator`, `MorphWeightAnimator`, `RetargetMap`, and `AnimationMixer` that samples clips, accumulates weighted samples per `BindingKey`, and applies them to the scene/cameras/materials/lights/skeletons/morphs stores. Animato `1.7.0` resolves the previous `1.6.0` release gate.
 
@@ -1806,11 +1819,178 @@ pub use scenix_input::*;
 #[cfg(feature = "renderer")]  pub use scenix_renderer::*;
 #[cfg(feature = "loader")]    pub use scenix_loader::*;
 #[cfg(feature = "post")]      pub use scenix_post::*;
+#[cfg(feature = "nodes")]     pub use scenix_nodes::{ generate_material_wgsl, NodeMaterial, ... };
 #[cfg(feature = "raycaster")] pub use scenix_raycaster::*;
 #[cfg(feature = "animato")]   pub use scenix_animato::*;
 #[cfg(feature = "helpers")]   pub use scenix_helpers::*;
 #[cfg(feature = "wasm")]      pub use scenix_wasm::*;
 ```
+
+> **Design decision (v1.6.0):** the `nodes` re-export is a curated list rather
+> than a glob. `scenix-nodes` declares its own `graph`, `node`, and `value`
+> modules and its own `VertexAttribute` enum, which would otherwise collide
+> with the `scenix-scene` and `scenix-mesh` glob re-exports. Node types are
+> all re-exported by name, so `use scenix::*;` still sees the full surface.
+
+---
+
+### 4.18 `scenix-nodes` (v1.6.0)
+
+**Responsibility:** Typed shader graphs, node materials, and post node effects. Generates WGSL that matches the renderer bind contract and GLSL ES 3.00 for WebGL tooling, with validation that never panics.
+
+**Depends on:** `scenix-math`, `scenix-core`, `scenix-material`
+
+**Status in v1.6.0:** shipped as an optional crate behind the facade `nodes` feature. `no_std`-capable (std/serde features), feature-free integration points in `scenix-renderer` (`NodeMaterialSlot`), feature-gated `scenix-post::NodeEffectProgram`, browser preflight in `scenix-wasm`, and the GPU draw path behind the renderer's `nodes` feature.
+
+> **Design decisions:** graphs are data — one `ShaderGraph` lowers to *both*
+> backends, so node materials never hand-write WGSL. Validation runs over the
+> live subgraph only, publishes specific `NodeDiagnostic`s (`StageUnsupported`,
+> port mismatches, cycles, `UnknownNode`), and covers the fragment stage from
+> `NodeMaterial::validate`. The stage availability matrix and `StageKind::allows`
+> decide which nodes may appear per `Stage`, and color-like nodes (lighting,
+> tone mapping, fog, conversions) accept rgba base colors, dropping alpha in
+> codegen because WGSL forbids implicit `vec3` → `vec4` casts.
+
+#### `src/node.rs` — node vocabulary
+
+```rust
+pub enum ShaderNodeKind {
+    // 0-input sources
+    Constant(NodeValue), Uniform(UniformInput), Attribute(VertexAttribute),
+    WorldPosition, WorldNormal, ViewDirection, ScreenUv, PostUv, PostSource, PostParam(u8),
+    // 1-input transforms
+    TextureSample, Splat(NodeValueKind), Component(ComponentIndex), Length, Normalize,
+    Saturate, Abs, Sin, Cos, OneMinus, Fract, Floor, Fresnel(f32),
+    SrgbToLinear, LinearToSrgb, Lighting(LightingStyle), ToneMap(ToneMapKind),
+    Fog(FogStyle), ...
+    // 2-input arithmetic
+    Add, Subtract, Multiply, Divide, Min, Max, Dot, Cross, Power, Step,
+    // 3-input blends and the 5-port remap
+    Mix, Clamp, Smoothstep, Remap,
+}
+```
+
+Each kind declares its input expectations (`input_expectation`), resolved output
+kind, and stage availability. `StageKind::allows` makes a vertex `ScreenUv` or a
+post-stage uniform a reported diagnostic instead of generated-garbage WGSL.
+
+#### `src/graph.rs` — the graph
+
+```rust
+pub struct ShaderGraph {
+    fragment_color: Option<NodeInput>,
+    fragment_alpha: Option<NodeInput>,
+    vertex_offset: Option<ShaderNodeId>,
+    // nodes live in a deterministically ordered BTreeMap
+}
+
+impl ShaderGraph {
+    pub fn push(&mut self, kind: ShaderNodeKind) -> ShaderNodeId;
+    pub fn add(&mut self, kind: ShaderNodeKind, inputs: Vec<NodeInput>) -> ShaderNodeId;
+    pub fn chain(&mut self, kind: ShaderNodeKind, input: impl Into<NodeInput>) -> ShaderNodeId;
+    pub fn add_fragment_output(&mut self, color: impl Into<NodeInput>, alpha: Option<NodeInput>);
+    pub fn set_vertex_offset(&mut self, offset: Option<ShaderNodeId>);
+    pub fn validate(&self, stage: Stage) -> Vec<NodeDiagnostic>;
+    pub fn resolve(
+        &self,
+        stage: Stage,
+    ) -> Result<BTreeMap<ShaderNodeId, Option<NodeValueKind>>, NodeDiagnostic>;
+    pub fn fragment_order(&self) -> Vec<ShaderNodeId>;
+    pub fn vertex_order(&self) -> Option<Vec<ShaderNodeId>>;
+}
+
+pub const NODE_GRAPH_LIMIT: usize = 1024; // sanity floor for graph size
+```
+
+`resolve` walks the live subgraph in deterministic order, computes each node's
+broadcast kind, and rejects cycles/unknown ids. Codegen then eliminates common
+subexpressions and emits only reachable nodes.
+
+#### `src/material.rs` — node materials
+
+```rust
+pub struct NodeMaterial {
+    name: String,
+    graph: ShaderGraph,
+    base_color: Color, emissive: Vec3, metallic: f32, roughness: f32,
+    alpha_mode: AlphaMode, double_sided: bool,
+    texture: Option<TextureId>,
+    // serde derives under the serde feature
+}
+
+impl NodeMaterial {
+    pub fn new(name: impl Into<String>, graph: ShaderGraph) -> Self;
+    pub fn validate(&self) -> Vec<NodeDiagnostic>; // fragment stage
+    pub fn shader_hash(&self) -> u64;             // stable; ignores live CPU state
+    // Material trait: pipeline_key() reports ShaderKind::Custom and
+    // FEATURE_NODE_GRAPH (1 << 19).
+}
+```
+
+Live CPU state never changes the pipeline key, so recoloring a node material
+does not trigger pipeline rebuilds.
+
+#### `src/wgsl.rs` + `src/glsl.rs` — backends
+
+- `generate_material_wgsl(&NodeMaterial, &WgslOptions) -> Result<NodeWgslProgram, NodeDiagnostic>`
+  emits the full material module: group 0 frame, group 1 object, group 2
+  material (`MaterialUniform` + sampler + `texture_2d`), group 3 lights,
+  six varyings (`color`, `normal`, `uv`, `world_position`, `tangent`, local
+  position), `final_color` assembly, and alpha-cutoff discard.
+- `generate_post_wgsl(&PostNodeEffect, &WgslOptions)` and the GLSL twins
+  (`generate_material_glsl`, `generate_post_glsl`) follow the post contract:
+  full-screen triangle over group 0 binding 0 source texture, binding 1 linear
+  sampler, binding 2 `[f32; 8]` params. GLSL flattens uniforms to plain
+  `uniform vec4 material_base_color;` style declarations (no UBO blocks).
+- Common-subexpression elimination is deterministic (aliased `n<i>` temps) so
+  identical graphs produce identical modules and hashes.
+
+#### `src/post.rs` — post effects (with `slots` + `src/inspector.rs`)
+
+```rust
+pub struct PostNodeEffect { name, graph }
+impl PostNodeEffect {
+    pub fn passthrough() -> Self; pub fn vignette() -> Self;
+    pub fn desaturate() -> Self;  pub fn posterize() -> Self;
+    pub fn pixelate() -> Self;    pub fn color_grade() -> Self;
+    pub fn exposure(exposure: f32) -> Self;
+}
+pub mod slots {                    // stable slots inside the [f32; 8] block
+    pub const VIGNETTE_STRENGTH: u8 = 0;
+    pub const DESATURATE_AMOUNT: u8 = 0;
+    pub const POSTERIZE_LEVELS: u8 = 0;
+    pub const PIXELATE_GRID: u8 = 0;
+    pub const GRADE_SATURATION: u8 = 0;
+    pub const GRADE_BRIGHTNESS: u8 = 1;
+    pub const GRADE_CONTRAST: u8 = 2;
+}
+```
+
+#### Renderer, post, wasm, facade integration
+
+- `scenix-renderer`: feature-free `NodeMaterialSlot` registry on `GpuScene`
+  (`register_node_material`, `unregister_node_material`, `node_material`,
+  `node_material_count`); the `nodes` feature enables WGSL generation checks at
+  registration, lazy per-slot pipelines, per-draw `set_pipeline` switching,
+  node uniform packing, transparent bucketing, and culling fallback that
+  rejects unregistered node materials.
+- `scenix-post`: `NodeEffectProgram::from_effect` / `with_source` plus
+  `run(device, queue, encoder, source, destination, format, params)`.
+- `scenix-wasm`: `compile_node_material_glsl(json)` and
+  `validate_node_material_json(json)` preflight surfaces (panic-free).
+- `scenix`: the `nodes` facade feature forwards to `renderer`/`post`/`wasm`
+  variants and re-exports the node API by name.
+
+#### Tests, benches, examples
+
+- `tests/nodes_backend.rs`: 17 tests covering stage gating, bind contract,
+  GLSL flattening, CSE deduplication, displacement, and color-like rules.
+- `tests/scenix_v16.rs` + GPU-gated `tests/nodes_gpu.rs` at the facade level
+  (headless node rendering, mixed node/builtin draws, culling rejection,
+  registration validation).
+- `benches/nodes_bench.rs`: chain and fan-out graph build/lower hot paths.
+- `examples/nodes_material.rs`, `examples/nodes_wgsl.rs`, and
+  `examples/node_post_effect.rs`.
 
 ---
 
@@ -2224,7 +2404,7 @@ Before `cargo publish` for any crate:
 
 ```
 scenix-math → scenix-core → scenix-input → scenix-scene → scenix-camera → scenix-mesh
-          → scenix-material → scenix-light → scenix-texture
+          → scenix-material → scenix-nodes → scenix-light → scenix-texture
           → scenix-loader → scenix-post → scenix-renderer
           → scenix-raycaster → scenix-helpers → scenix-animato → scenix-wasm → scenix
 ```

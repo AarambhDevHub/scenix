@@ -38,7 +38,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v1.3.0` | Asset pipeline | glTF extensions, animation import, compression diagnostics, extra loaders, exporters, asset manager | ✅ |
 | `v1.4.0` | Animation runtime | Clip/mixer/action layer, skeletal animation, morph playback, retargeting helpers | ✅ |
 | `v1.5.0` | Interaction tools | Transform/drag/pointer-lock controls, selection helpers, editor primitives | ✅ |
-| `v1.6.0` | Shader nodes | New optional shader graph and node material crate | 🔮 |
+| `v1.6.0` | Shader nodes | New optional shader graph and node material crate | ✅ |
 | `v1.7.0` | Particles | New optional CPU/GPU particle crate | 🔮 |
 | `v1.8.0` | Environment systems | New optional terrain, sky, and water crates | 🔮 |
 | `v1.9.0` | Runtime bridges | New optional XR, audio, and physics crates | 🔮 |
@@ -473,9 +473,9 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 
 ## Current Focus
 
-The project has completed v1.5.0 and is preparing the optional shader-node work
-planned for v1.6.0. New work must preserve the stable modular API, keep heavy
-dependencies optional, and add deprecations before removing public APIs.
+The project has completed v1.6.0 and will next scope the optional particle
+crate planned for v1.7.0. New work must preserve the stable modular API, keep
+heavy dependencies optional, and add deprecations before removing public APIs.
 
 Scenix is not only a website or WASM demo library. Future work must treat **desktop, mobile, and web** as first-class runtime targets:
 
@@ -597,17 +597,17 @@ The version numbers below are planning buckets, not release promises. Each miles
 
 - `scenix-nodes` — new optional crate for shader nodes, material graphs, serialized node graphs, WGSL generation, and WebGL-compatible subset validation.
 - `scenix-material` — node-material integration points, material graph references, pipeline-key integration, and built-in node material descriptors.
-- `scenix-renderer` — node shader compilation, shader cache integration, bind group layout generation, diagnostics, and fallback behavior.
-- `scenix-post` — post-processing node graph integration where practical.
-- `scenix-wasm` — WebGPU/WebGL compatibility checks for generated shaders.
-- `scenix` — optional `nodes` facade feature and re-exports.
+- `scenix-renderer` — node shader compilation, batched node pipelines, bind-group switching per draw, culling fallback, and the shared `NodeMaterialSlot` registry.
+- `scenix-post` — `NodeEffectProgram` executes generated post graphs against a `[f32; 8]` parameter contract.
+- `scenix-wasm` — browser preflight compiles serialized node materials to GLSL with diagnostics, no GPU state required.
+- `scenix` — optional `nodes` facade feature with curated re-exports.
 
-- [ ] `scenix-nodes` crate scaffold with docs, tests, and facade feature.
-- [ ] Typed nodes for constants, uniforms, attributes, varyings, textures, math, color space, lighting, fog, tone mapping, and post effects.
-- [ ] WGSL backend for renderer integration.
-- [ ] WebGL-compatible subset validator for browser fallback.
-- [ ] First node material rendered through `scenix-renderer`.
-- [ ] Serialization format for editor-generated material graphs.
+- [x] `scenix-nodes` crate scaffold with docs, tests, benches, and facade feature.
+- [x] Typed nodes for constants, uniforms, attributes, varyings, textures, math, color space, lighting, fog, tone mapping, and post effects.
+- [x] WGSL backend for renderer integration (bind-contract output, CSE, dead-node pruning).
+- [x] WebGL-compatible GLSL ES 3.00 backend with flattened uniforms for browser tooling.
+- [x] First node material rendered through `scenix-renderer` (GPU-gated CI coverage).
+- [x] Serialization format for editor-generated material graphs plus browser preflight compile/validate entry points.
 
 ## v1.7.0 — Particles
 
@@ -829,7 +829,7 @@ The best way to contribute now is to propose a focused post-1.1 planning issue o
 
 ---
 
-*Roadmap version: 1.5.0 controls, interaction, and editor primitives — last updated July 14, 2026*
-*Next milestone: v1.6.0 shader nodes and node materials*
+*Roadmap version: 1.6.0 shader nodes and node materials — last updated October 17, 2026*
+*Next milestone: v1.7.0 particles*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

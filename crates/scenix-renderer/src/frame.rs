@@ -18,6 +18,8 @@ pub struct FrameContext {
     pub view_projection: Mat4,
     /// Camera position in world space.
     pub camera_position: Vec3,
+    /// Seconds since the renderer was created.
+    pub elapsed: f32,
 }
 
 /// CPU-side counters reported after a rendered frame.

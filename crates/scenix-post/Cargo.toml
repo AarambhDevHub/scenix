@@ -11,14 +11,16 @@ readme.workspace = true
 
 [features]
 default = ["std"]
-std = ["scenix-core/std", "scenix-math/std"]
+std = ["scenix-core/std", "scenix-math/std", "scenix-nodes?/std"]
 serde = ["dep:serde", "scenix-core/serde", "scenix-math/serde", "wgpu/serde"]
+nodes = ["dep:scenix-nodes"]
 
 [dependencies]
 bytemuck = { workspace = true }
 scenix-core = { workspace = true }
 scenix-math = { workspace = true }
 serde = { workspace = true, optional = true }
+scenix-nodes = { workspace = true, optional = true }
 wgpu = { workspace = true }
 
 [dev-dependencies]

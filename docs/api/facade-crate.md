@@ -20,7 +20,10 @@ scenix = "1"
 `InputState`, `SceneGraph`, `SceneNode`, `PerspectiveCamera`, camera controllers,
 `Geometry`, `PbrMaterial`, `Raycaster`, drag/transform controls, gizmos,
 `Inspectable`, `Renderer`, `GltfLoader`, `PostStack`, `AnimationMixer`,
-`BrowserRenderer`, and `WebRenderer`.
+`BrowserRenderer`, and `WebRenderer`. With the `nodes` feature the facade also
+re-exports `NodeMaterial`, `ShaderGraph`, the node kind vocabulary, backend
+generators, and `PostNodeEffect` by name (see
+[scenix-nodes](scenix-nodes.md)).
 
 ## Common Use
 

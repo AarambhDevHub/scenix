@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::Instant;
 
 use scenix_camera::PerspectiveCamera;
 use scenix_core::{GpuError, LightId, MaterialId, MeshId, ScenixError, TextureId, ValidationError};
@@ -82,11 +83,11 @@ struct TextureGpuResource {
 }
 
 #[derive(Debug)]
-struct UniformResources {
-    frame_layout: wgpu::BindGroupLayout,
-    object_layout: wgpu::BindGroupLayout,
-    material_layout: wgpu::BindGroupLayout,
-    light_layout: wgpu::BindGroupLayout,
+pub(crate) struct UniformResources {
+    pub(crate) frame_layout: wgpu::BindGroupLayout,
+    pub(crate) object_layout: wgpu::BindGroupLayout,
+    pub(crate) material_layout: wgpu::BindGroupLayout,
+    pub(crate) light_layout: wgpu::BindGroupLayout,
     frame_buffer: wgpu::Buffer,
     object_buffer: wgpu::Buffer,
     material_buffer: wgpu::Buffer,
@@ -253,6 +254,15 @@ pub struct Renderer {
     frame_index: u64,
     editor_buffers: Option<EditorBuffers>,
     editor_pick_requests: u64,
+    /// Seconds since renderer creation; node shaders read it through
+    /// `frame.resolution.z`.
+    started_at: Instant,
+    /// Node-material pipelines keyed by graph hash for the current target.
+    #[cfg(feature = "nodes")]
+    node_pipelines: HashMap<u64, wgpu::RenderPipeline>,
+    /// Color format the node-pipeline cache is valid for.
+    #[cfg(feature = "nodes")]
+    node_pipeline_format: wgpu::TextureFormat,
 }
 
 impl Renderer {
@@ -316,6 +326,11 @@ impl Renderer {
             frame_index: 0,
             editor_buffers: None,
             editor_pick_requests: 0,
+            started_at: Instant::now(),
+            #[cfg(feature = "nodes")]
+            node_pipelines: HashMap::new(),
+            #[cfg(feature = "nodes")]
+            node_pipeline_format: color_format,
         })
     }
 
@@ -328,6 +343,8 @@ impl Renderer {
         let surface_config = configure_surface(&surface, &adapter, &device, &config);
         let uniforms = UniformResources::new(&device);
         let draw_pipeline = create_draw_pipeline(&device, surface_config.format, &uniforms);
+        #[cfg(feature = "nodes")]
+        let node_pipeline_format = surface_config.format;
         let gbuffer = GBuffer::new(&device, config.width, config.height);
         let shadow_maps = ShadowMapAtlas::new(&device, 1024, 16);
         Ok(Self {
@@ -357,6 +374,11 @@ impl Renderer {
             frame_index: 0,
             editor_buffers: None,
             editor_pick_requests: 0,
+            started_at: Instant::now(),
+            #[cfg(feature = "nodes")]
+            node_pipelines: HashMap::new(),
+            #[cfg(feature = "nodes")]
+            node_pipeline_format,
         })
     }
 
@@ -378,6 +400,11 @@ impl Renderer {
                 configure_surface(surface, &self.adapter, &self.device, &self.config);
             self.draw_pipeline =
                 create_draw_pipeline(&self.device, surface_config.format, &self.uniforms);
+            #[cfg(feature = "nodes")]
+            {
+                self.node_pipelines.clear();
+                self.node_pipeline_format = surface_config.format;
+            }
             self.surface_config = Some(surface_config);
         } else {
             self.offscreen = Some(TextureTarget::new(
@@ -1311,7 +1338,7 @@ impl Renderer {
             resolution: [
                 frame_context.resolution.x,
                 frame_context.resolution.y,
-                1.0 / frame_context.resolution.x.max(1.0),
+                frame_context.elapsed,
                 1.0 / frame_context.resolution.y.max(1.0),
             ],
         };
@@ -1334,13 +1361,19 @@ impl Renderer {
         let mut material_bytes =
             vec![0_u8; self.uniforms.material_stride as usize * draw_count.max(1)];
         for (draw_index, draw) in opaque.iter().chain(transparent.iter()).enumerate() {
-            let Some(material) = self.gpu_scene.material(draw.material_id) else {
-                continue;
+            let material_uniform = match self.gpu_scene.material(draw.material_id) {
+                Some(material) => material_uniform(material),
+                #[cfg(feature = "nodes")]
+                None => match self.gpu_scene.node_material(draw.material_id) {
+                    Some(slot) => crate::node_material::node_material_uniform(slot),
+                    None => continue,
+                },
+                #[cfg(not(feature = "nodes"))]
+                None => continue,
             };
             let object_uniform = ObjectUniform {
                 world: mat4_uniform(draw.world_matrix),
             };
-            let material_uniform = material_uniform(material);
             let object_offset = self.uniforms.object_stride as usize * draw_index;
             let material_offset = self.uniforms.material_stride as usize * draw_index;
             object_bytes[object_offset..object_offset + core::mem::size_of::<ObjectUniform>()]
@@ -1354,6 +1387,12 @@ impl Renderer {
                 .write_buffer(&self.uniforms.object_buffer, 0, &object_bytes);
             self.queue
                 .write_buffer(&self.uniforms.material_buffer, 0, &material_bytes);
+        }
+        // Node pipelines must exist before the first node draw is submitted.
+        #[cfg(feature = "nodes")]
+        {
+            self.ensure_node_pipelines(opaque);
+            self.ensure_node_pipelines(transparent);
         }
 
         let clear = if visible_meshes > 0 {
@@ -1399,13 +1438,52 @@ impl Renderer {
                 pass.set_pipeline(&self.draw_pipeline);
                 pass.set_bind_group(0, &self.uniforms.frame_bind_group, &[]);
                 pass.set_bind_group(3, &self.uniforms.light_bind_group, &[]);
+                // Node draws rotate pipelines; built-ins share one pipeline.
+                #[cfg(feature = "nodes")]
+                let mut node_pipeline_hash: Option<u64> = None;
                 for (draw_index, draw) in opaque.iter().chain(transparent.iter()).enumerate() {
                     let Some(mesh) = self.gpu_scene.mesh(draw.mesh_id) else {
                         continue;
                     };
-                    let Some(material) = self.gpu_scene.material(draw.material_id) else {
+                    let material = self.gpu_scene.material(draw.material_id);
+                    #[cfg(feature = "nodes")]
+                    if material.is_none() && !self.node_pipelines.is_empty() {
+                        let Some(slot) = self.gpu_scene.node_material(draw.material_id) else {
+                            continue;
+                        };
+                        let Some(pipeline) = self.node_pipelines.get(&slot.shader_hash) else {
+                            continue;
+                        };
+                        if node_pipeline_hash != Some(slot.shader_hash) {
+                            pass.set_pipeline(pipeline);
+                            node_pipeline_hash = Some(slot.shader_hash);
+                        }
+                        pass.set_bind_group(
+                            1,
+                            &self.uniforms.object_bind_group,
+                            &[(draw_index as u64 * self.uniforms.object_stride) as u32],
+                        );
+                        pass.set_bind_group(
+                            2,
+                            self.node_material_bind_group(slot),
+                            &[(draw_index as u64 * self.uniforms.material_stride) as u32],
+                        );
+                        pass.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
+                        pass.set_index_buffer(
+                            mesh.index_buffer().slice(..),
+                            mesh.packed().index_format.to_wgpu(),
+                        );
+                        pass.draw_indexed(0..mesh.packed().index_count, 0, 0..1);
+                        continue;
+                    }
+                    let Some(material) = material else {
                         continue;
                     };
+                    #[cfg(feature = "nodes")]
+                    if node_pipeline_hash.is_some() {
+                        pass.set_pipeline(&self.draw_pipeline);
+                        node_pipeline_hash = None;
+                    }
                     pass.set_bind_group(
                         1,
                         &self.uniforms.object_bind_group,
@@ -1428,6 +1506,97 @@ impl Renderer {
         self.queue.submit(Some(encoder.finish()));
     }
 
+    /// Registers a shader-node material (scenix v1.6.0) generated from a
+    /// validated `scenix-nodes` graph.
+    ///
+    /// The node material is stored in the parallel node-slot registry: draws
+    /// resolve their pixel state from the shared material layout while the
+    /// pipeline rotates between the built-in shader and the generated WGSL
+    /// module. Textures must be registered separately through
+    /// [`Renderer::register_texture2d`].
+    ///
+    /// # Errors
+    /// Returns `InvalidId` for a null material id and `InvalidState` when the
+    /// graph produces a node diagnostic.
+    #[cfg(feature = "nodes")]
+    pub fn register_node_material(
+        &mut self,
+        material_id: MaterialId,
+        material: &scenix_nodes::NodeMaterial,
+    ) -> Result<(), ScenixError> {
+        if material_id.is_null() {
+            return Err(ScenixError::from(ValidationError::InvalidId));
+        }
+        if !material.validate().is_empty() {
+            return Err(ScenixError::from(ValidationError::InvalidState));
+        }
+        let program =
+            scenix_nodes::generate_material_wgsl(material, &scenix_nodes::WgslOptions::default())
+                .map_err(|_| ScenixError::from(ValidationError::InvalidState))?;
+        let shader_hash = match material.pipeline_key().shader {
+            scenix_material::ShaderKind::Custom(hash) => hash,
+            _ => return Err(ScenixError::from(ValidationError::InvalidState)),
+        };
+        let slot = crate::NodeMaterialSlot {
+            shader_hash,
+            wgsl_source: program.into_source(),
+            texture: material.texture(),
+            base_color: material.base_color(),
+            emissive: material.emissive(),
+            metallic: material.metallic(),
+            roughness: material.roughness(),
+            alpha_cutoff: material.alpha_cutoff().unwrap_or(-1.0),
+            alpha_mode: material.alpha_mode(),
+            double_sided: material.double_sided(),
+            feature_bits: material.feature_bits(),
+        };
+        self.gpu_scene
+            .register_node_material(material_id, slot)
+            .map_err(ScenixError::from)
+    }
+
+    /// Removes a shader-node material slot.
+    #[cfg(feature = "nodes")]
+    pub fn unregister_node_material(&mut self, material_id: MaterialId) -> bool {
+        self.gpu_scene.unregister_node_material(material_id)
+    }
+
+    /// Builds missing node pipelines before the frame draw loop. Runs once
+    /// per distinct graph hash; pipelines survive across frames.
+    #[cfg(feature = "nodes")]
+    fn ensure_node_pipelines(&mut self, draws: &[crate::DrawSubmission]) {
+        if self.gpu_scene.node_material_count() == 0 {
+            return;
+        }
+        for draw in draws {
+            if self.gpu_scene.material(draw.material_id).is_some() {
+                continue;
+            }
+            let Some(slot) = self.gpu_scene.node_material(draw.material_id) else {
+                continue;
+            };
+            let hash = slot.shader_hash;
+            self.node_pipelines.entry(hash).or_insert_with(|| {
+                crate::node_material::create_node_pipeline(
+                    &self.device,
+                    &self.uniforms,
+                    &slot.wgsl_source,
+                    self.node_pipeline_format,
+                )
+            });
+        }
+    }
+
+    /// Resolves the material bind group for a node draw: the slot texture,
+    /// or the default white texture through the shared material layout.
+    #[cfg(feature = "nodes")]
+    fn node_material_bind_group(&self, slot: &crate::NodeMaterialSlot) -> &wgpu::BindGroup {
+        slot.texture
+            .and_then(|texture_id| self.texture_resources.get(&texture_id))
+            .and_then(|resource| resource.material_bind_group.as_ref())
+            .unwrap_or(&self.uniforms.material_bind_group)
+    }
+
     fn frame_context(&self, camera: &PerspectiveCamera) -> FrameContext {
         FrameContext {
             frame_index: self.frame_index,
@@ -1436,10 +1605,11 @@ impl Renderer {
             projection: camera.projection_matrix(),
             view_projection: camera.view_projection(),
             camera_position: camera.position,
+            elapsed: self.started_at.elapsed().as_secs_f32(),
         }
     }
 
-    fn material_bind_group(&self, material: &RendererMaterial) -> &wgpu::BindGroup {
+    pub(crate) fn material_bind_group(&self, material: &RendererMaterial) -> &wgpu::BindGroup {
         material_albedo_texture(material)
             .and_then(|texture_id| self.texture_resources.get(&texture_id))
             .and_then(|resource| resource.material_bind_group.as_ref())
@@ -1577,7 +1747,7 @@ impl Renderer {
     }
 }
 
-fn material_uniform(material: &RendererMaterial) -> MaterialUniform {
+pub(crate) fn material_uniform(material: &RendererMaterial) -> MaterialUniform {
     match material {
         RendererMaterial::Pbr(material) => MaterialUniform::new(
             material.albedo,
@@ -1945,7 +2115,7 @@ fn to_wgpu_mipmap_filter_mode(filter: scenix_texture::FilterMode) -> wgpu::Mipma
     }
 }
 
-fn material_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+pub(crate) fn material_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("scenix.material.preview.layout"),
         entries: &[
@@ -2173,7 +2343,7 @@ fn create_draw_pipeline(
     })
 }
 
-fn uniform_layout(
+pub(crate) fn uniform_layout(
     device: &wgpu::Device,
     label: &'static str,
     visibility: wgpu::ShaderStages,
@@ -2194,7 +2364,11 @@ fn uniform_layout(
     })
 }
 
-fn uniform_buffer(device: &wgpu::Device, label: &'static str, size: usize) -> wgpu::Buffer {
+pub(crate) fn uniform_buffer(
+    device: &wgpu::Device,
+    label: &'static str,
+    size: usize,
+) -> wgpu::Buffer {
     device.create_buffer(&wgpu::BufferDescriptor {
         label: Some(label),
         size: size.max(1) as u64,
@@ -2203,7 +2377,7 @@ fn uniform_buffer(device: &wgpu::Device, label: &'static str, size: usize) -> wg
     })
 }
 
-fn uniform_bind_group(
+pub(crate) fn uniform_bind_group(
     device: &wgpu::Device,
     label: &'static str,
     layout: &wgpu::BindGroupLayout,
@@ -2224,7 +2398,7 @@ fn uniform_bind_group(
     })
 }
 
-fn aligned_uniform_size<T>() -> u64 {
+pub(crate) fn aligned_uniform_size<T>() -> u64 {
     let size = core::mem::size_of::<T>() as u64;
     (size + 255) & !255
 }

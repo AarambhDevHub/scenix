@@ -27,6 +27,7 @@ std = [
     "scenix-animato/std",
     "scenix-renderer/std",
     "scenix-scene/std",
+    "scenix-nodes?/std",
     "scenix-core/inspector",
     "scenix-core/serde",
     "scenix-scene/inspector",
@@ -46,6 +47,7 @@ serde = [
     "scenix-renderer/serde",
     "scenix-scene/serde",
 ]
+nodes = ["dep:scenix-nodes", "scenix-nodes/serde", "dep:serde_json"]
 
 [dependencies]
 console_error_panic_hook = { workspace = true }
@@ -62,6 +64,7 @@ scenix-raycaster = { workspace = true }
 scenix-animato = { workspace = true }
 scenix-renderer = { workspace = true }
 scenix-scene = { workspace = true }
+scenix-nodes = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { workspace = true }

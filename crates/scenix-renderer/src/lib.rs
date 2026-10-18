@@ -13,6 +13,8 @@ pub mod gpu_scene;
 #[cfg(feature = "inspector")]
 mod inspector;
 pub mod material;
+#[cfg(feature = "nodes")]
+pub mod node_material;
 pub mod pass;
 pub mod pipeline_cache;
 pub mod renderer;
@@ -25,9 +27,9 @@ pub use environment::EnvironmentMap;
 pub use frame::{FrameContext, FrameStats, PipelineCacheStats, RendererDiagnostics, ResourceStats};
 pub use gbuffer::{GBuffer, RenderTargetDescriptor, RenderTargetKind};
 pub use gpu_scene::{
-    DrawSubmission, GpuIndexFormat, GpuMesh, GpuScene, GpuTexture, PackedGeometry, PackedVertex,
-    RendererLight, RendererMaterial, TextureStore, to_wgpu_address_mode, to_wgpu_compare,
-    to_wgpu_filter_mode, to_wgpu_texture_format,
+    DrawSubmission, GpuIndexFormat, GpuMesh, GpuScene, GpuTexture, NodeMaterialSlot,
+    PackedGeometry, PackedVertex, RendererLight, RendererMaterial, TextureStore,
+    to_wgpu_address_mode, to_wgpu_compare, to_wgpu_filter_mode, to_wgpu_texture_format,
 };
 pub use material::{GpuMaterial, MaterialUniform};
 pub use pass::culling::{CullingStats, collect_visible_draws};

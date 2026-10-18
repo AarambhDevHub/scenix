@@ -163,6 +163,9 @@ pub const FEATURE_VERTEX_COLORS: u64 = 1 << 17;
 /// Toon outline path is active.
 pub const FEATURE_OUTLINE: u64 = 1 << 18;
 
+/// Node-graph driven material shader (scenix v1.6 "Shader Nodes").
+pub const FEATURE_NODE_GRAPH: u64 = 1 << 19;
+
 /// CPU-side material description with no GPU dependency.
 pub trait Material: Send + Sync + 'static {
     /// Returns the renderer pipeline selector for this material state.

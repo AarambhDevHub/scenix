@@ -25,9 +25,9 @@ dependencies = [
 
 [[package]]
 name = "animato"
-version = "1.7.0"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "209406684828fd86b354535d57f3876cee0e056c09db2b9231b75c01aef83f6b"
+checksum = "3442e820517e920a1ac56d9e331be066374ecf1e9deda46c4107e3fde0ce12e3"
 dependencies = [
  "animato-color",
  "animato-core",
@@ -42,9 +42,9 @@ dependencies = [
 
 [[package]]
 name = "animato-color"
-version = "1.7.0"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3b50164119756737ac15cff45cfc223554ea124c81ce1050f5593a2b7a5f677"
+checksum = "dc1df04494af8cebba5be3f2246305773f0d277c19e1d17c8c9821fa9d7a2998"
 dependencies = [
  "animato-core",
  "palette",
@@ -52,27 +52,27 @@ dependencies = [
 
 [[package]]
 name = "animato-core"
-version = "1.7.0"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ff52476ee3c4c9fda7b178c1d9bc4c482118efa2a781e268425fb40c7bcc7ee"
+checksum = "4bec574aad55366acee5e4bcce6f75045f11459db2b1ab4e0ac456fc1d9357ff"
 dependencies = [
  "libm",
 ]
 
 [[package]]
 name = "animato-driver"
-version = "1.7.0"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2314ecbe1b5c2d36fb847e0f4ee1c8920b0b31422f640878be1e119e736e249a"
+checksum = "13ab9246e96b6a684d1993d9d5126d8ea1401143289783fc627f4007310b9625"
 dependencies = [
  "animato-core",
 ]
 
 [[package]]
 name = "animato-path"
-version = "1.7.0"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd7c156e7d5f4712e73f1a6355b6e3aab1bdf14a182c4d8990068209949ce2dc"
+checksum = "c620d219530cae27b3f662c898abb8a20912a9f69fc48d81764061c18716796c"
 dependencies = [
  "animato-core",
  "animato-tween",
@@ -81,9 +81,9 @@ dependencies = [
 
 [[package]]
 name = "animato-physics"
-version = "1.7.0"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49e257e03d71cf076e8eee58ecafe5a1be9c3e9adec14e288e9a682430bd3ca7"
+checksum = "fcbf115da430fd4f504eeb4b184d9343490988839778e941f0c769f9ec0f5866"
 dependencies = [
  "animato-core",
  "libm",
@@ -91,18 +91,18 @@ dependencies = [
 
 [[package]]
 name = "animato-spring"
-version = "1.7.0"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63c77eb96a8a867870c4472e5a9d9cdbc8e13b47ebd82c05928cca6c96df2283"
+checksum = "42248f390dffc3d3c667f33334f1a2745a3f45d3269a6acad04208f8ff785940"
 dependencies = [
  "animato-core",
 ]
 
 [[package]]
 name = "animato-timeline"
-version = "1.7.0"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "418b0026ad39602a2f58311a051111acccb500ad0b7e253736d8803fe1f33df2"
+checksum = "0c9dd50eebac8b2079fa5948609939513ea6f3981f3beb920adca41b8fde96c7"
 dependencies = [
  "animato-core",
  "animato-tween",
@@ -110,9 +110,9 @@ dependencies = [
 
 [[package]]
 name = "animato-tween"
-version = "1.7.0"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2505d4fa9b236f1864c853ebe22cd31e6822d60a65a76c49e17972187f03b1c"
+checksum = "3dde84d5eb9a52c61447b0026fd4e1026b96bcb591d99637d9d90770cf4ed20e"
 dependencies = [
  "animato-core",
 ]
@@ -1046,7 +1046,7 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "scenix"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-animato",
  "scenix-camera",
@@ -1058,6 +1058,7 @@ dependencies = [
  "scenix-material",
  "scenix-math",
  "scenix-mesh",
+ "scenix-nodes",
  "scenix-post",
  "scenix-raycaster",
  "scenix-renderer",
@@ -1068,7 +1069,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-animato"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "animato",
  "scenix-camera",
@@ -1081,7 +1082,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-camera"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-core",
  "scenix-input",
@@ -1090,7 +1091,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-core"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-math",
  "serde",
@@ -1098,7 +1099,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-helpers"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-camera",
  "scenix-core",
@@ -1109,14 +1110,14 @@ dependencies = [
 
 [[package]]
 name = "scenix-input"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-math",
 ]
 
 [[package]]
 name = "scenix-light"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1124,7 +1125,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-loader"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "gltf",
  "image",
@@ -1143,7 +1144,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-material"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1151,32 +1152,42 @@ dependencies = [
 
 [[package]]
 name = "scenix-math"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "scenix-mesh"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-core",
+ "scenix-math",
+]
+
+[[package]]
+name = "scenix-nodes"
+version = "1.6.0"
+dependencies = [
+ "scenix-core",
+ "scenix-material",
  "scenix-math",
 ]
 
 [[package]]
 name = "scenix-post"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "bytemuck",
  "scenix-core",
  "scenix-math",
+ "scenix-nodes",
  "wgpu",
 ]
 
 [[package]]
 name = "scenix-raycaster"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-camera",
  "scenix-core",
@@ -1187,7 +1198,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-renderer"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "bytemuck",
  "raw-window-handle",
@@ -1197,6 +1208,7 @@ dependencies = [
  "scenix-material",
  "scenix-math",
  "scenix-mesh",
+ "scenix-nodes",
  "scenix-post",
  "scenix-scene",
  "scenix-texture",
@@ -1205,7 +1217,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-scene"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-core",
  "scenix-math",
@@ -1214,14 +1226,14 @@ dependencies = [
 
 [[package]]
 name = "scenix-texture"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix-core",
 ]
 
 [[package]]
 name = "scenix-wasm"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
@@ -1234,6 +1246,7 @@ dependencies = [
  "scenix-material",
  "scenix-math",
  "scenix-mesh",
+ "scenix-nodes",
  "scenix-raycaster",
  "scenix-renderer",
  "scenix-scene",
@@ -1245,7 +1258,7 @@ dependencies = [
 
 [[package]]
 name = "scenix-wasm-viewer"
-version = "1.5.0"
+version = "1.6.0"
 dependencies = [
  "scenix",
  "wasm-bindgen",

@@ -5,8 +5,8 @@ use scenix_light::{
     AmbientLight, AreaLight, DirectionalLight, HemisphereLight, LightProbe, PointLight, SpotLight,
 };
 use scenix_material::{
-    LambertMaterial, Material, NormalMaterial, PbrMaterial, PhysicalMaterial, PipelineKey,
-    ToonMaterial, UnlitMaterial, WireframeMaterial,
+    AlphaMode, LambertMaterial, Material, NormalMaterial, PbrMaterial, PhysicalMaterial,
+    PipelineKey, ToonMaterial, UnlitMaterial, WireframeMaterial,
 };
 use scenix_math::{Aabb, Mat4, Vec2, Vec3, Vec4};
 use scenix_mesh::Geometry;
@@ -252,6 +252,54 @@ pub struct DrawSubmission {
     pub render_order: u32,
 }
 
+/// Renderer-local registration slot for shader-node materials (scenix
+/// v1.6.0 "Shader Nodes And Node Materials").
+///
+/// Node materials are not part of [`RendererMaterial`]: `collect_visible_draws`
+/// keeps `material(id)` semantics for the built-in enum while node artifacts
+/// are resolved through the parallel [`GpuScene::node_material`] lookup. The
+/// slot carries the generated WGSL module (pipeline identity) plus the CPU
+/// state packed into the shared material uniform buffer.
+#[derive(Clone, Debug)]
+pub struct NodeMaterialSlot {
+    /// FNV-1a hash of the validated node graph; used as `ShaderKind::Custom`
+    /// pipeline identity and node-pipeline cache key.
+    pub shader_hash: u64,
+    /// Generated WGSL module (vertex + fragment stages) for the graph.
+    pub wgsl_source: String,
+    /// Albedo texture resolved through the texture registry; `None` binds the
+    /// default white texture.
+    pub texture: Option<TextureId>,
+    /// Live base color (linear RGBA).
+    pub base_color: Color,
+    /// Live emissive color (linear RGB).
+    pub emissive: Vec3,
+    /// Live metallic factor.
+    pub metallic: f32,
+    /// Live roughness factor.
+    pub roughness: f32,
+    /// Alpha-test cutoff; negative when alpha testing is disabled.
+    pub alpha_cutoff: f32,
+    /// Transparency mode; also the transparent-pass sort criterion.
+    pub alpha_mode: AlphaMode,
+    /// Double-sided pipeline bit.
+    pub double_sided: bool,
+    /// Renderer feature bits (the node graph bit plus texture/double-sided
+    /// propagation), fed into pipeline roots.
+    pub feature_bits: u64,
+}
+
+impl NodeMaterialSlot {
+    /// Whether the draw should sort into the transparent pass.
+    #[inline]
+    pub const fn is_transparent(&self) -> bool {
+        match self.alpha_mode {
+            AlphaMode::Blend => true,
+            AlphaMode::Opaque | AlphaMode::Mask(_) => false,
+        }
+    }
+}
+
 /// Renderer-owned GPU scene resources and CPU metadata.
 #[derive(Debug, Default)]
 pub struct GpuScene {
@@ -259,6 +307,7 @@ pub struct GpuScene {
     materials: HashMap<MaterialId, RendererMaterial>,
     textures: TextureStore,
     lights: HashMap<LightId, RendererLight>,
+    shader_nodes: HashMap<MaterialId, NodeMaterialSlot>,
 }
 
 impl GpuScene {
@@ -529,6 +578,40 @@ impl GpuScene {
         self.materials.remove(&material_id).is_some()
     }
 
+    /// Removes one shader-node material slot from the registry.
+    #[inline]
+    pub fn unregister_node_material(&mut self, material_id: MaterialId) -> bool {
+        self.shader_nodes.remove(&material_id).is_some()
+    }
+
+    /// Registers a validated shader-node material slot.
+    ///
+    /// # Errors
+    /// Returns `InvalidId` when the material id is null.
+    pub fn register_node_material(
+        &mut self,
+        material_id: MaterialId,
+        slot: NodeMaterialSlot,
+    ) -> Result<(), ValidationError> {
+        if material_id.is_null() {
+            return Err(ValidationError::InvalidId);
+        }
+        self.shader_nodes.insert(material_id, slot);
+        Ok(())
+    }
+
+    /// Returns the shader-node slot registered under `material_id`.
+    #[inline]
+    pub fn node_material(&self, material_id: MaterialId) -> Option<&NodeMaterialSlot> {
+        self.shader_nodes.get(&material_id)
+    }
+
+    /// Number of registered shader-node materials.
+    #[inline]
+    pub fn node_material_count(&self) -> usize {
+        self.shader_nodes.len()
+    }
+
     /// Removes one texture metadata entry from the registry.
     #[inline]
     pub fn unregister_texture(&mut self, texture_id: TextureId) -> bool {
@@ -551,6 +634,7 @@ impl GpuScene {
     #[inline]
     pub fn clear_materials(&mut self) {
         self.materials.clear();
+        self.shader_nodes.clear();
     }
 
     /// Clears all texture metadata.

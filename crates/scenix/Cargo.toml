@@ -11,11 +11,12 @@ readme.workspace = true
 
 [features]
 default = ["std", "scene", "camera", "mesh", "material", "light", "texture", "raycaster", "helpers"]
-std = ["scenix-math/std", "scenix-core/std", "scenix-input/std", "scenix-scene?/std", "scenix-camera?/std", "scenix-mesh?/std", "scenix-material?/std", "scenix-light?/std", "scenix-texture?/std", "scenix-loader?/std", "scenix-post?/std", "scenix-renderer?/std", "scenix-raycaster?/std", "scenix-helpers?/std", "scenix-animato?/std", "scenix-wasm?/std"]
+std = ["scenix-math/std", "scenix-core/std", "scenix-input/std", "scenix-scene?/std", "scenix-camera?/std", "scenix-mesh?/std", "scenix-nodes?/std", "scenix-material?/std", "scenix-light?/std", "scenix-texture?/std", "scenix-loader?/std", "scenix-post?/std", "scenix-renderer?/std", "scenix-raycaster?/std", "scenix-helpers?/std", "scenix-animato?/std", "scenix-wasm?/std"]
 scene = ["dep:scenix-scene"]
 camera = ["dep:scenix-camera"]
 mesh = ["dep:scenix-mesh"]
 material = ["dep:scenix-material"]
+nodes = ["dep:scenix-nodes", "scenix-renderer?/nodes", "scenix-post?/nodes", "scenix-wasm?/nodes"]
 light = ["dep:scenix-light"]
 texture = ["dep:scenix-texture"]
 loader = ["dep:scenix-loader"]
@@ -56,6 +57,7 @@ scenix-light = { workspace = true, optional = true }
 scenix-loader = { workspace = true, optional = true }
 scenix-material = { workspace = true, optional = true }
 scenix-mesh = { workspace = true, optional = true }
+scenix-nodes = { workspace = true, optional = true }
 scenix-post = { workspace = true, optional = true }
 scenix-raycaster = { workspace = true, optional = true }
 scenix-renderer = { workspace = true, optional = true }
@@ -274,3 +276,28 @@ required-features = ["editor", "egui"]
 name = "renderer_picking"
 path = "../../examples/renderer_picking.rs"
 required-features = ["renderer", "scene", "camera", "mesh", "material"]
+
+[[example]]
+name = "nodes_material"
+path = "../../examples/nodes_material.rs"
+required-features = ["nodes", "material"]
+
+[[example]]
+name = "nodes_wgsl"
+path = "../../examples/nodes_wgsl.rs"
+required-features = ["nodes", "material"]
+
+[[example]]
+name = "node_post_effect"
+path = "../../examples/node_post_effect.rs"
+required-features = ["nodes"]
+
+[[test]]
+name = "scenix_v16"
+path = "../../tests/scenix_v16.rs"
+required-features = ["nodes", "material"]
+
+[[test]]
+name = "nodes_gpu"
+path = "../../tests/nodes_gpu.rs"
+required-features = ["nodes", "material", "renderer", "scene", "camera", "mesh"]

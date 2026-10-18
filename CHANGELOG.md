@@ -7,6 +7,91 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-17
+
+### Added
+
+- Added the optional `scenix-nodes` crate (`no_std`-capable): typed shader
+  graphs with three output ports (`fragment_color`, `fragment_alpha`, and a
+  vertex `vertex_offset` displacement port), `ShaderNodeKind` node vocabulary,
+  `NodeInput`/`NodeValue` typed values, stage gating (`Stage::Vertex`,
+  `Stage::Fragment`, `Stage::Post`) that renders fragment-only or
+  post-only nodes as specific `NodeDiagnostic`s, validation over the live
+  subgraph only, dead-node release, determinism-ordered ABA problem checks,
+  and `NODE_GRAPH_LIMIT` bounds.
+- Added the material node vocabulary: uniforms (`BaseColor`, `Emissive`,
+  `Metallic`, `Roughness`, `Time`), vertex attributes, world/view fragment
+  sources, texture sampling, splat/component shaping, arithmetic and
+  `Min`/`Max`/`Dot`/`Cross`/`Power`/`Step`, `Mix`/`Clamp`/`Smoothstep`, five-slot
+  `Remap`, `Fresnel`, sRGB/linear conversions, lighting styles (Lambert, Phong,
+  Toon, Cel), tone mappers, and fog; color-like nodes accept rgba base colors
+  and drop alpha in codegen.
+- Added the WGSL backend: generated modules follow the renderer bind contract
+  (group 0 frame, group 1 object, group 2 material with uniform/sampler/
+  texture_2d, group 3 fragment-only lights) with six varyings matching the
+  built-in vertex layout, `Time` resolved to the frame elapsed slot, and
+  common-subexpression elimination plus dead-node pruning in codegen.
+- Added the GLSL ES 3.00 backend with flattened plain uniforms for WebGL
+  tooling. Both backends duplicate the `Stage` availability matrix so graphs
+  cannot reach a backend with a stage-incompatible node list.
+- Added `NodeMaterial`: graph plus CPU state (base color, emissive, metallic,
+  roughness, alpha mode/cutoff, double-sided, texture id), `serde` support,
+  `FEATURE_NODE_GRAPH` (`1 << 19`), a `Custom` shader-kind pipeline key, and a
+  stable graph hash that ignores live CPU state.
+- Added `PostNodeEffect` post graphs with atomic full-bandwidth presets
+  (`passthrough`, `vignette`, `desaturate`, `posterize`, `pixelate`,
+  `color_grade`, `exposure`), shared stable parameter slots in the
+  `PostParams`/`[f32; 8]` contract, and post WGSL/GLSL generators.
+- Added `scenix-renderer` node integration (behind its `nodes` feature):
+  feature-free `NodeMaterialSlot` registry (`register_node_material`,
+  `unregister_node_material`, `node_material`, `node_material_count`),
+  per-draw node pipeline creation and `set_pipeline` switching, node uniform
+  packing in the standard material block, transparent bucketing from the slot's
+  alpha mode, and rejection of unregistered node materials during culling.
+- Added `scenix-post::NodeEffectProgram` (behind the `nodes` feature): owns one
+  generated post module, lazily builds per-format pipelines, runs the
+  `[f32; 8]` parameter contract with a full-screen triangle pass.
+- Added `scenix-wasm` browser preflight (behind the `nodes` feature): compile
+  a serialized `NodeMaterial` into GLSL and a diagnostic payload
+  (`compile_node_material_glsl`) or validate-only (`validate_node_material_json`)
+  before anything is uploaded.
+- Added the facade `nodes` feature with curated re-exports (node vocabulary,
+  materials, generators, diagnostics, slots) and feature forwarding over
+  `renderer`, `post`, and `wasm`.
+- Added `examples/nodes_material.rs`, `examples/nodes_wgsl.rs`, and
+  `examples/node_post_effect.rs`, the `tests/scenix_v16.rs` facade surface
+  suite, GPU-gated `tests/nodes_gpu.rs` (headless node rendering, mixed
+  node/builtin draws, culling rejection, and registration validation), and
+  `benches/nodes_bench.rs` for graph build/lower hot paths.
+- Added `docs/api/scenix-nodes.md` and `.github/release-notes/1.6.0.md` as the
+  GitHub Release body.
+
+### Changed
+
+- Bumped all 18 workspace crates and internal dependency requirements to
+  `1.6.0`; Rust 1.89, edition 2024, and existing default features are retained.
+- Bumped Animato to `1.7.2`; the previous `1.7.0` gate is superseded with no
+  scenix-side code changes.
+- `scenix-renderer`'s frame uniform now packs resolution as
+  `[width, height, elapsed seconds, 1 / height]`; node shaders read `Time`
+  from `frame.resolution.z`, and the renderer tracks elapsed time per surface.
+- CI and publish workflows gained node-surface lanes (tests, facade feature
+  lanes, `scenix-nodes` in publish order after `scenix-material`, and the
+  release title).
+- Website and standalone WASM viewer manifests now match the workspace release.
+
+### Compatibility and Migration Notes
+
+- Everything v1.6 is additive; no existing enum gained variants and default
+  feature sets are unchanged, so `scenix = "1"` users see identical behavior
+  without `nodes`.
+- Node graphs that fail produce a typed `NodeDiagnostic` (`StageUnsupported`,
+  port mismatches, cycles, `UnknownNode`, ...) instead of a panicking
+  pipeline; `NodeMaterial::validate` covers the fragment stage and
+  `ShaderGraph::validate(Stage::Vertex)` covers displacement ports explicitly.
+- The frame uniform layout change affects direct `FrameUniform` consumers
+  outside scenix; built-in material shaders are unaffected.
+
 ## [1.5.0] - 2026-07-14
 
 ### Added

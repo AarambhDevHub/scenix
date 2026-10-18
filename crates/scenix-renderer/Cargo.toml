@@ -21,6 +21,7 @@ std = [
     "scenix-scene/std",
     "scenix-texture/std",
     "scenix-post?/std",
+    "scenix-nodes?/std",
 ]
 post = ["dep:scenix-post"]
 serde = [
@@ -37,6 +38,7 @@ serde = [
     "wgpu/serde",
 ]
 inspector = ["scenix-core/inspector"]
+nodes = ["dep:scenix-nodes"]
 
 [dependencies]
 bytemuck = { workspace = true }
@@ -48,6 +50,7 @@ scenix-material = { workspace = true }
 scenix-math = { workspace = true }
 scenix-mesh = { workspace = true }
 scenix-post = { workspace = true, optional = true }
+scenix-nodes = { workspace = true, optional = true }
 scenix-scene = { workspace = true }
 scenix-texture = { workspace = true }
 serde = { workspace = true, optional = true }

@@ -71,7 +71,7 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no-default CPU crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
 
       - name: Test loader all features
         run: cargo test -p scenix-loader --all-features
@@ -91,11 +91,22 @@ jobs:
       - name: Test v1.5 interaction surface
         run: cargo test -p scenix --test scenix_v15 --all-features
 
+      - name: Test v1.6 node surface
+        run: |
+          cargo test -p scenix-nodes --all-features
+          cargo test -p scenix --test scenix_v16 --all-features
+
       - name: Check v1.5 facade feature lanes
         run: |
           cargo check -p scenix --no-default-features --features interaction
           cargo check -p scenix --no-default-features --features editor
           cargo check -p scenix --no-default-features --features egui
+
+      - name: Check v1.6 facade feature lanes
+        run: |
+          cargo check -p scenix --no-default-features --features nodes
+          cargo check -p scenix --no-default-features --features nodes,material
+          cargo check -p scenix --no-default-features --features nodes,material,renderer,scene,camera,mesh
 
   msrv:
     name: Minimum supported Rust 1.89
@@ -202,3 +213,6 @@ jobs:
 
       - name: Test renderer and post GPU paths
         run: cargo test -p scenix-renderer -p scenix-post --all-features
+
+      - name: Test node-material GPU paths
+        run: cargo test -p scenix --test nodes_gpu --features nodes,material,renderer,scene,camera,mesh

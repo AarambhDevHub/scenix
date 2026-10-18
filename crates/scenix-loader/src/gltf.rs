@@ -983,12 +983,12 @@ fn rgba8_from_gltf_image(image: &gltf::image::Data) -> Result<Vec<u8>, ScenixErr
             }
         }
         Format::R8G8 => {
-            for pixel in image.pixels.chunks_exact(2) {
+            for pixel in image.pixels.as_chunks::<2>().0 {
                 rgba.extend_from_slice(&[pixel[0], pixel[0], pixel[0], pixel[1]]);
             }
         }
         Format::R8G8B8 => {
-            for pixel in image.pixels.chunks_exact(3) {
+            for pixel in image.pixels.as_chunks::<3>().0 {
                 rgba.extend_from_slice(&[pixel[0], pixel[1], pixel[2], 255]);
             }
         }
