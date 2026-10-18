@@ -11,7 +11,7 @@ use std::time::Instant;
 
 use scenix_animato::{
     AnimationClip, AnimationMixer, CameraStores, ClipChannel, ClipTrack, KeyframeInterpolation,
-    KeyframeVec3, LightStores, LoopMode, NodeProperty, PropertyBinding, Vec3Track,
+    KeyframeVec3, LightStores, LoopMode, NodeProperty, PropertyBinding,
 };
 use scenix_camera::{OrthographicCamera, PerspectiveCamera};
 use scenix_core::{CameraId, LightId, MaterialId, MeshId};

@@ -5,11 +5,14 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix `1.5.0` is the current stable release. It adds cross-platform controls,
-touch/gamepad/pointer-lock input, selection and transform primitives, reusable
-gizmos, inspector snapshots, optional egui rendering, and on-demand GPU picking.
-CPU authoring stays lightweight by default while GPU, browser, and UI paths
-remain opt-in.
+scenix `1.6.0` is the current stable release. It adds the optional
+`scenix-nodes` crate — typed shader graphs, node materials, and a post-node
+effect language with WGSL and GLSL backends — wired through the renderer, post
+stack, browser preflight, and facade feature flags. v1.5.0's cross-platform
+controls, input stack, selection/transform primitives, reusable gizmos,
+inspector snapshots, optional egui rendering, and on-demand GPU picking remain
+the interaction backbone, and CPU authoring stays lightweight by default while
+GPU, browser, and UI paths remain opt-in.
 
 ## Install
 
@@ -27,6 +30,7 @@ Enable optional systems only when needed:
 scenix = { version = "1", features = ["loader"] }
 scenix = { version = "1", features = ["renderer", "post"] }
 scenix = { version = "1", features = ["animato"] }
+scenix = { version = "1", features = ["nodes"] }
 scenix = { version = "1", features = ["wasm"] }
 scenix = { version = "1", features = ["interaction"] }
 scenix = { version = "1", features = ["editor", "egui"] }
@@ -43,6 +47,7 @@ scenix-scene = "1"
 scenix-camera = "1"
 scenix-mesh = "1"
 scenix-material = "1"
+scenix-nodes = "1"
 scenix-light = "1"
 scenix-texture = "1"
 scenix-loader = "1"
@@ -65,6 +70,7 @@ scenix-scene = { version = "1", default-features = false }
 scenix-camera = { version = "1", default-features = false }
 scenix-mesh = { version = "1", default-features = false }
 scenix-material = { version = "1", default-features = false }
+scenix-nodes = { version = "1", default-features = false }
 scenix-light = { version = "1", default-features = false }
 scenix-texture = { version = "1", default-features = false }
 scenix-raycaster = { version = "1", default-features = false }
@@ -72,8 +78,10 @@ scenix-helpers = { version = "1", default-features = false }
 ```
 
 `scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and
-`scenix-wasm` are optional `std` paths. `scenix-animato` continues to target
-Animato `1.7.0`.
+`scenix-wasm` are optional `std` paths. `scenix-animato` targets Animato
+`1.7.2`. `scenix-nodes` is a `no_std`-capable CPU crate; its renderer, post
+stack, and browser preflight integrations are `std`/`wasm32` features of their
+host crates.
 
 ## Feature Flags
 
@@ -88,7 +96,8 @@ Animato `1.7.0`.
 | `loader` | no | Asset packages, asset manager, glTF/GLB extension metadata, OBJ/MTL, STL, image, KTX2, HDR/EXR loading, and exporters. |
 | `renderer` | no | `wgpu` renderer with surface/headless targets. |
 | `post` | no | Full-screen post-processing stack; use with `renderer`. |
-| `animato` | no | Animato bridge: procedural tween/spring tracks **and** the clip-based Animation Runtime (clips, actions, mixer, loop modes, crossfade, additive blending, markers/events, light/morph targets, retargeting, CPU skinning). Targets Animato `1.7.0`. |
+| `nodes` | no | Typed shader graphs, node materials, and post node effects with WGSL/GLSL backends under the `scenix-nodes` crate; enables node-material rendering in `renderer` and browser preflight in `wasm` when those features are on. |
+| `animato` | no | Animato bridge: procedural tween/spring tracks **and** the clip-based Animation Runtime (clips, actions, mixer, loop modes, crossfade, additive blending, markers/events, light/morph targets, retargeting, CPU skinning). Targets Animato `1.7.2`. |
 | `wasm` | no | Browser canvas wrapper with WebGPU first, WebGL2 full fallback, WebGL1 reduced fallback, and generated demo scene. |
 | `serde` | no | Serialization support where the focused crate supports it. |
 
@@ -234,6 +243,44 @@ mixer.action_mut(action).unwrap().play(0.0);
 //            &mut lights, &mut skeletons, &mut morphs)
 ```
 
+### Shader nodes and node materials
+
+v1.6.0 adds the optional `scenix-nodes` crate. Describe shading as a typed
+graph, validate it without a GPU, and generate WGSL (renderer contract) or
+GLSL ES 3.00 (WebGL tooling) from the same graph:
+
+```rust
+use scenix::{
+    generate_material_wgsl, LightingStyle, Material, NodeInput, NodeMaterial, ShaderGraph,
+    ShaderNodeKind, UniformInput, WgslOptions,
+};
+
+// Base color pulses over time, then feeds a Lambert lighting term.
+let mut graph = ShaderGraph::new();
+let base = graph.push(ShaderNodeKind::Uniform(UniformInput::BaseColor));
+let time = graph.push(ShaderNodeKind::Uniform(UniformInput::Time));
+let pulse = graph.add(
+    ShaderNodeKind::Multiply,
+    vec![NodeInput::Node(base), NodeInput::Node(time)],
+);
+let lit = graph.chain(ShaderNodeKind::Lighting(LightingStyle::Lambert), pulse);
+graph.add_fragment_output(lit, None);
+
+let material = NodeMaterial::new("pulse", graph);
+assert!(material.validate().is_empty());
+assert!(material.feature_bits() & scenix::FEATURE_NODE_GRAPH != 0);
+
+let wgsl = generate_material_wgsl(&material, &WgslOptions::default()).unwrap();
+// wgsl.source() matches the renderer bind contract:
+// group 0 frame, group 1 object, group 2 material, group 3 lights.
+```
+
+With the `renderer` feature, `Renderer::register_node_material(id, &material)`
+shades draws through the generated module; graphs that cannot resolve carry a
+specific `NodeDiagnostic` instead of crashing. With the `wasm` feature,
+`scenix_wasm::compile_node_material_glsl(json)` runs the same preflight in the
+browser before anything is uploaded.
+
 ### Raycasting
 
 ```rust
@@ -276,6 +323,7 @@ assert!(raycaster.cast_ray(ray, &scene, &meshes).is_some());
 | `scenix-camera` | Cameras plus orbit, fly, arcball, trackball, map, first-person, and pointer-lock controls. |
 | `scenix-mesh` | Geometry buffers, primitives, instancing, batching, and morph targets. |
 | `scenix-material` | GPU-free material descriptions and pipeline keys. |
+| `scenix-nodes` | Optional typed shader graphs, node materials, and post node effects with WGSL/GLSL codegen. |
 | `scenix-light` | Lights, shadow settings, and light probes. |
 | `scenix-texture` | CPU textures, samplers, atlases, video updates, and mipmaps. |
 | `scenix-loader` | Optional CPU asset packages, asset manager, importers, exporters, diagnostics, and cache. |
@@ -320,6 +368,9 @@ cargo run -p scenix --example selection_and_drag
 cargo run -p scenix --example transform_gizmo
 cargo run -p scenix --example editor_inspector --features egui
 cargo run -p scenix --example renderer_picking --features renderer
+cargo run -p scenix --example nodes_material --features nodes
+cargo run -p scenix --example nodes_wgsl --features nodes
+cargo run -p scenix --example node_post_effect --features nodes
 cargo run -p scenix --example sprite_particles
 cargo run -p scenix --example environment_map --features renderer
 cargo run -p scenix --example render_target_capture --features renderer

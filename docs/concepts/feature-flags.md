@@ -32,6 +32,7 @@ All facade features are documented here.
 | `loader` | no | glTF/GLB, OBJ/MTL, STL, image, KTX2, HDR/EXR loading. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
+| `nodes` | no | Typed shader graphs, node materials, and post node effects (the `scenix-nodes` crate) with WGSL/GLSL backends; forwards to `renderer`, `post`, and `wasm` variants when enabled. |
 | `animato` | no | Animato 1.7 bridge and clip-based animation runtime. |
 | `wasm` | no | Browser canvas wrapper, DPR-aware input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
 | `serde` | no | Serialization support where each crate supports it. |

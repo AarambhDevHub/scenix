@@ -52,9 +52,7 @@ impl BoundsGizmoHelper {
         let full = BoundingBoxHelper::new(self.bounds, self.color).to_geometry();
         let fraction = self.corner_fraction.clamp(0.01, 0.5);
         geometry.reserve(full.positions.len() * 2, 0);
-        for segment in full.positions.chunks_exact(2) {
-            let a = segment[0];
-            let b = segment[1];
+        for &[a, b] in full.positions.as_chunks::<2>().0 {
             let delta = b - a;
             geometry.push_segment(a, a + delta * fraction, self.color);
             geometry.push_segment(b, b - delta * fraction, self.color);

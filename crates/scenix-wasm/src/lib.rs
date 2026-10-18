@@ -2,6 +2,14 @@
 
 mod input;
 
+#[cfg(feature = "nodes")]
+mod node_material;
+
+#[cfg(feature = "nodes")]
+pub use node_material::{
+    NodeMaterialPreflight, compile_node_material_glsl, validate_node_material_json,
+};
+
 pub use input::{
     gamepad_axis_from_standard, gamepad_button_from_standard, key_code_from_dom,
     pointer_button_from_dom, touch_phase_from_dom,

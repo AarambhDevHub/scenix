@@ -367,7 +367,7 @@ pub fn icosphere_geometry(radius: f32, subdivisions: u32) -> Geometry {
     if radius <= 0.0 {
         return Geometry::new();
     }
-    let t = 1.618_034_f32;
+    let t = core::f32::consts::GOLDEN_RATIO;
     let mut vertices = alloc::vec![
         Vec3::new(-1.0, t, 0.0),
         Vec3::new(1.0, t, 0.0),
@@ -1037,10 +1037,10 @@ fn flatten_by_face(geometry: &mut Geometry) {
     geometry.uvs.clear();
     geometry.indices.clear();
 
-    for triangle in old_indices.chunks_exact(3) {
-        let a = triangle[0] as usize;
-        let b = triangle[1] as usize;
-        let c = triangle[2] as usize;
+    for &[a, b, c] in old_indices.as_chunks::<3>().0 {
+        let a = a as usize;
+        let b = b as usize;
+        let c = c as usize;
         if a >= old_positions.len() || b >= old_positions.len() || c >= old_positions.len() {
             continue;
         }

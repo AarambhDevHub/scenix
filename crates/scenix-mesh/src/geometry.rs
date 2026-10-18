@@ -118,12 +118,8 @@ impl Geometry {
             }
         } else {
             let indices = self.indices.clone();
-            for triangle in indices.chunks_exact(3) {
-                self.accumulate_normal(
-                    triangle[0] as usize,
-                    triangle[1] as usize,
-                    triangle[2] as usize,
-                );
+            for &[a, b, c] in indices.as_chunks::<3>().0 {
+                self.accumulate_normal(a as usize, b as usize, c as usize);
             }
         }
 
@@ -160,14 +156,9 @@ impl Geometry {
                 );
             }
         } else {
-            for triangle in self.indices.chunks_exact(3) {
+            for &[a, b, c] in self.indices.as_chunks::<3>().0 {
                 accumulate_tangent(
-                    self,
-                    &mut tan1,
-                    &mut tan2,
-                    triangle[0] as usize,
-                    triangle[1] as usize,
-                    triangle[2] as usize,
+                    self, &mut tan1, &mut tan2, a as usize, b as usize, c as usize,
                 );
             }
         }

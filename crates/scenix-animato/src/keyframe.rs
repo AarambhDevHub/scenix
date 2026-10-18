@@ -7,7 +7,6 @@
 //! through [`crate::clip::ClipTrack`].
 
 use alloc::vec::Vec;
-use core::f32;
 
 use scenix_core::Color;
 use scenix_math::{Quat, Vec3};

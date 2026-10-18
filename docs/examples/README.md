@@ -35,4 +35,7 @@ Each page maps to a real example file or the standalone WASM viewer crate. Comma
 - [Sprite Particles](sprite-particles.md) - `examples/sprite_particles.rs`
 - [Environment Map](environment-map.md) - `examples/environment_map.rs`
 - [Render Target Capture](render-target-capture.md) - `examples/render_target_capture.rs`
+- [Node Material](nodes-material.md) - `examples/nodes_material.rs`
+- [Node WGSL Backend](nodes-wgsl.md) - `examples/nodes_wgsl.rs`
+- [Node Post Effect](node-post-effect.md) - `examples/node_post_effect.rs`
 - [WASM Viewer](wasm-viewer.md) - `examples/wasm_viewer`

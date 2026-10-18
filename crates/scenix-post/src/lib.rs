@@ -10,6 +10,12 @@ use bytemuck::{Pod, Zeroable};
 use scenix_core::{ScenixError, ValidationError};
 use scenix_math::Vec2;
 
+#[cfg(feature = "nodes")]
+mod node_effect;
+
+#[cfg(feature = "nodes")]
+pub use node_effect::NodeEffectProgram;
+
 /// Per-frame post-processing context.
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

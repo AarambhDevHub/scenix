@@ -1,0 +1,39 @@
+[package]
+name = "scenix-nodes"
+description = "Typed shader node graphs, node materials, and WGSL/GLSL backends for scenix."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std", "scenix-material/std", "scenix-math/std"]
+serde = [
+    "dep:serde",
+    "scenix-core/serde",
+    "scenix-material/serde",
+    "scenix-math/serde",
+]
+inspector = ["scenix-core/inspector"]
+
+[dependencies]
+scenix-core = { workspace = true }
+scenix-material = { workspace = true }
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[bench]]
+name = "nodes_bench"
+path = "../../benches/nodes_bench.rs"
+harness = false
+
+[[test]]
+name = "nodes_backend"
+path = "../../tests/nodes_backend.rs"

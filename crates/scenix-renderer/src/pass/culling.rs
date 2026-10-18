@@ -2,7 +2,7 @@ use scenix_camera::PerspectiveCamera;
 use scenix_core::ValidationError;
 use scenix_scene::{NodeKind, SceneGraph};
 
-use crate::{DrawSubmission, GpuScene};
+use crate::{DrawSubmission, GpuScene, NodeMaterialSlot};
 
 /// Culling counters produced while collecting draw submissions.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -43,9 +43,14 @@ pub fn collect_visible_draws(
 
         stats.scene_meshes += 1;
         let mesh = gpu_scene.mesh(mesh_id).ok_or(ValidationError::InvalidId)?;
-        let material = gpu_scene
-            .material(material_id)
-            .ok_or(ValidationError::InvalidId)?;
+        let material = gpu_scene.material(material_id);
+        let node_material = gpu_scene.node_material(material_id);
+        if material.is_none() && node_material.is_none() {
+            return Err(ValidationError::InvalidId);
+        }
+        let transparent = material
+            .map(|material| material.is_transparent())
+            .unwrap_or_else(|| node_material.is_some_and(NodeMaterialSlot::is_transparent));
         let world_matrix = scene
             .world_matrix(node_id)
             .unwrap_or_else(|| node.transform.to_mat4());
@@ -62,7 +67,7 @@ pub fn collect_visible_draws(
             world_matrix,
             world_aabb,
             distance_to_camera: world_aabb.center().distance(camera.position),
-            transparent: material.is_transparent(),
+            transparent,
             render_order: 0,
         });
     }

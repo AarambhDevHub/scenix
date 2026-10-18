@@ -82,17 +82,17 @@ fn geometry_from_obj_mesh(mesh: &tobj::Mesh) -> Result<Geometry, ScenixError> {
     geometry.uvs.reserve(mesh.texcoords.len() / 2);
     geometry.indices.extend(mesh.indices.iter().copied());
 
-    for position in mesh.positions.chunks_exact(3) {
+    for position in mesh.positions.as_chunks::<3>().0 {
         geometry
             .positions
             .push(Vec3::new(position[0], position[1], position[2]));
     }
-    for normal in mesh.normals.chunks_exact(3) {
+    for normal in mesh.normals.as_chunks::<3>().0 {
         geometry
             .normals
             .push(Vec3::new(normal[0], normal[1], normal[2]).normalize());
     }
-    for uv in mesh.texcoords.chunks_exact(2) {
+    for uv in mesh.texcoords.as_chunks::<2>().0 {
         geometry.uvs.push(Vec2::new(uv[0], uv[1]));
     }
 

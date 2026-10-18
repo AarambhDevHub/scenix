@@ -45,7 +45,7 @@ fn average_rgba(image: &::image::RgbaImage) -> [u8; 4] {
     if pixels.is_empty() {
         return [0, 0, 0, 255];
     }
-    for rgba in pixels.chunks_exact(4) {
+    for rgba in pixels.as_chunks::<4>().0 {
         sum[0] += rgba[0] as u64;
         sum[1] += rgba[1] as u64;
         sum[2] += rgba[2] as u64;

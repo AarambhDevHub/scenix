@@ -25,6 +25,21 @@ pub use scenix_mesh::*;
 #[cfg(feature = "material")]
 pub use scenix_material::*;
 
+// Node-surface re-exports are curated: scenix-nodes declares `graph`,
+// `node`, and `value` modules plus its own `VertexAttribute` enum, all of
+// which collide with the scene/mesh glob re-exports above.
+#[cfg(feature = "nodes")]
+pub use scenix_nodes::{
+    ComponentIndex, FogStyle, GlslOptions, LightingStyle, NODE_GRAPH_LIMIT, NodeDiagnostic,
+    NodeDiagnosticKind, NodeGlslProgram, NodeInput, NodeMaterial, NodeValue, NodeValueKind,
+    NodeWgslProgram, PostNodeEffect, ShaderGraph, ShaderNodeData, ShaderNodeId, ShaderNodeKind,
+    Stage, StageKind, ToneMapKind, UniformInput, WgslOptions, generate_material_glsl,
+    generate_material_wgsl, generate_post_glsl, generate_post_wgsl,
+};
+
+#[cfg(feature = "nodes")]
+pub use scenix_nodes::slots;
+
 #[cfg(feature = "light")]
 pub use scenix_light::*;
 
