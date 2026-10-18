@@ -39,7 +39,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v1.4.0` | Animation runtime | Clip/mixer/action layer, skeletal animation, morph playback, retargeting helpers | ✅ |
 | `v1.5.0` | Interaction tools | Transform/drag/pointer-lock controls, selection helpers, editor primitives | ✅ |
 | `v1.6.0` | Shader nodes | New optional shader graph and node material crate | ✅ |
-| `v1.7.0` | Particles | New optional CPU/GPU particle crate | 🔮 |
+| `v1.7.0` | Particles | New optional CPU/GPU particle crate | ✅ |
 | `v1.8.0` | Environment systems | New optional terrain, sky, and water crates | 🔮 |
 | `v1.9.0` | Runtime bridges | New optional XR, audio, and physics crates | 🔮 |
 | `v1.10.0` | Editor tooling | New optional editor and UI overlay crates | 🔮 |
@@ -616,20 +616,22 @@ The version numbers below are planning buckets, not release promises. Each miles
 ### Crates shipped / updated
 
 - `scenix-particles` — new optional crate for emitters, particle data, CPU simulation, GPU simulation where supported, modules, and examples.
-- `scenix-scene` — particle scene attachments or node metadata.
-- `scenix-mesh` — billboard/sprite/point geometry helpers and particle buffer layouts.
+- `scenix-math` — public `float` shim module (sqrt/sin/cos/tan, inverse trig, `atan2`, `cbrt`) so particle math compiles identically on std and `libm` builds.
+- `scenix-core` — `ParticleSystemId` newtype.
+- `scenix-scene` — particle scene attachments or node metadata (`NodeKind::Particles`).
+- `scenix-mesh` — billboard/sprite/point geometry helpers (`quad_geometry`) and particle buffer layouts.
 - `scenix-material` — particle, sprite, points, soft-particle, and flipbook material support.
-- `scenix-texture` — atlas/flipbook texture support and particle texture metadata.
+- `scenix-texture` — atlas/flipbook texture support (`FlipbookGrid`) and particle texture metadata.
 - `scenix-renderer` — particle draw path, batching, instancing, GPU buffers, optional compute path, and fallback path.
-- `scenix-wasm` — WebGPU/WebGL particle capability notes.
-- `scenix` — optional `particles` facade feature and re-exports.
+- `scenix-wasm` — WebGPU/WebGL particle capability notes (`particle_fallback_plan`).
+- `scenix` — optional `particles` facade feature and curated re-exports.
 
-- [ ] CPU particle emitter with spawn, lifetime, velocity, acceleration, color, size, rotation, and curve modules.
-- [ ] Sprite/point particle rendering example.
-- [ ] Particle texture atlas and flipbook animation support.
-- [ ] Batched particle upload path.
-- [ ] Optional GPU compute simulation where supported.
-- [ ] WebGL fallback strategy for non-compute particle scenes.
+- [x] CPU particle emitter with spawn, lifetime, velocity, acceleration, color, size, rotation, and curve modules.
+- [x] Sprite/point particle rendering example (with an optional headless GPU tail).
+- [x] Particle texture atlas and flipbook animation support.
+- [x] Batched particle upload path.
+- [x] Optional GPU compute simulation where supported (`SCENIX_RUN_GPU_TESTS=1` coverage on lavapipe).
+- [x] WebGL fallback strategy for non-compute particle scenes.
 
 ## v1.8.0 — Terrain, Sky, And Water
 
@@ -829,7 +831,7 @@ The best way to contribute now is to propose a focused post-1.1 planning issue o
 
 ---
 
-*Roadmap version: 1.6.0 shader nodes and node materials — last updated October 17, 2026*
-*Next milestone: v1.7.0 particles*
+*Roadmap version: 1.7.0 particles — last updated October 18, 2026*
+*Next milestone: v1.8.0 terrain, sky, and water*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

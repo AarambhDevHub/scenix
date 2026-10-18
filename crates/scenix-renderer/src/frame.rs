@@ -40,6 +40,8 @@ pub struct FrameStats {
     pub transparent_draws: u32,
     /// Registered lights available to the frame.
     pub lights: u32,
+    /// Particle instances encoded for this frame (feature `particles`).
+    pub particle_instances: u32,
     /// Render target backing used for this frame.
     pub target_mode: Option<RenderTargetMode>,
 }

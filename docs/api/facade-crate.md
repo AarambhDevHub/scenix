@@ -23,7 +23,9 @@ scenix = "1"
 `BrowserRenderer`, and `WebRenderer`. With the `nodes` feature the facade also
 re-exports `NodeMaterial`, `ShaderGraph`, the node kind vocabulary, backend
 generators, and `PostNodeEffect` by name (see
-[scenix-nodes](scenix-nodes.md)).
+[scenix-nodes](scenix-nodes.md)). With the `particles` feature the facade
+re-exports `ParticleEmitter`, `ParticleSystem`, the modifier vocabulary, and
+`ParticleRenderBatch` by name (see [scenix-particles](scenix-particles.md)).
 
 ## Common Use
 

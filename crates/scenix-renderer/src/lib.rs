@@ -15,6 +15,8 @@ mod inspector;
 pub mod material;
 #[cfg(feature = "nodes")]
 pub mod node_material;
+#[cfg(feature = "particles")]
+pub mod particles;
 pub mod pass;
 pub mod pipeline_cache;
 pub mod renderer;
@@ -32,6 +34,12 @@ pub use gpu_scene::{
     to_wgpu_address_mode, to_wgpu_compare, to_wgpu_filter_mode, to_wgpu_texture_format,
 };
 pub use material::{GpuMaterial, MaterialUniform};
+#[cfg(feature = "particles")]
+pub use particles::{
+    FULL_UV_RECT, PARTICLE_DRAW_LIMIT, PARTICLE_INSTANCE_STRIDE, PARTICLE_POOL_STRIDE,
+    ParticleComputeParams, ParticleInstanceUniform, ParticleParamsUniform, ParticleRegistry,
+    PoolItemUniform,
+};
 pub use pass::culling::{CullingStats, collect_visible_draws};
 pub use pass::sort::{sort_opaque_front_to_back, sort_transparent_back_to_front};
 pub use pipeline_cache::{PipelineCache, RenderPassKind, RendererPipelineKey};

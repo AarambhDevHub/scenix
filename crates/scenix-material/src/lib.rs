@@ -14,6 +14,7 @@ mod inspector;
 pub mod lambert;
 pub mod line;
 pub mod normal;
+pub mod particle;
 pub mod pbr;
 pub mod physical;
 pub mod points;
@@ -27,6 +28,7 @@ pub use depth::DepthMaterial;
 pub use lambert::LambertMaterial;
 pub use line::LineMaterial;
 pub use normal::NormalMaterial;
+pub use particle::{FlipbookParams, ParticleBlend, ParticleMaterial};
 pub use pbr::PbrMaterial;
 pub use physical::PhysicalMaterial;
 pub use points::PointsMaterial;
@@ -34,11 +36,12 @@ pub use shader::ShaderMaterial;
 pub use toon::ToonMaterial;
 pub use traits::{
     AlphaMode, FEATURE_ALBEDO_TEXTURE, FEATURE_CLEARCOAT, FEATURE_CUSTOM_TEXTURES, FEATURE_DASHED,
-    FEATURE_DOUBLE_SIDED, FEATURE_EMISSIVE_TEXTURE, FEATURE_FLAT_SHADING, FEATURE_GRADIENT_TEXTURE,
-    FEATURE_IRIDESCENCE, FEATURE_METALLIC_ROUGHNESS_TEXTURE, FEATURE_NODE_GRAPH,
-    FEATURE_NORMAL_TEXTURE, FEATURE_OCCLUSION_TEXTURE, FEATURE_OUTLINE, FEATURE_SHEEN,
-    FEATURE_SIZE_ATTENUATION, FEATURE_TRANSMISSION, FEATURE_VERTEX_COLORS, FEATURE_WIREFRAME,
-    FEATURE_WORLD_SPACE, Material, PipelineAlphaMode, PipelineKey, ShaderKind,
+    FEATURE_DOUBLE_SIDED, FEATURE_EMISSIVE_TEXTURE, FEATURE_FLAT_SHADING, FEATURE_FLIPBOOK,
+    FEATURE_GRADIENT_TEXTURE, FEATURE_IRIDESCENCE, FEATURE_METALLIC_ROUGHNESS_TEXTURE,
+    FEATURE_NODE_GRAPH, FEATURE_NORMAL_TEXTURE, FEATURE_OCCLUSION_TEXTURE, FEATURE_OUTLINE,
+    FEATURE_SHEEN, FEATURE_SIZE_ATTENUATION, FEATURE_SOFT_PARTICLES, FEATURE_TRANSMISSION,
+    FEATURE_VERTEX_COLORS, FEATURE_WIREFRAME, FEATURE_WORLD_SPACE, Material, PipelineAlphaMode,
+    PipelineKey, ShaderKind,
 };
 pub use unlit::UnlitMaterial;
 pub use wireframe::WireframeMaterial;

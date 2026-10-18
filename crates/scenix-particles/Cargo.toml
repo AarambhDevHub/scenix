@@ -1,0 +1,32 @@
+[package]
+name = "scenix-particles"
+description = "CPU-side particle systems: emitters, curves, modifier modules, deterministic simulation, and render batches for scenix."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std", "scenix-math/std"]
+serde = ["dep:serde", "scenix-core/serde", "scenix-math/serde"]
+
+[dependencies]
+scenix-core = { workspace = true }
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[bench]]
+name = "particles_bench"
+path = "../../benches/particles_bench.rs"
+harness = false
+
+[[test]]
+name = "particles_batches"
+path = "../../tests/particles_batches.rs"

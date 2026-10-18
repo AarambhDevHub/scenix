@@ -32,6 +32,10 @@ let color = Color::rgb(1.0, 0.8, 0.2);
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 
+## Added In
+
+v1.7.0 adds the `ParticleSystemId` newtype alongside the other resource ids.
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)

@@ -45,6 +45,11 @@ let picked = renderer.pick(scene, &camera, scenix::EditorPickRequest::new(256, 2
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 
+## Added In
+
+v1.7.0 adds the particle surface (behind `particles`): `register_particles`, `update_particles` (instanced 64-byte billboards), `register_particle_compute` + `simulate_particles_compute` (deterministic GPU simulation), and `read_particle_pool`/`read_particle_ring` readbacks; see [scenix-particles](scenix-particles.md).
+
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)

@@ -62,6 +62,10 @@ id_type!(
     AnimationClipId,
     "Typed identifier for an imported animation clip."
 );
+id_type!(
+    ParticleSystemId,
+    "Typed identifier for a registered particle system."
+);
 
 #[cfg(all(test, feature = "std"))]
 mod tests {

@@ -85,6 +85,8 @@ pub enum ShaderKind {
     Points,
     /// User-provided WGSL shader sources, identified by a stable hash.
     Custom(u64),
+    /// Instanced particle draw path (scenix v1.7 "Particles").
+    Particles,
 }
 
 /// Compact renderer pipeline selector.
@@ -165,6 +167,12 @@ pub const FEATURE_OUTLINE: u64 = 1 << 18;
 
 /// Node-graph driven material shader (scenix v1.6 "Shader Nodes").
 pub const FEATURE_NODE_GRAPH: u64 = 1 << 19;
+
+/// Particle soft-edge path is active (scenix v1.7 "Particles").
+pub const FEATURE_SOFT_PARTICLES: u64 = 1 << 20;
+
+/// Particle flipbook atlas animation is active (scenix v1.7 "Particles").
+pub const FEATURE_FLIPBOOK: u64 = 1 << 21;
 
 /// CPU-side material description with no GPU dependency.
 pub trait Material: Send + Sync + 'static {

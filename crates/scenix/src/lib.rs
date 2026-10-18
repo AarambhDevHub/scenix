@@ -25,6 +25,19 @@ pub use scenix_mesh::*;
 #[cfg(feature = "material")]
 pub use scenix_material::*;
 
+// v1.7.0 particle surface: CPU systems + the material/texture types the
+// GPU draw path consumes. The dot-names collide with `scenix_material`'s
+// `particle` module and `scenix_texture`'s `flipbook` module, so this is a
+// curated list rather than a glob. Renderer particle APIs land through the
+// `renderer` glob when both features are on.
+#[cfg(feature = "particles")]
+pub use scenix_particles::{
+    ColorCurve, ColorKey, ColorOverLifetime, ConfineBox, DeterministicRng, Drag, EmissionShape,
+    FlipbookConfig, Gravity, PARTICLE_POOL_LIMIT, Particle, ParticleEmitter, ParticleModifier,
+    ParticleRenderBatch, ParticleRenderItem, ParticleSystem, ScalarCurve, ScalarKey,
+    SizeOverLifetime, SpinOverLife,
+};
+
 // Node-surface re-exports are curated: scenix-nodes declares `graph`,
 // `node`, and `value` modules plus its own `VertexAttribute` enum, all of
 // which collide with the scene/mesh glob re-exports above.

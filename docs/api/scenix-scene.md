@@ -43,6 +43,11 @@ scene.update_world_transforms();
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 
+## Added In
+
+v1.7.0 adds `NodeKind::Particles { system_id }` with the `SceneNode::particles` constructor and the `"particles"` inspector label.
+
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)

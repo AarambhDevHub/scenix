@@ -7,6 +7,58 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-18
+
+### Added
+
+- Added the optional `scenix-particles` crate (`no_std`-capable):
+  `ParticleEmitter` configuration, deterministic seeded simulation over
+  pools up to `PARTICLE_POOL_LIMIT` (262,144 particles), burst and rate
+  spawning, per-particle records (`position`, `velocity`, `age`, `lifetime`,
+  `size`, `rotation`, flipbook frame), and one reusable
+  `ParticleRenderBatch` per `ParticleSystem::update` call.
+- Added the modifier vocabulary behind `ParticleModifier`: `Gravity`, `Drag`,
+  `ColorOverLifetime` over deterministic `ColorCurve`/`ColorKey` data,
+  `SizeOverLifetime`, `SpinOverLife`, and `ConfineBox`; `ScalarCurve`
+  covers size/rotation falloffs. `EmissionShape` covers point, `Sphere`,
+  `Hemisphere`, `Disc`, `Cone`, and `Box` spawns with an `at`/`toward`
+  builder shortcut.
+- Added `scenix-texture::FlipbookGrid`: shared frame-index → UV math for
+  flipbook sheets (`columns × rows`, top-left origin, clamp on the last
+  frame, `uv`/`uv_frames`), mirrored on the particle side by
+  `FlipbookConfig` with fps/looping.
+- Added `scenix-mesh::quad_geometry`: the CCW +Z billboard quad with the
+  scenix plane UV convention for sprite draws and the WebGL-expanded
+  fallback.
+- Added `scenix-material::ParticleMaterial` (tint, optional sprite texture,
+  optional flipbook, soft edge, `ParticleBlend::{Alpha, Additive}`), the
+  `FEATURE_SOFT_PARTICLES` (`1 << 20`) and `FEATURE_FLIPBOOK` (`1 << 21`)
+  bits, and `ShaderKind::Particles` for the billboard pipeline key.
+- Added the scenix-renderer GPU particle path (feature `particles`): a
+  per-system `ParticleRegistry` with draw + compute slots, an instanced
+  64-byte billboard instance record (center/size, premultiplied color, UV
+  rect, rotation), shared frame + per-material sprite bind groups, and
+  `Additive`/`Alpha` pipelines with depth-test-on/depth-write-off blending.
+  `Renderer::register_particles`/`update_particles` upload CPU batches;
+  `scenix-wasm` particle capability notes document the WebGL fallback plan.
+- Added the optional compute simulation: `Renderer::register_particle_compute`
+  seeds a 64-byte-per-slot GPU storage pool from a CPU snapshot,
+  `simulate_particles_compute` dispatches an integrate pass (gravity, drag,
+  size/color fade over `ParticleComputeParams`) and a deterministic
+  single-invocation ring-window respawn pass, and
+  `read_particle_pool`/`read_particle_ring` copy results to the host. CPU
+  updates always convert a slot back to the draw path.
+- Added `scenix_math::float`: the public `libm`-compatible float shim module
+  (`sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan2`, `cbrt`, plus
+  `PI`/`FRAC_PI_2`) so CPU sims compile identically on std and `libm`
+  builds.
+- Added `NodeKind::Particles { system_id }` (with the `SceneNode::particles`
+  constructor and inspector `"particles"` label), the `ParticleSystemId`
+  core newtype, and the facade `particles` feature with curated re-exports.
+- Added `tests/scenix_v17.rs` (facade CPU coverage), `tests/particles_gpu.rs`
+  (GPU-gated billboard + compute lifecycle), and the `particles_basic`
+  example with an optional headless compute tail.
+
 ## [1.6.0] - 2026-10-17
 
 ### Added
@@ -547,7 +599,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/AarambhDevHub/scenix/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/AarambhDevHub/scenix/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/AarambhDevHub/scenix/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/AarambhDevHub/scenix/compare/v1.2.0...v1.3.0

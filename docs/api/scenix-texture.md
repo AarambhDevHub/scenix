@@ -32,6 +32,11 @@ let sampler = Sampler::default();
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 
+## Added In
+
+v1.7.0 adds `FlipbookGrid`, the shared frame-index to UV math for flipbook sheets.
+
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)

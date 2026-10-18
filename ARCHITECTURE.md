@@ -234,6 +234,17 @@ scenix/
 │   │       ├── glsl.rs                 ← GLSL ES 3.00 backend (WebGL tooling)
 │   │       └── inspector.rs            ← Node graph inspector snapshots (serde)
 │   │
+│   ├── scenix-particles/                ← Optional deterministic particle systems (no_std)
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs                  ← Root re-exports and PARTICLE_POOL_LIMIT
+│   │       ├── system.rs               ← ParticleSystem, Particle, ParticleRenderBatch
+│   │       ├── emitter.rs              ← ParticleEmitter builder and EmissionShape
+│   │       ├── modules.rs              ← Gravity, Drag, ColorOverLifetime, SizeOverLifetime, ...
+│   │       ├── curve.rs                ← ColorCurve / ScalarCurve keys and evaluation
+│   │       ├── flipbook.rs             ← FlipbookConfig frame playback
+│   │       └── rng.rs                  ← DeterministicRng seeded shuffling
+│   │
 │   ├── scenix-light/                    ← Light types and shadow map management
 │   │   ├── Cargo.toml
 │   │   └── src/
@@ -407,13 +418,12 @@ scenix/
 
 ### Future Workspace Expansion
 
-The layout above describes the shipped v1.1 workspace. Future systems such as audio, physics, XR, editor tooling, particles, terrain, sky, and water should be added as **new optional crates** only when implementation begins. They should not be listed as active workspace members in `Cargo.toml` until the crate directory, tests, docs, examples, and feature flags exist. The v1.6.0 shader-node work followed exactly this path and shipped as `scenix-nodes`.
+The layout above describes the shipped v1.7.0 workspace. Future systems such as audio, physics, XR, editor tooling, terrain, sky, and water should be added as **new optional crates** only when implementation begins. They should not be listed as active workspace members in `Cargo.toml` until the crate directory, tests, docs, examples, and feature flags exist. The v1.6.0 shader-node work and the v1.7.0 particle work followed exactly this path and shipped as `scenix-nodes` and `scenix-particles`.
 
 Planned future crates may extend the workspace like this:
 
 ```text
 crates/
-├── scenix-particles/   ← optional CPU/GPU particle systems
 ├── scenix-terrain/     ← optional heightmap terrain and chunked LOD
 ├── scenix-sky/         ← optional procedural sky and atmosphere
 ├── scenix-water/       ← optional water, reflection, and refraction helpers
@@ -485,6 +495,7 @@ scenix-camera     = { path = "crates/scenix-camera",     version = "1" }
 scenix-mesh       = { path = "crates/scenix-mesh",       version = "1" }
 scenix-material   = { path = "crates/scenix-material",   version = "1" }
 scenix-nodes      = { path = "crates/scenix-nodes",      version = "1" }
+scenix-particles  = { path = "crates/scenix-particles",  version = "1" }
 scenix-light      = { path = "crates/scenix-light",      version = "1" }
 scenix-texture    = { path = "crates/scenix-texture",    version = "1" }
 scenix-loader     = { path = "crates/scenix-loader",     version = "1" }
@@ -1820,6 +1831,7 @@ pub use scenix_input::*;
 #[cfg(feature = "loader")]    pub use scenix_loader::*;
 #[cfg(feature = "post")]      pub use scenix_post::*;
 #[cfg(feature = "nodes")]     pub use scenix_nodes::{ generate_material_wgsl, NodeMaterial, ... };
+#[cfg(feature = "particles")] pub use scenix_particles::{ ParticleEmitter, ParticleSystem, ... };
 #[cfg(feature = "raycaster")] pub use scenix_raycaster::*;
 #[cfg(feature = "animato")]   pub use scenix_animato::*;
 #[cfg(feature = "helpers")]   pub use scenix_helpers::*;
@@ -1831,6 +1843,11 @@ pub use scenix_input::*;
 > modules and its own `VertexAttribute` enum, which would otherwise collide
 > with the `scenix-scene` and `scenix-mesh` glob re-exports. Node types are
 > all re-exported by name, so `use scenix::*;` still sees the full surface.
+>
+> **Design decision (v1.7.0):** the `particles` re-export is curated for the
+> same reason — `scenix-particles` declares `particle` and `flipbook` modules
+> that collide with `scenix-material`'s `particle` module and
+> `scenix-texture`'s `flipbook` module globs.
 
 ---
 
@@ -1991,6 +2008,71 @@ pub mod slots {                    // stable slots inside the [f32; 8] block
 - `benches/nodes_bench.rs`: chain and fan-out graph build/lower hot paths.
 - `examples/nodes_material.rs`, `examples/nodes_wgsl.rs`, and
   `examples/node_post_effect.rs`.
+
+---
+
+### 4.19 `scenix-particles` (v1.7.0)
+
+**Responsibility:** Deterministic CPU particle systems plus the GPU billboard
+draw path and optional compute simulation. Emitter configuration, seeded
+simulation, curve modules, flipbook batches, and renderer integration.
+
+**Depends on:** `scenix-math`, `scenix-core`
+
+**Status in v1.7.0:** shipped as an optional crate behind the facade
+`particles` feature. `no_std`-capable (std/serde features), renderer draw and
+compute paths behind the renderer's `particles` feature, `NodeKind::Particles`
+scene linkage, and browser capability notes in `scenix-wasm`.
+
+> **Design decisions:** the CPU simulator is the source of truth — one
+> `ParticleSystem::update` call advances the pool and returns the reusable
+> render batch, so upload, authoring, and headless testing share one path.
+> The GPU compute path is a pure profile executor: `ParticleComputeParams`
+> carries gravity/drag/fades explicitly (no boxed-modifier introspection on
+> the GPU), and the respawn pass is a single invocation ring scan with
+> deterministic hash lifetimes, avoiding GPU nondeterminism without atomics.
+
+#### Public API
+
+- `ParticleEmitter`: builder with rate/lifetime/size/speed, `at`/`toward`,
+  `EmissionShape` (point, sphere, hemisphere, disc, cone, box), and the
+  `ParticleModifier` list (`Gravity`, `Drag`, `ColorOverLifetime`,
+  `SizeOverLifetime`, `SpinOverLife`, `ConfineBox`).
+- `ParticleSystem::new(emitter, capacity, seed)` + `update(dt) -> &batch`,
+  `spawn_burst(count)`, `set_flipbook`, `particles()` (pool snapshot for GPU
+  seeding), `alive`/`total_spawned` counters, and the
+  `PARTICLE_POOL_LIMIT` (262,144) ceiling.
+- `Particle`, `ParticleRenderBatch`, `ParticleRenderItem` (position, size,
+  color, flipbook `uv_rect`, rotation), `ColorCurve`/`ScalarCurve` keys, and
+  `DeterministicRng`.
+- Renderer (feature `particles`): `register_particles`,
+  `update_particles(&ParticleRenderBatch)`, `register_particle_compute`,
+  `simulate_particles_compute`, `read_particle_pool`, `read_particle_ring`,
+  `unregister_particles`; `ParticleComputeParams`, `PoolItemUniform`,
+  `PARTICLE_INSTANCE_STRIDE` (64B), `PARTICLE_POOL_STRIDE` (64B),
+  `PARTICLE_DRAW_LIMIT`.
+- Supporting crates: `scenix-material::ParticleMaterial` +
+  `ShaderKind::Particles` + `FEATURE_SOFT_PARTICLES`/`FEATURE_FLIPBOOK` bits;
+  `scenix-texture::FlipbookGrid`; `scenix-mesh::quad_geometry`;
+  `scenix-scene::NodeKind::Particles`; `scenix-wasm::particle_fallback_plan`;
+  `scenix-math::float` shims.
+
+#### Tests, benches, examples
+
+- `tests/particles_batches.rs` (crate level): full CPU loop end-to-end,
+  emitter/module integration, capacity behavior, flipbook batches, and
+  determinism across resets.
+- `tests/scenix_v17.rs` at the facade level (6 tests): simulation flow,
+  flipbook grid math, material bits + blend, scene linkage, billboard
+  geometry, float shims, browser fallback plans.
+- `tests/particles_gpu.rs` (GPU-gated, `SCENIX_RUN_GPU_TESTS=1`): billboard
+  draw against a headless renderer (`stats.particle_instances`) and the
+  compute lifecycle — integrate to expiry, ring respawn budget, and the
+  cursor landing on the claim boundary.
+- `benches/particles_bench.rs`: house-style CPU hot paths (update step,
+  full-pool simulate).
+- `examples/particles_basic.rs`: CPU fountain with an optional headless
+  compute tail (feature `renderer`).
 
 ---
 

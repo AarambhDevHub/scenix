@@ -5,10 +5,13 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix `1.6.0` is the current stable release. It adds the optional
-`scenix-nodes` crate — typed shader graphs, node materials, and a post-node
-effect language with WGSL and GLSL backends — wired through the renderer, post
-stack, browser preflight, and facade feature flags. v1.5.0's cross-platform
+scenix `1.7.0` is the current stable release. It adds the optional
+`scenix-particles` crate — deterministic CPU particle systems with seeded
+emitters, lifetime modifiers, flipbook support, and an instanced billboard GPU
+draw path plus optional compute simulation — wired through the scene graph,
+materials, textures, renderer, browser capability notes, and facade feature
+flags. v1.6.0's typed shader graphs, node materials, and post-node effect
+language remain the shading backbone, and v1.5.0's cross-platform
 controls, input stack, selection/transform primitives, reusable gizmos,
 inspector snapshots, optional egui rendering, and on-demand GPU picking remain
 the interaction backbone, and CPU authoring stays lightweight by default while
@@ -48,6 +51,7 @@ scenix-camera = "1"
 scenix-mesh = "1"
 scenix-material = "1"
 scenix-nodes = "1"
+scenix-particles = "1"
 scenix-light = "1"
 scenix-texture = "1"
 scenix-loader = "1"
@@ -71,6 +75,7 @@ scenix-camera = { version = "1", default-features = false }
 scenix-mesh = { version = "1", default-features = false }
 scenix-material = { version = "1", default-features = false }
 scenix-nodes = { version = "1", default-features = false }
+scenix-particles = { version = "1", default-features = false }
 scenix-light = { version = "1", default-features = false }
 scenix-texture = { version = "1", default-features = false }
 scenix-raycaster = { version = "1", default-features = false }
@@ -97,6 +102,7 @@ host crates.
 | `renderer` | no | `wgpu` renderer with surface/headless targets. |
 | `post` | no | Full-screen post-processing stack; use with `renderer`. |
 | `nodes` | no | Typed shader graphs, node materials, and post node effects with WGSL/GLSL backends under the `scenix-nodes` crate; enables node-material rendering in `renderer` and browser preflight in `wasm` when those features are on. |
+| `particles` | no | Deterministic CPU particle systems under the `scenix-particles` crate; enables the billboard GPU path (with optional compute simulation) in `renderer` and browser fallback plans in `wasm` when those features are on. |
 | `animato` | no | Animato bridge: procedural tween/spring tracks **and** the clip-based Animation Runtime (clips, actions, mixer, loop modes, crossfade, additive blending, markers/events, light/morph targets, retargeting, CPU skinning). Targets Animato `1.7.2`. |
 | `wasm` | no | Browser canvas wrapper with WebGPU first, WebGL2 full fallback, WebGL1 reduced fallback, and generated demo scene. |
 | `serde` | no | Serialization support where the focused crate supports it. |
@@ -281,7 +287,42 @@ specific `NodeDiagnostic` instead of crashing. With the `wasm` feature,
 `scenix_wasm::compile_node_material_glsl(json)` runs the same preflight in the
 browser before anything is uploaded.
 
+### Particles
+
+```rust
+use scenix::{
+    ColorOverLifetime, ColorCurve, Drag, EmissionShape, Gravity, ParticleEmitter,
+    ParticleSystem, Vec3, SizeOverLifetime,
+};
+
+let emitter = ParticleEmitter::new()
+    .with_rate(240.0)
+    .with_lifetime(0.9, 1.6)
+    .with_size(0.2)
+    .with_speed(4.0, 7.0)
+    .at(Vec3::new(0.0, 0.0, 0.0))
+    .toward(Vec3::new(0.0, 1.0, 0.0))
+    .with_shape(EmissionShape::Cone { radius: 0.15, height: 0.35 })
+    .with_modifier(Gravity::new(Vec3::new(0.0, -12.0, 0.0)))
+    .with_modifier(Drag::new(0.15))
+    .with_modifier(ColorOverLifetime::new(ColorCurve::from_to(
+        [1.0, 0.85, 0.35, 1.0],
+        [0.9, 0.15, 0.0, 0.0],
+    )))
+    .with_modifier(SizeOverLifetime::from_to(1.15, 0.05));
+
+// One deterministic CPU system drives the entire loop.
+let mut system = ParticleSystem::new(emitter, 1_024, 2021018);
+let batch = system.update(1.0 / 60.0);
+assert!(batch.len() <= 1_024);
+
+// With `renderer` + `particles`, `Renderer::register_particles` +
+// `Renderer::update_particles` draw the batch as camera-facing billboards;
+// `register_particle_compute` moves the whole simulation onto the GPU.
+```
+
 ### Raycasting
+
 
 ```rust
 use std::collections::BTreeMap;
@@ -324,6 +365,7 @@ assert!(raycaster.cast_ray(ray, &scene, &meshes).is_some());
 | `scenix-mesh` | Geometry buffers, primitives, instancing, batching, and morph targets. |
 | `scenix-material` | GPU-free material descriptions and pipeline keys. |
 | `scenix-nodes` | Optional typed shader graphs, node materials, and post node effects with WGSL/GLSL codegen. |
+| `scenix-particles` | Optional deterministic CPU particle systems with emitter/curve modules and GPU billboard/compute integration. |
 | `scenix-light` | Lights, shadow settings, and light probes. |
 | `scenix-texture` | CPU textures, samplers, atlases, video updates, and mipmaps. |
 | `scenix-loader` | Optional CPU asset packages, asset manager, importers, exporters, diagnostics, and cache. |
@@ -371,6 +413,7 @@ cargo run -p scenix --example renderer_picking --features renderer
 cargo run -p scenix --example nodes_material --features nodes
 cargo run -p scenix --example nodes_wgsl --features nodes
 cargo run -p scenix --example node_post_effect --features nodes
+cargo run -p scenix --example particles_basic --features particles
 cargo run -p scenix --example sprite_particles
 cargo run -p scenix --example environment_map --features renderer
 cargo run -p scenix --example render_target_capture --features renderer

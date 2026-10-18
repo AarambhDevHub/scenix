@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use scenix_camera::PerspectiveCamera;
+#[cfg(feature = "particles")]
+use scenix_core::ParticleSystemId;
 use scenix_core::{GpuError, LightId, MaterialId, MeshId, ScenixError, TextureId, ValidationError};
 use scenix_light::{
     AmbientLight, AreaLight, DirectionalLight, HemisphereLight, LightProbe, PointLight, SpotLight,
@@ -12,6 +14,8 @@ use scenix_material::{
 };
 use scenix_math::{Mat4, Vec2, Vec3};
 use scenix_mesh::Geometry;
+#[cfg(feature = "particles")]
+use scenix_particles::ParticleSystem;
 use scenix_scene::SceneGraph;
 use scenix_texture::{Sampler, Texture2D, Texture3D, TextureCube, TextureFormat};
 
@@ -102,6 +106,13 @@ pub(crate) struct UniformResources {
 }
 
 impl UniformResources {
+    /// Shares the frame uniform buffer with secondary bind groups (the
+    /// particle group 0 binds it at slot 0 next to the params block).
+    #[cfg(feature = "particles")]
+    pub(crate) fn frame_buffer(&self) -> &wgpu::Buffer {
+        &self.frame_buffer
+    }
+
     fn new(device: &wgpu::Device) -> Self {
         let object_stride = aligned_uniform_size::<ObjectUniform>();
         let material_stride = aligned_uniform_size::<MaterialUniform>();
@@ -263,6 +274,9 @@ pub struct Renderer {
     /// Color format the node-pipeline cache is valid for.
     #[cfg(feature = "nodes")]
     node_pipeline_format: wgpu::TextureFormat,
+    /// v1.7.0 GPU particle subsystem (draw + optional compute).
+    #[cfg(feature = "particles")]
+    particles: crate::particles::ParticleResources,
 }
 
 impl Renderer {
@@ -287,6 +301,12 @@ impl Renderer {
         let color_format = config.preferred_color_format();
         let uniforms = UniformResources::new(&device);
         let draw_pipeline = create_draw_pipeline(&device, color_format, &uniforms);
+        #[cfg(feature = "particles")]
+        let particles = crate::particles::ParticleResources::new(
+            &device,
+            color_format,
+            uniforms.frame_buffer(),
+        );
         let offscreen = TextureTarget::new(
             &device,
             "scenix.headless.color",
@@ -331,6 +351,8 @@ impl Renderer {
             node_pipelines: HashMap::new(),
             #[cfg(feature = "nodes")]
             node_pipeline_format: color_format,
+            #[cfg(feature = "particles")]
+            particles,
         })
     }
 
@@ -343,6 +365,12 @@ impl Renderer {
         let surface_config = configure_surface(&surface, &adapter, &device, &config);
         let uniforms = UniformResources::new(&device);
         let draw_pipeline = create_draw_pipeline(&device, surface_config.format, &uniforms);
+        #[cfg(feature = "particles")]
+        let particles = crate::particles::ParticleResources::new(
+            &device,
+            surface_config.format,
+            uniforms.frame_buffer(),
+        );
         #[cfg(feature = "nodes")]
         let node_pipeline_format = surface_config.format;
         let gbuffer = GBuffer::new(&device, config.width, config.height);
@@ -379,6 +407,8 @@ impl Renderer {
             node_pipelines: HashMap::new(),
             #[cfg(feature = "nodes")]
             node_pipeline_format,
+            #[cfg(feature = "particles")]
+            particles,
         })
     }
 
@@ -428,19 +458,36 @@ impl Renderer {
         camera: &PerspectiveCamera,
     ) -> Result<FrameStats, ScenixError> {
         let frame_context = self.frame_context(camera);
-        let (opaque, transparent, stats) = self.prepare_draws(scene, camera)?;
+        #[cfg(feature = "particles")]
+        self.write_particle_params(&frame_context, camera);
+        let (opaque, transparent, mut stats) = self.prepare_draws(scene, camera)?;
 
-        match self.target_mode {
+        let particle_instances = match self.target_mode {
             RenderTargetMode::Headless => {
-                self.render_headless(frame_context, stats.visible_meshes, &opaque, &transparent)?;
+                self.render_headless(frame_context, stats.visible_meshes, &opaque, &transparent)?
             }
             RenderTargetMode::Surface => {
-                self.render_surface(frame_context, stats.visible_meshes, &opaque, &transparent)?;
+                self.render_surface(frame_context, stats.visible_meshes, &opaque, &transparent)?
             }
-        }
+        };
+        stats.particle_instances = particle_instances;
 
         self.frame_index = self.frame_index.saturating_add(1);
         Ok(stats)
+    }
+
+    /// Uploads the billboard camera basis once per frame.
+    #[cfg(feature = "particles")]
+    fn write_particle_params(&mut self, frame_context: &FrameContext, camera: &PerspectiveCamera) {
+        let params = crate::particles::ParticleParamsUniform::from_camera_basis(
+            camera.position,
+            camera.target,
+            camera.up,
+            frame_context.elapsed,
+            camera.aspect,
+            self.frame_index,
+        );
+        self.particles.write_params(&self.queue, &params);
     }
 
     /// Registers a mesh with the renderer.
@@ -749,6 +796,200 @@ impl Renderer {
         self.skinning.unregister_morph(mesh_id)
     }
 
+    /// Registers (or replaces) a particle system slot (scenix v1.7.0,
+    /// feature `particles`).
+    ///
+    /// Slot creation alone draws nothing: feed render items from a
+    /// [`scenix_particles::ParticleSystem`] each frame through
+    /// [`Renderer::update_particles`], or hand the system to the GPU compute
+    /// path with [`Renderer::register_particle_compute`].
+    ///
+    /// # Errors
+    /// Returns `InvalidId` for a null system id.
+    #[cfg(feature = "particles")]
+    pub fn register_particles(
+        &mut self,
+        system_id: ParticleSystemId,
+        material: &scenix_material::ParticleMaterial,
+    ) -> Result<(), ScenixError> {
+        if system_id.is_null() {
+            return Err(ScenixError::from(ValidationError::InvalidId));
+        }
+        let sprite = self.resolve_particle_sprite(material.texture);
+        let gpu = crate::particles::GpuIo {
+            device: &self.device,
+            queue: &self.queue,
+        };
+        self.particles
+            .store_draw_slot(&gpu, system_id, material, sprite, &[])?;
+        Ok(())
+    }
+
+    /// Uploads one frame of particle render items (feature `particles`).
+    ///
+    /// The render batch produced by
+    /// [`scenix_particles::ParticleSystem::update`] maps 1:1 onto this call;
+    /// the material tint premultiplies into instance colors on upload.
+    ///
+    /// # Errors
+    /// Returns `InvalidId` for a null system id and `OutOfRange` when the
+    /// batch exceeds [`crate::particles::PARTICLE_DRAW_LIMIT`].
+    #[cfg(feature = "particles")]
+    pub fn update_particles(
+        &mut self,
+        system_id: ParticleSystemId,
+        batch: &scenix_particles::ParticleRenderBatch,
+        material: &scenix_material::ParticleMaterial,
+    ) -> Result<(), ScenixError> {
+        if system_id.is_null() {
+            return Err(ScenixError::from(ValidationError::InvalidId));
+        }
+        let tint = material.color.to_array();
+        let instances: Vec<crate::particles::ParticleInstanceUniform> = batch
+            .items
+            .iter()
+            .map(|item| crate::particles::ParticleInstanceUniform::pack(item, tint))
+            .collect();
+        let sprite = self.resolve_particle_sprite(material.texture);
+        let gpu = crate::particles::GpuIo {
+            device: &self.device,
+            queue: &self.queue,
+        };
+        self.particles
+            .store_draw_slot(&gpu, system_id, material, sprite, &instances)?;
+        Ok(())
+    }
+
+    /// Hands a CPU-simulated pool to the GPU compute path (feature
+    /// `particles`).
+    ///
+    /// The system's live particles seed the 64-byte GPU pool once; every
+    /// `simulate_particles_compute` call then advances gravity/drag, applies
+    /// linear lifetime fades, and respawns dead slots through the ring
+    /// window. CPU updates via [`Renderer::update_particles`] revert the
+    /// system to CPU sourcing.
+    ///
+    /// # Errors
+    /// Returns `InvalidId` for a null system id and `InvalidState` when the
+    /// pool is empty.
+    #[cfg(feature = "particles")]
+    pub fn register_particle_compute(
+        &mut self,
+        system_id: ParticleSystemId,
+        material: &scenix_material::ParticleMaterial,
+        source: &ParticleSystem,
+        params: &crate::particles::ParticleComputeParams,
+    ) -> Result<(), ScenixError> {
+        if system_id.is_null() {
+            return Err(ScenixError::from(ValidationError::InvalidId));
+        }
+        let sprite = self.resolve_particle_sprite(material.texture);
+        let gpu = crate::particles::GpuIo {
+            device: &self.device,
+            queue: &self.queue,
+        };
+        self.particles
+            .store_compute_slot(&gpu, system_id, material, sprite, source, params)?;
+        Ok(())
+    }
+
+    /// Advances one GPU-compute particle system one step (feature
+    /// `particles`).
+    ///
+    /// Dispatches integrate + ring-respawn passes; the next [`Renderer::
+    /// render`] draws the twice-written instance buffer automatically.
+    ///
+    /// # Errors
+    /// Returns `InvalidId` when the system is unknown and `InvalidState`
+    /// when it is not registered for compute.
+    #[cfg(feature = "particles")]
+    pub fn simulate_particles_compute(
+        &mut self,
+        system_id: ParticleSystemId,
+        params: &crate::particles::ParticleComputeParams,
+        spawn_budget: u32,
+    ) -> Result<(), ScenixError> {
+        if spawn_budget > crate::particles::PARTICLE_DRAW_LIMIT {
+            return Err(ScenixError::from(ValidationError::OutOfRange));
+        }
+        // Simulation profile (gravity, drag, fades) comes entirely from the
+        // caller; only the per-step respawn budget is threaded as an argument.
+        let stepped = params.with_spawn_budget(spawn_budget);
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("scenix.particles.sim.encoder"),
+            });
+        self.particles
+            .encode_simulation(&self.queue, system_id, &stepped, &mut encoder)
+            .map_err(ScenixError::from)?;
+        self.queue.submit(Some(encoder.finish()));
+        Ok(())
+    }
+
+    /// Copies a GPU-compute particle pool back to the host (feature
+    /// `particles`).
+    ///
+    /// Verification hook for tests and editor overlays: blocks on the
+    /// device until the copy lands and fills `output` with one
+    /// [`crate::particles::PoolItemUniform`] per slot.
+    ///
+    /// # Errors
+    /// Returns `InvalidId` when the system is unknown or not compute-owned.
+    #[cfg(feature = "particles")]
+    pub fn read_particle_pool(
+        &self,
+        system_id: ParticleSystemId,
+        output: &mut Vec<crate::particles::PoolItemUniform>,
+    ) -> Result<(), ScenixError> {
+        self.particles
+            .read_pool(&self.device, &self.queue, system_id, output)
+            .map_err(ScenixError::from)
+    }
+
+    /// Reads the respawn ring cursor of a compute-owned particle system
+    /// (feature `particles`).
+    ///
+    /// The cursor pinpoints where the next respawn budget will start
+    /// scanning; diagnostics and tests use it to verify the ring behaves.
+    ///
+    /// # Errors
+    /// Returns `InvalidId` when the system is unknown or not compute-owned.
+    #[cfg(feature = "particles")]
+    pub fn read_particle_ring(&self, system_id: ParticleSystemId) -> Result<u32, ScenixError> {
+        let mut cursor = 0_u32;
+        self.particles
+            .read_ring(&self.device, &self.queue, system_id, &mut cursor)
+            .map_err(ScenixError::from)?;
+        Ok(cursor)
+    }
+
+    /// Unregisters a particle slot (feature `particles`).
+    #[inline]
+    #[cfg(feature = "particles")]
+    pub fn unregister_particles(&mut self, system_id: ParticleSystemId) -> bool {
+        self.particles.remove(system_id)
+    }
+
+    /// Resolves the sprite bind-group state for a particle material.
+    #[cfg(feature = "particles")]
+    fn resolve_particle_sprite(
+        &self,
+        texture_id: Option<TextureId>,
+    ) -> crate::particles::SpriteGroup {
+        use crate::particles::SpriteGroup;
+
+        let resource = texture_id.and_then(|id| self.texture_resources.get(&id));
+        match (texture_id, resource) {
+            (Some(_), Some(resource)) => SpriteGroup::Texture(self.particles.texture_group(
+                &self.device,
+                &resource.sampler,
+                &resource.view,
+            )),
+            _ => SpriteGroup::Fallback(self.particles.fallback_group(&self.device)),
+        }
+    }
+
     /// Returns the GPU skinning registry (v1.4.0).
     #[inline]
     pub fn skinning(&self) -> &crate::skinning::GpuSkinningRegistry {
@@ -845,8 +1086,10 @@ impl Renderer {
             )
         };
         let frame_context = self.frame_context(camera);
-        let (opaque, transparent, stats) = self.prepare_draws(scene, camera)?;
-        self.render_to_final_view(
+        #[cfg(feature = "particles")]
+        self.write_particle_params(&frame_context, camera);
+        let (opaque, transparent, mut stats) = self.prepare_draws(scene, camera)?;
+        let particle_instances = self.render_to_final_view(
             &view,
             format,
             frame_context,
@@ -854,6 +1097,7 @@ impl Renderer {
             &opaque,
             &transparent,
         )?;
+        stats.particle_instances = particle_instances;
         self.frame_index = self.frame_index.saturating_add(1);
         Ok(stats)
     }
@@ -1134,6 +1378,7 @@ impl Renderer {
             opaque_draws: opaque.len() as u32,
             transparent_draws: transparent.len() as u32,
             lights: self.gpu_scene.light_count() as u32,
+            particle_instances: 0,
             target_mode: Some(self.target_mode),
         };
 
@@ -1146,7 +1391,7 @@ impl Renderer {
         visible_meshes: u32,
         opaque: &[crate::DrawSubmission],
         transparent: &[crate::DrawSubmission],
-    ) -> Result<(), ScenixError> {
+    ) -> Result<u32, ScenixError> {
         #[cfg(feature = "post")]
         let color_format = self.config.preferred_color_format();
         #[cfg(feature = "post")]
@@ -1163,7 +1408,7 @@ impl Renderer {
                     .unwrap()
                     .texture()
                     .create_view(&wgpu::TextureViewDescriptor::default());
-                self.render_scene_to_view(
+                let particle_instances = self.render_scene_to_view(
                     &source_view,
                     frame_context,
                     visible_meshes,
@@ -1188,7 +1433,7 @@ impl Renderer {
                     &final_view,
                     context,
                 )?;
-                return Ok(());
+                return Ok(particle_instances);
             }
         }
 
@@ -1198,8 +1443,9 @@ impl Renderer {
             .ok_or(ScenixError::Gpu(GpuError::Init))?
             .texture()
             .create_view(&wgpu::TextureViewDescriptor::default());
-        self.render_scene_to_view(&view, frame_context, visible_meshes, opaque, transparent);
-        Ok(())
+        let particle_instances =
+            self.render_scene_to_view(&view, frame_context, visible_meshes, opaque, transparent);
+        Ok(particle_instances)
     }
 
     fn render_surface(
@@ -1208,7 +1454,7 @@ impl Renderer {
         visible_meshes: u32,
         opaque: &[crate::DrawSubmission],
         transparent: &[crate::DrawSubmission],
-    ) -> Result<(), ScenixError> {
+    ) -> Result<u32, ScenixError> {
         let surface = self
             .surface
             .as_ref()
@@ -1217,12 +1463,12 @@ impl Renderer {
             wgpu::CurrentSurfaceTexture::Success(frame)
             | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
             wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
-                return Ok(());
+                return Ok(0);
             }
             wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
                 let config = configure_surface(surface, &self.adapter, &self.device, &self.config);
                 self.surface_config = Some(config);
-                return Ok(());
+                return Ok(0);
             }
             wgpu::CurrentSurfaceTexture::Validation => {
                 return Err(ScenixError::Gpu(GpuError::Unsupported));
@@ -1235,7 +1481,7 @@ impl Renderer {
             || self.config.preferred_color_format(),
             |config| config.format,
         );
-        self.render_to_final_view(
+        let particle_instances = self.render_to_final_view(
             &view,
             format,
             frame_context,
@@ -1244,7 +1490,7 @@ impl Renderer {
             transparent,
         )?;
         frame.present();
-        Ok(())
+        Ok(particle_instances)
     }
 
     fn render_to_final_view(
@@ -1255,7 +1501,7 @@ impl Renderer {
         visible_meshes: u32,
         opaque: &[crate::DrawSubmission],
         transparent: &[crate::DrawSubmission],
-    ) -> Result<(), ScenixError> {
+    ) -> Result<u32, ScenixError> {
         #[cfg(feature = "post")]
         {
             if self
@@ -1270,7 +1516,7 @@ impl Renderer {
                     .unwrap()
                     .texture()
                     .create_view(&wgpu::TextureViewDescriptor::default());
-                self.render_scene_to_view(
+                let particle_instances = self.render_scene_to_view(
                     &source_view,
                     frame_context,
                     visible_meshes,
@@ -1289,12 +1535,13 @@ impl Renderer {
                     view,
                     context,
                 )?;
-                return Ok(());
+                return Ok(particle_instances);
             }
         }
 
-        self.render_scene_to_view(view, frame_context, visible_meshes, opaque, transparent);
-        Ok(())
+        let particle_instances =
+            self.render_scene_to_view(view, frame_context, visible_meshes, opaque, transparent);
+        Ok(particle_instances)
     }
 
     #[cfg(feature = "post")]
@@ -1326,7 +1573,7 @@ impl Renderer {
         visible_meshes: u32,
         opaque: &[crate::DrawSubmission],
         transparent: &[crate::DrawSubmission],
-    ) {
+    ) -> u32 {
         let frame_uniform = FrameUniform {
             view_projection: mat4_uniform(frame_context.view_projection),
             camera_position_frame: [
@@ -1410,6 +1657,7 @@ impl Renderer {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("scenix.frame.encoder"),
             });
+        let particle_instances;
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("scenix.frame.clear"),
@@ -1502,8 +1750,20 @@ impl Renderer {
                     pass.draw_indexed(0..mesh.packed().index_count, 0, 0..1);
                 }
             }
+
+            // Particle billboards encode after meshes so they blend over the
+            // lit scene while depth-testing against it.
+            #[cfg(feature = "particles")]
+            {
+                particle_instances = self.particles.encode_frame(&mut pass);
+            }
+            #[cfg(not(feature = "particles"))]
+            {
+                particle_instances = 0_u32;
+            }
         }
         self.queue.submit(Some(encoder.finish()));
+        particle_instances
     }
 
     /// Registers a shader-node material (scenix v1.6.0) generated from a

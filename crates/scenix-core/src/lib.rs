@@ -15,7 +15,8 @@ pub mod traits;
 pub use color::{Color, ColorSpace};
 pub use error::{GpuError, LoadError, ScenixError, ValidationError};
 pub use ids::{
-    AnimationClipId, AssetId, CameraId, LightId, MaterialId, MeshId, NodeId, SkinId, TextureId,
+    AnimationClipId, AssetId, CameraId, LightId, MaterialId, MeshId, NodeId, ParticleSystemId,
+    SkinId, TextureId,
 };
 #[cfg(feature = "inspector")]
 pub use inspector::{
