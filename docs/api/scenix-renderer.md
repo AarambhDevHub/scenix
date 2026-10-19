@@ -49,6 +49,8 @@ Use this crate directly when you need its boundary in your own public API. Use t
 
 v1.7.0 adds the particle surface (behind `particles`): `register_particles`, `update_particles` (instanced 64-byte billboards), `register_particle_compute` + `simulate_particles_compute` (deterministic GPU simulation), and `read_particle_pool`/`read_particle_ring` readbacks; see [scenix-particles](scenix-particles.md).
 
+v1.8.0 adds the environment surface (behind `environment`): `register_environment`/`unregister_environment` with `EnvironmentMaterial::{Terrain, Sky, Water}`, the `terrain_splat`/`sky_dome`/`water_surface` WGSL pipelines, sky-before-opaque and water-after-transparent draw ordering, and `scene_environments`/`visible_environments` in `CullingStats` and `FrameStats`; see [scenix-terrain](scenix-terrain.md), [scenix-sky](scenix-sky.md), and [scenix-water](scenix-water.md).
+
 
 ## Related Docs
 

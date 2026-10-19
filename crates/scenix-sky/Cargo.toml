@@ -1,0 +1,28 @@
+[package]
+name = "scenix-sky"
+description = "CPU-procedural sky, atmosphere evaluation, sun helpers, environment-map baking, and grounded skyboxes for scenix."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std", "scenix-light/std", "scenix-math/std"]
+serde = ["dep:serde", "scenix-core/serde", "scenix-light/serde", "scenix-math/serde"]
+
+[dependencies]
+scenix-core = { workspace = true }
+scenix-light = { workspace = true }
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[test]]
+name = "sky_cpu"
+path = "../../tests/sky_cpu.rs"

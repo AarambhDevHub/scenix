@@ -36,6 +36,8 @@ Use this crate directly when you need its boundary in your own public API. Use t
 
 v1.7.0 adds `FlipbookGrid`, the shared frame-index to UV math for flipbook sheets.
 
+v1.8.0 adds `EquirectSampler` (bilinear equirectangular sampling in the sky-bake row order) and `height_to_normal_map` (central-difference height-to-normal conversion) under the `environment_maps` module.
+
 
 ## Related Docs
 

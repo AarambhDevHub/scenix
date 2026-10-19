@@ -7,6 +7,71 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-19
+
+### Added
+
+- Added the optional `scenix-terrain` crate (`no_std`-capable on
+  `std`/`serde`, depending on core/math/mesh): seeded deterministic
+  `Heightmap::from_noise` plus `from_fn` with `remap_range` refitting,
+  `TerrainGrid::generate` chunking from `TerrainConfig` (chunks per axis ×
+  chunk cells × `LodBand` policy) with per-LOD `chunk_geometry` and
+  `chunk_geometry_with_splat` weight packing, `SplatLayer`/`SplatMap`
+  normalization, `TerrainCollider` ray probes (`with_step`, `with_max_steps`,
+  `height_at`, `normal_at`), and a deterministic `ChunkStreamer`
+  poll/unload loop over wrapping `ChunkCoord` lattices.
+- Added the optional `scenix-sky` crate (core/light/math): `SkyModel`
+  profiles (`clear_day`, `overcast_haze`) with turbidity/rayleigh/mie tuning
+  and pure direction taps, `SunPosition` (degrees/radians) driving
+  `SunLight`/`DirectionalLight`, deterministic `bake_equirectangular` (row 0
+  = zenith), `bake_light_probe` SH taps, `bake_ambient` sky/ground averages,
+  and `GroundedSkybox` horizon fades.
+- Added the optional `scenix-water` crate (camera/core/math/mesh):
+  `WaveField` presets (`ocean_shore`, `calm`) holding up to `MAX_WAVES`
+  stacked `GerstnerWave`s, `WaterSurface::geometry(t)` displaced meshes that
+  match `height_at` exactly with unit normals, `WaterConfig`, `FoamParams`
+  threshold gating, `FresnelParams` Schlick reflectance, `UnderwaterView`
+  red-first absorption with murk drift, and planar reflection helpers
+  (`mirror_transform`, `reflected_camera`, `ReflectionSetup`).
+- Added `scenix-material` environment descriptors: `TerrainMaterial` (four
+  splat layers with albedo/roughness/tiling plus optional splat and detail
+  textures), `SkyMaterial` (gradient triple, sun direction/color/strength,
+  fade band, atmosphere flag), and `WaterMaterial` (deep/shallow tints,
+  Schlick base reflectance, optional foam threshold, optional
+  reflection/refraction textures); `ShaderKind` gained the `Terrain`, `Sky`,
+  and `Water` variants plus the `FEATURE_SPLAT_MAP` (1 << 22),
+  `FEATURE_ATMOSPHERE` (1 << 23), `FEATURE_FRESNEL` (1 << 24),
+  `FEATURE_FOAM` (1 << 25), and `FEATURE_REFRACTION` (1 << 26) bits.
+- Added the `scenix-renderer` `environment` feature: an environment slot
+  registry keyed by node material ids
+  (`register_environment`/`unregister_environment` over
+  `EnvironmentMaterial::{Terrain, Sky, Water}`), per-kind uniform packing
+  into a dedicated 128-byte environment belt, three WGSL pipelines
+  (`terrain_splat`, `sky_dome`, `water_surface`), sky → opaque → terrain →
+  transparent → water draw ordering, dirty-flag bind-group rebuilds, and
+  `scene_environments`/`visible_environments` counters in `CullingStats` and
+  `FrameStats`.
+- Added `scenix-core` `TerrainId`, `SkyId`, and `WaterId` newtypes; added
+  `scenix-scene` `NodeKind::{Terrain, Sky, Water}` nodes with constructors
+  and inspector labels; added `scenix-texture`
+  `EquirectSampler`/`height_to_normal_map` (moved under the
+  `environment_maps` module before release); added `scenix-light`
+  `SunLight::from_direction`/`from_elevation`, `sun_direction`, and
+  `sun_color_from_elevation` in `sun.rs`.
+- Added `scenix-wasm` `environment_fallback_plan(WebGlCapabilityLevel)` →
+  `EnvironmentFallbackPlan`: `Full` WGSL parity on WebGPU, `StaticUniforms`
+  on WebGL 2, and CPU-baked `VertexColorTint` without screen-space water on
+  WebGL 1.
+- Added the facade `terrain`, `sky`, `water`, and `environment` features
+  with curated terrain/sky re-exports (the `lod`/`sky`/`sun` module names
+  collide with the scene, material, and light crate globs), the facade
+  `scenix_v18` test suite, and the `terrain_lod`, `sky_sun`,
+  `water_fresnel`, and `environment_demo` examples plus the
+  `benches/terrain_bench.rs` hot paths.
+- Added CI/publish lanes for the environment surface: no-default CPU crate
+  tests, v1.8 facade feature checks, the v1.8 environment test surface, and
+  the GPU-gated renderer `environment` lane (lavapipe).
+
 ## [1.7.0] - 2026-10-18
 
 ### Added

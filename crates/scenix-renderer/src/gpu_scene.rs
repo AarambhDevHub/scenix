@@ -16,6 +16,9 @@ use scenix_texture::{
 };
 use wgpu::util::DeviceExt;
 
+#[cfg(feature = "environment")]
+use crate::environment_slots::EnvironmentSlot;
+
 /// Interleaved GPU vertex layout used by the v0.6 renderer.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
@@ -95,6 +98,21 @@ pub struct GpuMesh {
 }
 
 impl GpuMesh {
+    /// Builds a mesh from already-uploaded buffers (environment slots).
+    #[cfg(feature = "environment")]
+    #[inline]
+    pub(crate) const fn from_buffers(
+        vertex_buffer: wgpu::Buffer,
+        index_buffer: wgpu::Buffer,
+        packed: PackedGeometry,
+    ) -> Self {
+        Self {
+            vertex_buffer,
+            index_buffer,
+            packed,
+        }
+    }
+
     /// Returns the vertex buffer.
     #[inline]
     pub const fn vertex_buffer(&self) -> &wgpu::Buffer {
@@ -308,6 +326,8 @@ pub struct GpuScene {
     textures: TextureStore,
     lights: HashMap<LightId, RendererLight>,
     shader_nodes: HashMap<MaterialId, NodeMaterialSlot>,
+    #[cfg(feature = "environment")]
+    environments: HashMap<MaterialId, EnvironmentSlot>,
 }
 
 impl GpuScene {
@@ -612,6 +632,50 @@ impl GpuScene {
         self.shader_nodes.len()
     }
 
+    /// Registers an environment slot (scenix v1.8.0 `environment` feature).
+    ///
+    /// # Errors
+    /// Returns `InvalidId` when the material id is null.
+    #[cfg(feature = "environment")]
+    pub(crate) fn register_environment(
+        &mut self,
+        material_id: MaterialId,
+        slot: crate::environment_slots::EnvironmentSlot,
+    ) -> Result<(), ValidationError> {
+        if material_id.is_null() {
+            return Err(ValidationError::InvalidId);
+        }
+        self.environments.insert(material_id, slot);
+        Ok(())
+    }
+
+    /// Returns the environment slot registered under `material_id`.
+    #[cfg(feature = "environment")]
+    #[inline]
+    pub(crate) fn environment(&self, material_id: MaterialId) -> Option<&EnvironmentSlot> {
+        self.environments.get(&material_id)
+    }
+
+    /// Number of registered environment slots.
+    #[cfg(feature = "environment")]
+    #[inline]
+    pub fn environment_count(&self) -> usize {
+        self.environments.len()
+    }
+
+    /// Removes one environment slot from the registry.
+    #[cfg(feature = "environment")]
+    #[inline]
+    pub fn unregister_environment(&mut self, material_id: MaterialId) -> bool {
+        self.environments.remove(&material_id).is_some()
+    }
+
+    /// Iterates registered environment slots (bind-group rebuilds).
+    #[cfg(feature = "environment")]
+    pub(crate) fn environments(&self) -> impl Iterator<Item = (&MaterialId, &EnvironmentSlot)> {
+        self.environments.iter()
+    }
+
     /// Removes one texture metadata entry from the registry.
     #[inline]
     pub fn unregister_texture(&mut self, texture_id: TextureId) -> bool {
@@ -635,6 +699,8 @@ impl GpuScene {
     pub fn clear_materials(&mut self) {
         self.materials.clear();
         self.shader_nodes.clear();
+        #[cfg(feature = "environment")]
+        self.environments.clear();
     }
 
     /// Clears all texture metadata.

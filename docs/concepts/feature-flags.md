@@ -34,6 +34,11 @@ All facade features are documented here.
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
 | `nodes` | no | Typed shader graphs, node materials, and post node effects (the `scenix-nodes` crate) with WGSL/GLSL backends; forwards to `renderer`, `post`, and `wasm` variants when enabled. |
 | `particles` | no | Deterministic CPU particle systems (the `scenix-particles` crate) with emitter/curve modules, flipbooks, and billboards; forwards to the `renderer` particle draw/compute path and `wasm` fallback plans when enabled. |
+| `terrain` | no | CPU heightfields, chunked LOD, splat maps, collision, and streaming (the `scenix-terrain` crate). |
+| `sky` | no | Procedural sky profiles, sun positions, baked environment maps, and grounded skyboxes (the `scenix-sky` crate). |
+| `water` | no | Gerstner waves, foam, fresnel, underwater tinting, and reflection helpers (the `scenix-water` crate). |
+| `environment` | no | Enables all three environment crates and forwards to the renderer's `environment` GPU pipeline gate. |
+
 | `animato` | no | Animato 1.7 bridge and clip-based animation runtime. |
 | `wasm` | no | Browser canvas wrapper, DPR-aware input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
 | `serde` | no | Serialization support where each crate supports it. |

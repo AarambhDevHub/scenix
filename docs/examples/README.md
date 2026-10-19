@@ -39,3 +39,10 @@ Each page maps to a real example file or the standalone WASM viewer crate. Comma
 - [Node WGSL Backend](nodes-wgsl.md) - `examples/nodes_wgsl.rs`
 - [Node Post Effect](node-post-effect.md) - `examples/node_post_effect.rs`
 - [WASM Viewer](wasm-viewer.md) - `examples/wasm_viewer`
+
+## v1.8 Environment Examples
+
+- [Terrain LOD](terrain-lod.md) - `examples/terrain_lod.rs`
+- [Sky And Sun](sky-sun.md) - `examples/sky_sun.rs`
+- [Water Fresnel](water-fresnel.md) - `examples/water_fresnel.rs`
+- [Environment Demo](environment-demo.md) - `examples/environment_demo.rs`

@@ -1,11 +1,13 @@
 //! Browser/WASM integration helpers for scenix.
 
+mod environment_fallback;
 mod input;
 mod particle_fallback;
 
 #[cfg(feature = "nodes")]
 mod node_material;
 
+pub use environment_fallback::{EnvironmentFallbackPlan, environment_fallback_plan};
 pub use particle_fallback::{ParticleFallbackPlan, particle_fallback_plan};
 
 #[cfg(feature = "nodes")]

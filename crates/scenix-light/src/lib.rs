@@ -16,6 +16,7 @@ pub mod point;
 pub mod probe;
 pub mod shadow;
 pub mod spot;
+pub mod sun;
 
 pub use ambient::AmbientLight;
 pub use area::AreaLight;
@@ -25,6 +26,7 @@ pub use point::PointLight;
 pub use probe::LightProbe;
 pub use shadow::ShadowConfig;
 pub use spot::SpotLight;
+pub use sun::{SunLight, sun_color_from_elevation, sun_direction};
 
 pub(crate) const EPSILON: f32 = 1.0e-6;
 

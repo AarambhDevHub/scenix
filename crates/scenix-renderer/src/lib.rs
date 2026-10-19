@@ -7,6 +7,8 @@
 pub mod config;
 pub mod editor_picking;
 pub mod environment;
+#[cfg(feature = "environment")]
+pub mod environment_slots;
 pub mod frame;
 pub mod gbuffer;
 pub mod gpu_scene;
@@ -26,6 +28,8 @@ pub mod skinning;
 pub use config::{RenderTargetMode, RendererConfig};
 pub use editor_picking::{EditorBufferStats, EditorBuffers, EditorPickRequest, EditorPickResult};
 pub use environment::EnvironmentMap;
+#[cfg(feature = "environment")]
+pub use environment_slots::EnvironmentMaterial;
 pub use frame::{FrameContext, FrameStats, PipelineCacheStats, RendererDiagnostics, ResourceStats};
 pub use gbuffer::{GBuffer, RenderTargetDescriptor, RenderTargetKind};
 pub use gpu_scene::{
@@ -40,6 +44,7 @@ pub use particles::{
     ParticleComputeParams, ParticleInstanceUniform, ParticleParamsUniform, ParticleRegistry,
     PoolItemUniform,
 };
+pub use pass::culling::EnvironmentDrawSubmission;
 pub use pass::culling::{CullingStats, collect_visible_draws};
 pub use pass::sort::{sort_opaque_front_to_back, sort_transparent_back_to_front};
 pub use pipeline_cache::{PipelineCache, RenderPassKind, RendererPipelineKey};

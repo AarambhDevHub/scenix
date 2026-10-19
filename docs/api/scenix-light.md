@@ -31,6 +31,10 @@ let light = AmbientLight::default();
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 
+## Added In
+
+v1.8.0 adds `sun.rs` with `SunLight::from_direction`/`from_elevation` (warm low-elevation color ramp), the `sun_direction(elevation, azimuth)` helper, and `sun_color_from_elevation` for sun tinting; see [scenix-sky](scenix-sky.md) for the driving positions.
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)

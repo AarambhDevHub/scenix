@@ -44,6 +44,11 @@ pub struct FrameStats {
     pub particle_instances: u32,
     /// Render target backing used for this frame.
     pub target_mode: Option<RenderTargetMode>,
+    /// Environment nodes (terrain/sky/water) seen during traversal
+    /// (scenix v1.8.0).
+    pub scene_environments: u32,
+    /// Environment nodes submitted after culling (scenix v1.8.0).
+    pub visible_environments: u32,
 }
 
 /// Renderer-wide resource and frame diagnostics.

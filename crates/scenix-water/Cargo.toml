@@ -1,0 +1,29 @@
+[package]
+name = "scenix-water"
+description = "CPU water systems for scenix: Gerstner wave fields, deformed surfaces, Schlick fresnel, foam masks, underwater tinting, and reflection helpers."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std", "scenix-camera/std", "scenix-math/std", "scenix-mesh/std"]
+serde = ["dep:serde", "scenix-core/serde", "scenix-camera/serde", "scenix-math/serde", "scenix-mesh/serde"]
+
+[dependencies]
+scenix-camera = { workspace = true }
+scenix-core = { workspace = true }
+scenix-math = { workspace = true }
+scenix-mesh = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[test]]
+name = "water_cpu"
+path = "../../tests/water_cpu.rs"
