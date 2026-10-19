@@ -93,8 +93,17 @@ impl EquirectSampler {
         // Texel-center mapping keeps the poles at texel centers like a GPU
         // sampler would.
         // sx lands in [0, width) so `as u32` truncation equals floor; sy is
-        // clamped below the bottom-pole texel edge.
-        let sx = (u * self.width as f32 - 0.5).rem_euclid(self.width as f32);
+        // clamped below the bottom-pole texel edge. `f32::rem_euclid` is
+        // std-gated, so the euclidean remainder is expressed directly: the
+        // `%` remainder carries the dividend's sign, and adding a positive
+        // modulus shifts negative remainders back into range.
+        let scaled = u * self.width as f32 - 0.5;
+        let wrapped = scaled % self.width as f32;
+        let sx = if wrapped < 0.0 {
+            wrapped + self.width as f32
+        } else {
+            wrapped
+        };
         let sy = (v * self.height as f32 - 0.5).clamp(0.0, self.height as f32 - 1.0e-3);
         let x0 = sx as u32;
         let y0 = sy as u32;
