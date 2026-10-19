@@ -66,6 +66,12 @@ id_type!(
     ParticleSystemId,
     "Typed identifier for a registered particle system."
 );
+id_type!(
+    TerrainId,
+    "Typed identifier for a registered terrain system."
+);
+id_type!(SkyId, "Typed identifier for a registered sky.");
+id_type!(WaterId, "Typed identifier for a registered water surface.");
 
 #[cfg(all(test, feature = "std"))]
 mod tests {

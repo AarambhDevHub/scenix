@@ -15,6 +15,11 @@ The facade forwards feature flags to focused crates. Keep features explicit in a
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
 | `animato` | no | Animato 1.7 bridge and clip-based animation runtime. |
 | `wasm` | no | Browser canvas wrapper, DPR-aware input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
+| `terrain` | no | CPU heightfields, chunked LOD, splat maps, collision, and streaming (the `scenix-terrain` crate). |
+| `sky` | no | Procedural sky profiles, sun positions, baked environment maps, and grounded skyboxes (the `scenix-sky` crate). |
+| `water` | no | Gerstner waves, foam, fresnel, underwater tinting, and reflection helpers (the `scenix-water` crate). |
+| `environment` | no | Enables all three environment crates and forwards to the renderer's `environment` GPU pipeline gate. |
+
 | `serde` | no | Serialization support where each crate supports it. |
 
 

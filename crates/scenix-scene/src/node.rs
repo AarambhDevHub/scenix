@@ -2,7 +2,9 @@ use alloc::string::String;
 
 #[cfg(feature = "std")]
 use scenix_core::Named;
-use scenix_core::{CameraId, LightId, MaterialId, MeshId, ParticleSystemId};
+use scenix_core::{
+    CameraId, LightId, MaterialId, MeshId, ParticleSystemId, SkyId, TerrainId, WaterId,
+};
 use scenix_math::Transform;
 
 use crate::Sprite;
@@ -39,6 +41,27 @@ pub enum NodeKind {
     Particles {
         /// Particle system resource identifier.
         system_id: ParticleSystemId,
+    },
+    /// Terrain renderable driven by a CPU height grid (scenix v1.8).
+    Terrain {
+        /// Terrain grid identifier.
+        terrain_id: TerrainId,
+        /// Environment/splat material identifier.
+        material_id: MaterialId,
+    },
+    /// Sky background dome (scenix v1.8).
+    Sky {
+        /// Sky model identifier.
+        sky_id: SkyId,
+        /// Sky material identifier.
+        material_id: MaterialId,
+    },
+    /// Water surface patch (scenix v1.8).
+    Water {
+        /// Water surface identifier.
+        water_id: WaterId,
+        /// Water material identifier.
+        material_id: MaterialId,
     },
 }
 
@@ -108,6 +131,37 @@ impl SceneNode {
     #[inline]
     pub fn particles(name: impl Into<String>, system_id: ParticleSystemId) -> Self {
         Self::new(name).kind(NodeKind::Particles { system_id })
+    }
+
+    /// Creates a terrain node.
+    #[inline]
+    pub fn terrain(
+        name: impl Into<String>,
+        terrain_id: TerrainId,
+        material_id: MaterialId,
+    ) -> Self {
+        Self::new(name).kind(NodeKind::Terrain {
+            terrain_id,
+            material_id,
+        })
+    }
+
+    /// Creates a sky background node.
+    #[inline]
+    pub fn sky(name: impl Into<String>, sky_id: SkyId, material_id: MaterialId) -> Self {
+        Self::new(name).kind(NodeKind::Sky {
+            sky_id,
+            material_id,
+        })
+    }
+
+    /// Creates a water surface node.
+    #[inline]
+    pub fn water(name: impl Into<String>, water_id: WaterId, material_id: MaterialId) -> Self {
+        Self::new(name).kind(NodeKind::Water {
+            water_id,
+            material_id,
+        })
     }
 
     /// Creates a sprite node.

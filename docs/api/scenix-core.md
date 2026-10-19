@@ -36,6 +36,8 @@ Use this crate directly when you need its boundary in your own public API. Use t
 
 v1.7.0 adds the `ParticleSystemId` newtype alongside the other resource ids.
 
+v1.8.0 adds the `TerrainId`, `SkyId`, and `WaterId` newtypes next to the other resource ids.
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)

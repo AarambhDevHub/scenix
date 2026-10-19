@@ -16,7 +16,7 @@ pub use color::{Color, ColorSpace};
 pub use error::{GpuError, LoadError, ScenixError, ValidationError};
 pub use ids::{
     AnimationClipId, AssetId, CameraId, LightId, MaterialId, MeshId, NodeId, ParticleSystemId,
-    SkinId, TextureId,
+    SkinId, SkyId, TerrainId, TextureId, WaterId,
 };
 #[cfg(feature = "inspector")]
 pub use inspector::{

@@ -40,7 +40,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v1.5.0` | Interaction tools | Transform/drag/pointer-lock controls, selection helpers, editor primitives | ✅ |
 | `v1.6.0` | Shader nodes | New optional shader graph and node material crate | ✅ |
 | `v1.7.0` | Particles | New optional CPU/GPU particle crate | ✅ |
-| `v1.8.0` | Environment systems | New optional terrain, sky, and water crates | 🔮 |
+| `v1.8.0` | Environment systems | New optional terrain, sky, and water crates | ✅ |
 | `v1.9.0` | Runtime bridges | New optional XR, audio, and physics crates | 🔮 |
 | `v1.10.0` | Editor tooling | New optional editor and UI overlay crates | 🔮 |
 | `v1.x+` | Advanced rendering | Post effects, geometry extras, modifiers, GPU-driven rendering, realtime GI | 🔮 |
@@ -649,12 +649,12 @@ The version numbers below are planning buckets, not release promises. Each miles
 - `scenix-scene` — environment object attachments and metadata.
 - `scenix` — optional `terrain`, `sky`, and `water` facade features and re-exports.
 
-- [ ] Heightmap terrain with chunked LOD example.
-- [ ] Terrain splat-map material path.
-- [ ] Procedural sky background and sun/sky lighting helper.
-- [ ] Water plane with reflection/refraction render targets.
-- [ ] Mobile/web capability notes for environment features.
-- [ ] Shared environment demo scene.
+- [x] Heightmap terrain with chunked LOD example.
+- [x] Terrain splat-map material path.
+- [x] Procedural sky background and sun/sky lighting helper.
+- [x] Water plane with reflection/refraction render targets.
+- [x] Mobile/web capability notes for environment features.
+- [x] Shared environment demo scene.
 
 ## v1.9.0 — XR, Audio, And Physics Bridges
 
@@ -831,7 +831,7 @@ The best way to contribute now is to propose a focused post-1.1 planning issue o
 
 ---
 
-*Roadmap version: 1.7.0 particles — last updated October 18, 2026*
-*Next milestone: v1.8.0 terrain, sky, and water*
+*Roadmap version: 1.8.0 terrain, sky, and water — last updated October 19, 2026*
+*Next milestone: v1.9.0 runtime bridges (xr, audio, physics)*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

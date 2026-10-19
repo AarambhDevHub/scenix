@@ -5,17 +5,20 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix `1.7.0` is the current stable release. It adds the optional
-`scenix-particles` crate — deterministic CPU particle systems with seeded
-emitters, lifetime modifiers, flipbook support, and an instanced billboard GPU
-draw path plus optional compute simulation — wired through the scene graph,
-materials, textures, renderer, browser capability notes, and facade feature
-flags. v1.6.0's typed shader graphs, node materials, and post-node effect
-language remain the shading backbone, and v1.5.0's cross-platform
-controls, input stack, selection/transform primitives, reusable gizmos,
-inspector snapshots, optional egui rendering, and on-demand GPU picking remain
-the interaction backbone, and CPU authoring stays lightweight by default while
-GPU, browser, and UI paths remain opt-in.
+scenix `1.8.0` is the current stable release. It adds the environment
+crates — `scenix-terrain` (heightfields, chunked LOD, splat maps, collision,
+chunk streaming), `scenix-sky` (procedural atmosphere, sun positions,
+deterministic sky bakes, grounded skyboxes), and `scenix-water` (Gerstner
+waves, foam, fresnel, underwater tinting, planar reflection helpers) — wired
+through the scene schema, materials, textures, the renderer's `environment`
+GPU draw path, browser capability notes, and facade feature flags.
+v1.7.0's deterministic CPU particle systems keep their billboard GPU path,
+v1.6.0's typed shader graphs, node materials, and post-node effect language
+remain the shading backbone, and v1.5.0's cross-platform controls, input
+stack, selection/transform primitives, reusable gizmos, inspector snapshots,
+optional egui rendering, and on-demand GPU picking remain the interaction
+backbone. CPU authoring stays lightweight by default while GPU, browser, and
+UI paths remain opt-in.
 
 ## Install
 
@@ -34,6 +37,7 @@ scenix = { version = "1", features = ["loader"] }
 scenix = { version = "1", features = ["renderer", "post"] }
 scenix = { version = "1", features = ["animato"] }
 scenix = { version = "1", features = ["nodes"] }
+scenix = { version = "1", features = ["environment"] }
 scenix = { version = "1", features = ["wasm"] }
 scenix = { version = "1", features = ["interaction"] }
 scenix = { version = "1", features = ["editor", "egui"] }
@@ -52,6 +56,9 @@ scenix-mesh = "1"
 scenix-material = "1"
 scenix-nodes = "1"
 scenix-particles = "1"
+scenix-terrain = "1"
+scenix-sky = "1"
+scenix-water = "1"
 scenix-light = "1"
 scenix-texture = "1"
 scenix-loader = "1"
@@ -103,6 +110,10 @@ host crates.
 | `post` | no | Full-screen post-processing stack; use with `renderer`. |
 | `nodes` | no | Typed shader graphs, node materials, and post node effects with WGSL/GLSL backends under the `scenix-nodes` crate; enables node-material rendering in `renderer` and browser preflight in `wasm` when those features are on. |
 | `particles` | no | Deterministic CPU particle systems under the `scenix-particles` crate; enables the billboard GPU path (with optional compute simulation) in `renderer` and browser fallback plans in `wasm` when those features are on. |
+| `terrain` | no | Heightfields, chunked LOD geometry, splat maps, ray colliders, and chunk streaming under the `scenix-terrain` crate. |
+| `sky` | no | Procedural sky profiles, sun positions, baked environment maps, and grounded skyboxes under the `scenix-sky` crate. |
+| `water` | no | Gerstner wave fields, displaced surface meshes, foam/fresnel/underwater math, and mirror helpers under the `scenix-water` crate. |
+| `environment` | no | Bundles `terrain`, `sky`, and `water`; enables the environment WGSL pipelines (terrain splats, sky dome, water surface) in `renderer` when that feature is on. |
 | `animato` | no | Animato bridge: procedural tween/spring tracks **and** the clip-based Animation Runtime (clips, actions, mixer, loop modes, crossfade, additive blending, markers/events, light/morph targets, retargeting, CPU skinning). Targets Animato `1.7.2`. |
 | `wasm` | no | Browser canvas wrapper with WebGPU first, WebGL2 full fallback, WebGL1 reduced fallback, and generated demo scene. |
 | `serde` | no | Serialization support where the focused crate supports it. |
@@ -366,6 +377,9 @@ assert!(raycaster.cast_ray(ray, &scene, &meshes).is_some());
 | `scenix-material` | GPU-free material descriptions and pipeline keys. |
 | `scenix-nodes` | Optional typed shader graphs, node materials, and post node effects with WGSL/GLSL codegen. |
 | `scenix-particles` | Optional deterministic CPU particle systems with emitter/curve modules and GPU billboard/compute integration. |
+| `scenix-terrain` | Optional CPU heightfields, chunked LOD geometry, splat maps, ray colliders, and chunk streaming. |
+| `scenix-sky` | Optional procedural sky profiles, sun positions, baked environment maps, and grounded skyboxes. |
+| `scenix-water` | Optional Gerstner wave fields, displaced surface meshes, foam/fresnel/underwater math, and mirror helpers. |
 | `scenix-light` | Lights, shadow settings, and light probes. |
 | `scenix-texture` | CPU textures, samplers, atlases, video updates, and mipmaps. |
 | `scenix-loader` | Optional CPU asset packages, asset manager, importers, exporters, diagnostics, and cache. |
@@ -417,6 +431,10 @@ cargo run -p scenix --example particles_basic --features particles
 cargo run -p scenix --example sprite_particles
 cargo run -p scenix --example environment_map --features renderer
 cargo run -p scenix --example render_target_capture --features renderer
+cargo run -p scenix --example terrain_lod --features terrain
+cargo run -p scenix --example sky_sun --features sky
+cargo run -p scenix --example water_fresnel --features water,camera
+cargo run -p scenix --example environment_demo --features "environment renderer scene camera material"
 ```
 
 The browser example lives in `examples/wasm_viewer`:
@@ -449,13 +467,16 @@ cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scen
 cargo test -p scenix-loader --all-features
 cargo test -p scenix-raycaster -p scenix-helpers --all-features
 cargo test -p scenix-animato --all-features
+cargo test -p scenix-terrain -p scenix-sky -p scenix-water --all-features
 cargo test -p scenix --test scenix_v15 --all-features
+cargo test -p scenix --test scenix_v18 --all-features
 cargo check -p scenix --no-default-features --features interaction
 cargo check -p scenix --no-default-features --features editor
 cargo check -p scenix --no-default-features --features egui
 cargo check -p scenix-wasm --target wasm32-unknown-unknown --all-features
 cargo check --manifest-path examples/wasm_viewer/Cargo.toml --target wasm32-unknown-unknown
 SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer -p scenix-post --all-features
+SCENIX_RUN_GPU_TESTS=1 WGPU_BACKEND=vulkan cargo test -p scenix-renderer --features environment
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo bench --workspace --no-run
 cargo llvm-cov --workspace --all-features
@@ -479,6 +500,9 @@ cargo llvm-cov --workspace --all-features
 - [Deployment](./docs/deployment/README.md)
 - [Migration](./docs/migration/from-0.9-to-1.0.md)
 - [Reference](./docs/reference/feature-matrix.md)
+- [v1.8.0 release notes](./.github/release-notes/1.8.0.md)
+- [v1.7.0 release notes](./.github/release-notes/1.7.0.md)
+- [v1.6.0 release notes](./docs/release-v1.6.0.md)
 - [v1.5.0 release notes](./.github/release-notes/1.5.0.md)
 - [v1.4.0 release notes](./.github/release-notes/1.4.0.md)
 - [v1.3.0 release notes](./.github/release-notes/v1.3.0.md)

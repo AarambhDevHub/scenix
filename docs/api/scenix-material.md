@@ -35,6 +35,8 @@ Use this crate directly when you need its boundary in your own public API. Use t
 
 v1.7.0 adds `ParticleMaterial` (tint, sprite, flipbook, soft edge, `ParticleBlend`), the `FEATURE_SOFT_PARTICLES`/`FEATURE_FLIPBOOK` bits, and `ShaderKind::Particles`.
 
+v1.8.0 adds the environment descriptors: `TerrainMaterial` (four splat layers with optional splat/detail textures), `SkyMaterial` (gradient triple, sun glare, fade band, atmosphere flag), `WaterMaterial` (deep/shallow tints, foam gate, reflection/refraction textures), the `ShaderKind::{Terrain, Sky, Water}` variants, and the `FEATURE_SPLAT_MAP`/`FEATURE_ATMOSPHERE`/`FEATURE_FRESNEL`/`FEATURE_FOAM`/`FEATURE_REFRACTION` bits (bits 22-26).
+
 
 ## Related Docs
 

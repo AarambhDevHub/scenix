@@ -87,6 +87,12 @@ pub enum ShaderKind {
     Custom(u64),
     /// Instanced particle draw path (scenix v1.7 "Particles").
     Particles,
+    /// Splat-blended terrain shader (scenix v1.8 "Terrain, Sky, And Water").
+    Terrain,
+    /// Procedural sky background shader (scenix v1.8).
+    Sky,
+    /// Fresnel water surface shader (scenix v1.8).
+    Water,
 }
 
 /// Compact renderer pipeline selector.
@@ -173,6 +179,21 @@ pub const FEATURE_SOFT_PARTICLES: u64 = 1 << 20;
 
 /// Particle flipbook atlas animation is active (scenix v1.7 "Particles").
 pub const FEATURE_FLIPBOOK: u64 = 1 << 21;
+
+/// Splat texture drives terrain layer blending (scenix v1.8).
+pub const FEATURE_SPLAT_MAP: u64 = 1 << 22;
+
+/// Procedural sky atmosphere evaluation is active (scenix v1.8).
+pub const FEATURE_ATMOSPHERE: u64 = 1 << 23;
+
+/// Water Schlick fresnel reflectance is active (scenix v1.8).
+pub const FEATURE_FRESNEL: u64 = 1 << 24;
+
+/// Water foam mask path is active (scenix v1.8).
+pub const FEATURE_FOAM: u64 = 1 << 25;
+
+/// Water refraction target texture is bound (scenix v1.8).
+pub const FEATURE_REFRACTION: u64 = 1 << 26;
 
 /// CPU-side material description with no GPU dependency.
 pub trait Material: Send + Sync + 'static {

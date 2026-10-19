@@ -26,6 +26,7 @@ std = [
 ]
 particles = ["dep:scenix-particles"]
 post = ["dep:scenix-post"]
+environment = ["dep:scenix-terrain", "dep:scenix-sky", "dep:scenix-water"]
 serde = [
     "dep:serde",
     "scenix-camera/serde",
@@ -55,6 +56,9 @@ scenix-mesh = { workspace = true }
 scenix-particles = { workspace = true, optional = true }
 scenix-post = { workspace = true, optional = true }
 scenix-nodes = { workspace = true, optional = true }
+scenix-sky = { workspace = true, optional = true }
+scenix-terrain = { workspace = true, optional = true }
+scenix-water = { workspace = true, optional = true }
 scenix-scene = { workspace = true }
 scenix-texture = { workspace = true }
 serde = { workspace = true, optional = true }
@@ -82,3 +86,8 @@ path = "../../tests/renderer_gpu.rs"
 name = "particles_gpu"
 path = "../../tests/particles_gpu.rs"
 required-features = ["particles"]
+
+[[test]]
+name = "environment_gpu"
+path = "../../tests/environment_gpu.rs"
+required-features = ["environment"]

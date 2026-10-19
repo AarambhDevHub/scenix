@@ -20,8 +20,10 @@ use scenix_scene::SceneGraph;
 use scenix_texture::{Sampler, Texture2D, Texture3D, TextureCube, TextureFormat};
 
 use crate::editor_picking::EditorRenderRequest;
+#[cfg(feature = "environment")]
+use crate::environment_slots::{EnvironmentMaterial, EnvironmentShaderKind};
 use crate::gbuffer::TextureTarget;
-use crate::pass::culling::collect_visible_draws;
+use crate::pass::culling::{EnvironmentDrawSubmission, collect_visible_draws};
 use crate::pass::sort::{sort_opaque_front_to_back, sort_transparent_back_to_front};
 use crate::{EditorBufferStats, EditorBuffers, EditorPickRequest, EditorPickResult};
 use crate::{
@@ -86,6 +88,21 @@ struct TextureGpuResource {
     byte_len: u64,
 }
 
+/// Culled mesh sections plus environment draws, ready for encoding.
+type PreparedDraws = (
+    Vec<crate::DrawSubmission>,
+    Vec<crate::DrawSubmission>,
+    Vec<EnvironmentDrawSubmission>,
+    FrameStats,
+);
+
+/// Sorted draw sections for one encoded frame.
+struct RenderZones<'a> {
+    opaque: &'a [crate::DrawSubmission],
+    transparent: &'a [crate::DrawSubmission],
+    env: &'a [EnvironmentDrawSubmission],
+}
+
 #[derive(Debug)]
 pub(crate) struct UniformResources {
     pub(crate) frame_layout: wgpu::BindGroupLayout,
@@ -103,6 +120,16 @@ pub(crate) struct UniformResources {
     object_stride: u64,
     material_stride: u64,
     draw_capacity: usize,
+    #[cfg(feature = "environment")]
+    environment_layout: wgpu::BindGroupLayout,
+    #[cfg(feature = "environment")]
+    environment_buffer: wgpu::Buffer,
+    #[cfg(feature = "environment")]
+    environment_sampler: wgpu::Sampler,
+    #[cfg(feature = "environment")]
+    environment_stride: u64,
+    #[cfg(feature = "environment")]
+    environment_capacity: usize,
 }
 
 impl UniformResources {
@@ -120,7 +147,9 @@ impl UniformResources {
         let frame_layout = uniform_layout(
             device,
             "scenix.frame.layout",
-            wgpu::ShaderStages::VERTEX,
+            // Fragment stages read the camera position (sky/water view
+            // vectors, scenix v1.8 environment shaders).
+            wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
             false,
         );
         let object_layout = uniform_layout(
@@ -184,6 +213,28 @@ impl UniformResources {
             &light_buffer,
             core::mem::size_of::<LightUniform>(),
         );
+        #[cfg(feature = "environment")]
+        let environment_stride =
+            crate::renderer::aligned_uniform_size::<crate::environment_slots::EnvUniformRaw>();
+        #[cfg(feature = "environment")]
+        let environment_buffer = uniform_buffer(
+            device,
+            "scenix.environment.uniform",
+            environment_stride as usize * crate::environment_slots::ENV_DRAW_CAPACITY,
+        );
+        #[cfg(feature = "environment")]
+        let environment_layout = crate::environment_slots::create_env_layout(device);
+        #[cfg(feature = "environment")]
+        let environment_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("scenix.environment.sampler"),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+            ..Default::default()
+        });
         Self {
             frame_layout,
             object_layout,
@@ -200,7 +251,57 @@ impl UniformResources {
             object_stride,
             material_stride,
             draw_capacity,
+            #[cfg(feature = "environment")]
+            environment_stride,
+            #[cfg(feature = "environment")]
+            environment_layout,
+            #[cfg(feature = "environment")]
+            environment_buffer,
+            #[cfg(feature = "environment")]
+            environment_sampler,
+            #[cfg(feature = "environment")]
+            environment_capacity: crate::environment_slots::ENV_DRAW_CAPACITY,
         }
+    }
+
+    /// Environment belt capacity growth (scenix v1.8 `environment`
+    /// feature); returns whether bind groups must be rebuilt.
+    #[cfg(feature = "environment")]
+    fn ensure_environment_capacity(&mut self, device: &wgpu::Device, needed: usize) -> bool {
+        if needed <= self.environment_capacity {
+            return false;
+        }
+        self.environment_capacity = needed.next_power_of_two();
+        self.environment_buffer = uniform_buffer(
+            device,
+            "scenix.environment.uniform",
+            self.environment_stride as usize * self.environment_capacity,
+        );
+        true
+    }
+
+    /// The environment uniform belt buffer.
+    #[cfg(feature = "environment")]
+    pub(crate) fn environment_buffer(&self) -> &wgpu::Buffer {
+        &self.environment_buffer
+    }
+
+    /// The environment bind-group layout.
+    #[cfg(feature = "environment")]
+    pub(crate) fn environment_layout(&self) -> &wgpu::BindGroupLayout {
+        &self.environment_layout
+    }
+
+    /// The shared linear-clamp environment sampler.
+    #[cfg(feature = "environment")]
+    pub(crate) fn environment_sampler(&self) -> &wgpu::Sampler {
+        &self.environment_sampler
+    }
+
+    /// Aligned stride of one environment uniform belt slot.
+    #[cfg(feature = "environment")]
+    pub(crate) fn environment_stride(&self) -> u64 {
+        self.environment_stride
     }
 
     fn ensure_draw_capacity(&mut self, device: &wgpu::Device, needed: usize) -> bool {
@@ -277,6 +378,18 @@ pub struct Renderer {
     /// v1.7.0 GPU particle subsystem (draw + optional compute).
     #[cfg(feature = "particles")]
     particles: crate::particles::ParticleResources,
+    /// v1.8.0 environment pipelines keyed by shader kind.
+    #[cfg(feature = "environment")]
+    environment_pipelines: HashMap<EnvironmentShaderKind, wgpu::RenderPipeline>,
+    /// Color format the environment-pipeline cache is valid for.
+    #[cfg(feature = "environment")]
+    environment_pipeline_format: wgpu::TextureFormat,
+    /// Bind groups per registered environment material id.
+    #[cfg(feature = "environment")]
+    environment_bind_groups: HashMap<scenix_core::MaterialId, wgpu::BindGroup>,
+    /// Whether texture/belt changes require a bind-group rebuild pass.
+    #[cfg(feature = "environment")]
+    environment_bind_groups_dirty: bool,
 }
 
 impl Renderer {
@@ -353,6 +466,14 @@ impl Renderer {
             node_pipeline_format: color_format,
             #[cfg(feature = "particles")]
             particles,
+            #[cfg(feature = "environment")]
+            environment_pipelines: HashMap::new(),
+            #[cfg(feature = "environment")]
+            environment_pipeline_format: color_format,
+            #[cfg(feature = "environment")]
+            environment_bind_groups: HashMap::new(),
+            #[cfg(feature = "environment")]
+            environment_bind_groups_dirty: true,
         })
     }
 
@@ -373,6 +494,8 @@ impl Renderer {
         );
         #[cfg(feature = "nodes")]
         let node_pipeline_format = surface_config.format;
+        #[cfg(feature = "environment")]
+        let environment_pipeline_format = surface_config.format;
         let gbuffer = GBuffer::new(&device, config.width, config.height);
         let shadow_maps = ShadowMapAtlas::new(&device, 1024, 16);
         Ok(Self {
@@ -409,6 +532,14 @@ impl Renderer {
             node_pipeline_format,
             #[cfg(feature = "particles")]
             particles,
+            #[cfg(feature = "environment")]
+            environment_pipelines: HashMap::new(),
+            #[cfg(feature = "environment")]
+            environment_pipeline_format,
+            #[cfg(feature = "environment")]
+            environment_bind_groups: HashMap::new(),
+            #[cfg(feature = "environment")]
+            environment_bind_groups_dirty: true,
         })
     }
 
@@ -460,14 +591,19 @@ impl Renderer {
         let frame_context = self.frame_context(camera);
         #[cfg(feature = "particles")]
         self.write_particle_params(&frame_context, camera);
-        let (opaque, transparent, mut stats) = self.prepare_draws(scene, camera)?;
+        let (opaque, transparent, env_draws, mut stats) = self.prepare_draws(scene, camera)?;
 
+        let zones = RenderZones {
+            opaque: &opaque,
+            transparent: &transparent,
+            env: &env_draws,
+        };
         let particle_instances = match self.target_mode {
             RenderTargetMode::Headless => {
-                self.render_headless(frame_context, stats.visible_meshes, &opaque, &transparent)?
+                self.render_headless(frame_context, stats.visible_meshes, zones)?
             }
             RenderTargetMode::Surface => {
-                self.render_surface(frame_context, stats.visible_meshes, &opaque, &transparent)?
+                self.render_surface(frame_context, stats.visible_meshes, zones)?
             }
         };
         stats.particle_instances = particle_instances;
@@ -1088,14 +1224,17 @@ impl Renderer {
         let frame_context = self.frame_context(camera);
         #[cfg(feature = "particles")]
         self.write_particle_params(&frame_context, camera);
-        let (opaque, transparent, mut stats) = self.prepare_draws(scene, camera)?;
+        let (opaque, transparent, env_draws, mut stats) = self.prepare_draws(scene, camera)?;
         let particle_instances = self.render_to_final_view(
             &view,
             format,
             frame_context,
             stats.visible_meshes,
-            &opaque,
-            &transparent,
+            RenderZones {
+                opaque: &opaque,
+                transparent: &transparent,
+                env: &env_draws,
+            },
         )?;
         stats.particle_instances = particle_instances;
         self.frame_index = self.frame_index.saturating_add(1);
@@ -1348,15 +1487,8 @@ impl Renderer {
         &self,
         scene: &SceneGraph,
         camera: &PerspectiveCamera,
-    ) -> Result<
-        (
-            Vec<crate::DrawSubmission>,
-            Vec<crate::DrawSubmission>,
-            FrameStats,
-        ),
-        ScenixError,
-    > {
-        let (mut draws, culling_stats) =
+    ) -> Result<PreparedDraws, ScenixError> {
+        let (mut draws, env_draws, culling_stats) =
             collect_visible_draws(scene, &self.gpu_scene, camera).map_err(ScenixError::from)?;
         let mut opaque = Vec::new();
         let mut transparent = Vec::new();
@@ -1380,17 +1512,18 @@ impl Renderer {
             lights: self.gpu_scene.light_count() as u32,
             particle_instances: 0,
             target_mode: Some(self.target_mode),
+            scene_environments: culling_stats.scene_environments,
+            visible_environments: culling_stats.visible_environments,
         };
 
-        Ok((opaque, transparent, stats))
+        Ok((opaque, transparent, env_draws, stats))
     }
 
     fn render_headless(
         &mut self,
         frame_context: FrameContext,
         visible_meshes: u32,
-        opaque: &[crate::DrawSubmission],
-        transparent: &[crate::DrawSubmission],
+        zones: RenderZones<'_>,
     ) -> Result<u32, ScenixError> {
         #[cfg(feature = "post")]
         let color_format = self.config.preferred_color_format();
@@ -1412,8 +1545,9 @@ impl Renderer {
                     &source_view,
                     frame_context,
                     visible_meshes,
-                    opaque,
-                    transparent,
+                    zones.opaque,
+                    zones.transparent,
+                    zones.env,
                 );
                 let final_view = self
                     .offscreen
@@ -1443,8 +1577,14 @@ impl Renderer {
             .ok_or(ScenixError::Gpu(GpuError::Init))?
             .texture()
             .create_view(&wgpu::TextureViewDescriptor::default());
-        let particle_instances =
-            self.render_scene_to_view(&view, frame_context, visible_meshes, opaque, transparent);
+        let particle_instances = self.render_scene_to_view(
+            &view,
+            frame_context,
+            visible_meshes,
+            zones.opaque,
+            zones.transparent,
+            zones.env,
+        );
         Ok(particle_instances)
     }
 
@@ -1452,8 +1592,7 @@ impl Renderer {
         &mut self,
         frame_context: FrameContext,
         visible_meshes: u32,
-        opaque: &[crate::DrawSubmission],
-        transparent: &[crate::DrawSubmission],
+        zones: RenderZones<'_>,
     ) -> Result<u32, ScenixError> {
         let surface = self
             .surface
@@ -1481,14 +1620,8 @@ impl Renderer {
             || self.config.preferred_color_format(),
             |config| config.format,
         );
-        let particle_instances = self.render_to_final_view(
-            &view,
-            format,
-            frame_context,
-            visible_meshes,
-            opaque,
-            transparent,
-        )?;
+        let particle_instances =
+            self.render_to_final_view(&view, format, frame_context, visible_meshes, zones)?;
         frame.present();
         Ok(particle_instances)
     }
@@ -1499,8 +1632,7 @@ impl Renderer {
         #[cfg_attr(not(feature = "post"), allow(unused_variables))] format: wgpu::TextureFormat,
         frame_context: FrameContext,
         visible_meshes: u32,
-        opaque: &[crate::DrawSubmission],
-        transparent: &[crate::DrawSubmission],
+        zones: RenderZones<'_>,
     ) -> Result<u32, ScenixError> {
         #[cfg(feature = "post")]
         {
@@ -1520,8 +1652,9 @@ impl Renderer {
                     &source_view,
                     frame_context,
                     visible_meshes,
-                    opaque,
-                    transparent,
+                    zones.opaque,
+                    zones.transparent,
+                    zones.env,
                 );
                 let context = scenix_post::PostContext {
                     frame_index: self.frame_index,
@@ -1539,8 +1672,14 @@ impl Renderer {
             }
         }
 
-        let particle_instances =
-            self.render_scene_to_view(view, frame_context, visible_meshes, opaque, transparent);
+        let particle_instances = self.render_scene_to_view(
+            view,
+            frame_context,
+            visible_meshes,
+            zones.opaque,
+            zones.transparent,
+            zones.env,
+        );
         Ok(particle_instances)
     }
 
@@ -1573,6 +1712,7 @@ impl Renderer {
         visible_meshes: u32,
         opaque: &[crate::DrawSubmission],
         transparent: &[crate::DrawSubmission],
+        env_draws: &[EnvironmentDrawSubmission],
     ) -> u32 {
         let frame_uniform = FrameUniform {
             view_projection: mat4_uniform(frame_context.view_projection),
@@ -1601,10 +1741,32 @@ impl Renderer {
             bytemuck::bytes_of(&light_uniform),
         );
         let draw_count = opaque.len() + transparent.len();
-        if self.uniforms.ensure_draw_capacity(&self.device, draw_count) {
+        // Environment object uniforms append after the mesh slots.
+        #[cfg(feature = "environment")]
+        let env_count = env_draws.len();
+        #[cfg(not(feature = "environment"))]
+        let env_count = 0_usize;
+        if self
+            .uniforms
+            .ensure_draw_capacity(&self.device, draw_count + env_count)
+        {
             self.rebuild_material_texture_bind_groups();
         }
-        let mut object_bytes = vec![0_u8; self.uniforms.object_stride as usize * draw_count.max(1)];
+        // Environment belt growth + stale bind groups are settled before
+        // uniforms are packed so draws never reference a dead buffer.
+        #[cfg(feature = "environment")]
+        if self
+            .uniforms
+            .ensure_environment_capacity(&self.device, env_draws.len())
+        {
+            self.environment_bind_groups_dirty = true;
+        }
+        #[cfg(feature = "environment")]
+        if self.environment_bind_groups_dirty {
+            self.rebuild_environment_bind_groups();
+        }
+        let mut object_bytes =
+            vec![0_u8; self.uniforms.object_stride as usize * (draw_count + env_count).max(1)];
         let mut material_bytes =
             vec![0_u8; self.uniforms.material_stride as usize * draw_count.max(1)];
         for (draw_index, draw) in opaque.iter().chain(transparent.iter()).enumerate() {
@@ -1629,9 +1791,25 @@ impl Renderer {
                 [material_offset..material_offset + core::mem::size_of::<MaterialUniform>()]
                 .copy_from_slice(bytemuck::bytes_of(&material_uniform));
         }
-        if draw_count > 0 {
+        // Environment object uniforms land in slots `[draw_count,
+        // draw_count + env_count)` of the shared object belt.
+        #[cfg(feature = "environment")]
+        if !env_draws.is_empty() {
+            let stride = self.uniforms.object_stride as usize;
+            for (belt_index, env) in env_draws.iter().enumerate() {
+                let env_uniform = ObjectUniform {
+                    world: mat4_uniform(env.world_matrix),
+                };
+                let offset = stride * (draw_count + belt_index);
+                object_bytes[offset..offset + core::mem::size_of::<ObjectUniform>()]
+                    .copy_from_slice(bytemuck::bytes_of(&env_uniform));
+            }
+        }
+        if draw_count + env_count > 0 {
             self.queue
                 .write_buffer(&self.uniforms.object_buffer, 0, &object_bytes);
+        }
+        if draw_count > 0 {
             self.queue
                 .write_buffer(&self.uniforms.material_buffer, 0, &material_bytes);
         }
@@ -1640,6 +1818,26 @@ impl Renderer {
         {
             self.ensure_node_pipelines(opaque);
             self.ensure_node_pipelines(transparent);
+        }
+        // Environment pipelines + uniform belt packing.
+        #[cfg(feature = "environment")]
+        {
+            self.ensure_environment_pipelines(env_draws);
+        }
+        #[cfg(feature = "environment")]
+        if !env_draws.is_empty() {
+            let stride = self.uniforms.environment_stride() as usize;
+            let mut env_bytes = vec![0_u8; stride * env_draws.len()];
+            for (belt_index, env) in env_draws.iter().enumerate() {
+                let Some(slot) = self.gpu_scene.environment(env.material_id) else {
+                    continue;
+                };
+                let payload = slot.uniform();
+                let offset = stride * belt_index;
+                env_bytes[offset..offset + payload.len()].copy_from_slice(payload);
+            }
+            self.queue
+                .write_buffer(self.uniforms.environment_buffer(), 0, &env_bytes);
         }
 
         let clear = if visible_meshes > 0 {
@@ -1682,74 +1880,62 @@ impl Renderer {
                 occlusion_query_set: None,
                 multiview_mask: None,
             });
-            if visible_meshes > 0 {
-                pass.set_pipeline(&self.draw_pipeline);
+            if visible_meshes > 0 || !env_draws.is_empty() {
                 pass.set_bind_group(0, &self.uniforms.frame_bind_group, &[]);
                 pass.set_bind_group(3, &self.uniforms.light_bind_group, &[]);
-                // Node draws rotate pipelines; built-ins share one pipeline.
-                #[cfg(feature = "nodes")]
-                let mut node_pipeline_hash: Option<u64> = None;
-                for (draw_index, draw) in opaque.iter().chain(transparent.iter()).enumerate() {
-                    let Some(mesh) = self.gpu_scene.mesh(draw.mesh_id) else {
-                        continue;
-                    };
-                    let material = self.gpu_scene.material(draw.material_id);
-                    #[cfg(feature = "nodes")]
-                    if material.is_none() && !self.node_pipelines.is_empty() {
-                        let Some(slot) = self.gpu_scene.node_material(draw.material_id) else {
-                            continue;
-                        };
-                        let Some(pipeline) = self.node_pipelines.get(&slot.shader_hash) else {
-                            continue;
-                        };
-                        if node_pipeline_hash != Some(slot.shader_hash) {
-                            pass.set_pipeline(pipeline);
-                            node_pipeline_hash = Some(slot.shader_hash);
-                        }
-                        pass.set_bind_group(
-                            1,
-                            &self.uniforms.object_bind_group,
-                            &[(draw_index as u64 * self.uniforms.object_stride) as u32],
-                        );
-                        pass.set_bind_group(
-                            2,
-                            self.node_material_bind_group(slot),
-                            &[(draw_index as u64 * self.uniforms.material_stride) as u32],
-                        );
-                        pass.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
-                        pass.set_index_buffer(
-                            mesh.index_buffer().slice(..),
-                            mesh.packed().index_format.to_wgpu(),
-                        );
-                        pass.draw_indexed(0..mesh.packed().index_count, 0, 0..1);
-                        continue;
-                    }
-                    let Some(material) = material else {
-                        continue;
-                    };
-                    #[cfg(feature = "nodes")]
-                    if node_pipeline_hash.is_some() {
-                        pass.set_pipeline(&self.draw_pipeline);
-                        node_pipeline_hash = None;
-                    }
-                    pass.set_bind_group(
-                        1,
-                        &self.uniforms.object_bind_group,
-                        &[(draw_index as u64 * self.uniforms.object_stride) as u32],
-                    );
-                    pass.set_bind_group(
-                        2,
-                        self.material_bind_group(material),
-                        &[(draw_index as u64 * self.uniforms.material_stride) as u32],
-                    );
-                    pass.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
-                    pass.set_index_buffer(
-                        mesh.index_buffer().slice(..),
-                        mesh.packed().index_format.to_wgpu(),
-                    );
-                    pass.draw_indexed(0..mesh.packed().index_count, 0, 0..1);
-                }
             }
+            // Node draws rotate pipelines; built-ins share one pipeline. A
+            // fresh render pass binds no pipeline, so the first draw must
+            // always bind one: start pessimistic, not optimistic.
+            let mut node_pipeline_hash: Option<u64> = None;
+            let mut pipeline_is_builtin = false;
+
+            // Sky backgrounds paint behind opaque geometry.
+            #[cfg(feature = "environment")]
+            self.encode_environment_section(
+                &mut pass,
+                env_draws,
+                EnvironmentShaderKind::Sky,
+                draw_count,
+                &mut pipeline_is_builtin,
+            );
+            if visible_meshes > 0 {
+                self.encode_mesh_range(
+                    &mut pass,
+                    opaque,
+                    0,
+                    &mut node_pipeline_hash,
+                    &mut pipeline_is_builtin,
+                );
+            }
+            // Terrain splats land with opaque geometry.
+            #[cfg(feature = "environment")]
+            self.encode_environment_section(
+                &mut pass,
+                env_draws,
+                EnvironmentShaderKind::Terrain,
+                draw_count,
+                &mut pipeline_is_builtin,
+            );
+            if visible_meshes > 0 {
+                self.encode_mesh_range(
+                    &mut pass,
+                    transparent,
+                    opaque.len(),
+                    &mut node_pipeline_hash,
+                    &mut pipeline_is_builtin,
+                );
+            }
+            // Water alpha-blends over everything mesh-side.
+            #[cfg(feature = "environment")]
+            self.encode_environment_section(
+                &mut pass,
+                env_draws,
+                EnvironmentShaderKind::Water,
+                draw_count,
+                &mut pipeline_is_builtin,
+            );
+            let _ = pipeline_is_builtin;
 
             // Particle billboards encode after meshes so they blend over the
             // lit scene while depth-testing against it.
@@ -1764,6 +1950,129 @@ impl Renderer {
         }
         self.queue.submit(Some(encoder.finish()));
         particle_instances
+    }
+
+    /// Encodes one contiguous slice of mesh draws (legacy rotation logic).
+    fn encode_mesh_range(
+        &self,
+        pass: &mut wgpu::RenderPass<'_>,
+        draws: &[crate::DrawSubmission],
+        first_draw_index: usize,
+        #[cfg_attr(not(feature = "nodes"), allow(unused_variables))]
+        node_pipeline_hash: &mut Option<u64>,
+        pipeline_is_builtin: &mut bool,
+    ) {
+        for (offset, draw) in draws.iter().enumerate() {
+            let draw_index = first_draw_index + offset;
+            let Some(mesh) = self.gpu_scene.mesh(draw.mesh_id) else {
+                continue;
+            };
+            let material = self.gpu_scene.material(draw.material_id);
+            #[cfg(feature = "nodes")]
+            if material.is_none() && !self.node_pipelines.is_empty() {
+                let Some(slot) = self.gpu_scene.node_material(draw.material_id) else {
+                    continue;
+                };
+                let Some(pipeline) = self.node_pipelines.get(&slot.shader_hash) else {
+                    continue;
+                };
+                if !*pipeline_is_builtin || *node_pipeline_hash != Some(slot.shader_hash) {
+                    pass.set_pipeline(pipeline);
+                    *pipeline_is_builtin = false;
+                }
+                *node_pipeline_hash = Some(slot.shader_hash);
+                pass.set_bind_group(
+                    1,
+                    &self.uniforms.object_bind_group,
+                    &[(draw_index as u64 * self.uniforms.object_stride) as u32],
+                );
+                pass.set_bind_group(
+                    2,
+                    self.node_material_bind_group(slot),
+                    &[(draw_index as u64 * self.uniforms.material_stride) as u32],
+                );
+                pass.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
+                pass.set_index_buffer(
+                    mesh.index_buffer().slice(..),
+                    mesh.packed().index_format.to_wgpu(),
+                );
+                pass.draw_indexed(0..mesh.packed().index_count, 0, 0..1);
+                continue;
+            }
+            let Some(material) = material else {
+                continue;
+            };
+            #[cfg(feature = "nodes")]
+            if node_pipeline_hash.is_some() {
+                pass.set_pipeline(&self.draw_pipeline);
+                *node_pipeline_hash = None;
+            }
+            if !*pipeline_is_builtin {
+                pass.set_pipeline(&self.draw_pipeline);
+                *pipeline_is_builtin = true;
+            }
+            pass.set_bind_group(
+                1,
+                &self.uniforms.object_bind_group,
+                &[(draw_index as u64 * self.uniforms.object_stride) as u32],
+            );
+            pass.set_bind_group(
+                2,
+                self.material_bind_group(material),
+                &[(draw_index as u64 * self.uniforms.material_stride) as u32],
+            );
+            pass.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
+            pass.set_index_buffer(
+                mesh.index_buffer().slice(..),
+                mesh.packed().index_format.to_wgpu(),
+            );
+            pass.draw_indexed(0..mesh.packed().index_count, 0, 0..1);
+        }
+    }
+
+    /// Encodes the environment draws of one shader kind in belt order.
+    #[cfg(feature = "environment")]
+    fn encode_environment_section(
+        &self,
+        pass: &mut wgpu::RenderPass<'_>,
+        env_draws: &[EnvironmentDrawSubmission],
+        wanted: EnvironmentShaderKind,
+        object_slot_base: usize,
+        pipeline_is_builtin: &mut bool,
+    ) {
+        for (belt_index, env) in env_draws.iter().enumerate() {
+            let Some(slot) = self.gpu_scene.environment(env.material_id) else {
+                continue;
+            };
+            if slot.kind() != wanted {
+                continue;
+            }
+            let Some(group) = self.environment_bind_groups.get(&env.material_id) else {
+                continue;
+            };
+            let Some(pipeline) = self.environment_pipelines.get(&wanted) else {
+                continue;
+            };
+            pass.set_pipeline(pipeline);
+            *pipeline_is_builtin = false;
+            pass.set_bind_group(
+                1,
+                &self.uniforms.object_bind_group,
+                &[((object_slot_base + belt_index) as u64 * self.uniforms.object_stride) as u32],
+            );
+            pass.set_bind_group(
+                2,
+                group,
+                &[(belt_index as u64 * self.uniforms.environment_stride()) as u32],
+            );
+            let mesh = slot.mesh();
+            pass.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
+            pass.set_index_buffer(
+                mesh.index_buffer().slice(..),
+                mesh.packed().index_format.to_wgpu(),
+            );
+            pass.draw_indexed(0..mesh.packed().index_count, 0, 0..1);
+        }
     }
 
     /// Registers a shader-node material (scenix v1.6.0) generated from a
@@ -1819,6 +2128,117 @@ impl Renderer {
     #[cfg(feature = "nodes")]
     pub fn unregister_node_material(&mut self, material_id: MaterialId) -> bool {
         self.gpu_scene.unregister_node_material(material_id)
+    }
+
+    /// Registers an environment material (scenix v1.8.0 `environment`
+    /// feature).
+    ///
+    /// Environment draws fill their own uniform belt and pipeline family;
+    /// terrain slots carry the packed chunk geometry, sky slots use the
+    /// internally generated dome, and water slots use the internally
+    /// generated flat patch displaced by the CPU wave-field parameters.
+    ///
+    /// # Errors
+    /// Returns `InvalidId` for a null material id and any geometry
+    /// packing/validation error surfaced by the CPU scene data.
+    #[cfg(feature = "environment")]
+    pub fn register_environment(
+        &mut self,
+        material_id: MaterialId,
+        environment: EnvironmentMaterial<'_>,
+    ) -> Result<(), ScenixError> {
+        if material_id.is_null() {
+            return Err(ScenixError::from(scenix_core::ValidationError::InvalidId));
+        }
+        let slot = match environment {
+            EnvironmentMaterial::Terrain(material, geometry) => {
+                crate::environment_slots::build_terrain_slot(&self.device, material, geometry)
+            }
+            EnvironmentMaterial::Sky(material) => {
+                crate::environment_slots::build_sky_slot(&self.device, material)
+            }
+            EnvironmentMaterial::Water(material, waves) => {
+                crate::environment_slots::build_water_slot(&self.device, material, waves)
+            }
+        }
+        .map_err(ScenixError::from)?;
+        self.gpu_scene
+            .register_environment(material_id, slot)
+            .map_err(ScenixError::from)?;
+        self.environment_bind_groups.remove(&material_id);
+        self.environment_bind_groups_dirty = true;
+        Ok(())
+    }
+
+    /// Removes an environment slot.
+    #[cfg(feature = "environment")]
+    pub fn unregister_environment(&mut self, material_id: MaterialId) -> bool {
+        self.environment_bind_groups.remove(&material_id);
+        self.gpu_scene.unregister_environment(material_id)
+    }
+
+    /// Number of registered environment slots.
+    #[cfg(feature = "environment")]
+    #[inline]
+    pub fn environment_count(&self) -> usize {
+        self.gpu_scene.environment_count()
+    }
+
+    /// Builds missing environment pipelines before the frame draw loop.
+    #[cfg(feature = "environment")]
+    fn ensure_environment_pipelines(&mut self, env_draws: &[EnvironmentDrawSubmission]) {
+        for env in env_draws {
+            let Some(slot) = self.gpu_scene.environment(env.material_id) else {
+                continue;
+            };
+            let kind = slot.kind();
+            self.environment_pipelines.entry(kind).or_insert_with(|| {
+                crate::environment_slots::create_env_pipeline(
+                    &self.device,
+                    &self.uniforms,
+                    kind,
+                    self.environment_pipeline_format,
+                )
+            });
+        }
+    }
+
+    /// Rebuilds environment bind groups after texture/belt changes.
+    #[cfg(feature = "environment")]
+    fn rebuild_environment_bind_groups(&mut self) {
+        self.environment_bind_groups.clear();
+        for (material_id, slot) in self.gpu_scene.environments() {
+            let textures = slot.textures();
+            let group = crate::environment_slots::create_env_bind_group(
+                &self.device,
+                self.uniforms.environment_layout(),
+                self.uniforms.environment_buffer(),
+                self.uniforms.environment_sampler(),
+                &self.environment_view(textures[0]),
+                &self.environment_view(textures[1]),
+            );
+            self.environment_bind_groups.insert(*material_id, group);
+        }
+        self.environment_bind_groups_dirty = false;
+    }
+
+    /// Resolves a slot texture into a sampled view; missing textures fall
+    /// back to a shared neutral 1x1 view.
+    #[cfg(feature = "environment")]
+    fn environment_view(&self, texture_id: Option<TextureId>) -> wgpu::TextureView {
+        let source = texture_id
+            .and_then(|texture_id| self.render_targets.get(&texture_id))
+            .map(|target| {
+                target
+                    .texture()
+                    .create_view(&wgpu::TextureViewDescriptor::default())
+            })
+            .or_else(|| {
+                texture_id
+                    .and_then(|texture_id| self.texture_resources.get(&texture_id))
+                    .map(|resource| resource.view.clone())
+            });
+        source.unwrap_or_else(|| wgpu_device_texture_neutral_view(&self.device))
     }
 
     /// Builds missing node pipelines before the frame draw loop. Runs once
@@ -2005,6 +2425,27 @@ impl Renderer {
             + core::mem::size_of::<FrameUniform>() as u64
             + core::mem::size_of::<LightUniform>() as u64
     }
+}
+
+/// A shared neutral (white) texture view for environment slots with no
+/// texture bound.
+#[cfg(feature = "environment")]
+fn wgpu_device_texture_neutral_view(device: &wgpu::Device) -> wgpu::TextureView {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("scenix.environment.neutral"),
+        size: wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8Unorm,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+    texture.create_view(&wgpu::TextureViewDescriptor::default())
 }
 
 pub(crate) fn material_uniform(material: &RendererMaterial) -> MaterialUniform {

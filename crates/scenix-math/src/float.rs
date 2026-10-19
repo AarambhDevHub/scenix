@@ -43,6 +43,57 @@ pub fn sqrt(value: f32) -> f32 {
     }
 }
 
+/// Exponential function `e^value`.
+///
+/// Fallback targets honestly saturate: `value > 88` returns `INFINITY`,
+/// `value < -87` underflows to `0.0` (subnormal region).
+#[must_use]
+#[inline]
+pub fn exp(value: f32) -> f32 {
+    #[cfg(feature = "libm")]
+    {
+        libm::expf(value)
+    }
+    #[cfg(all(not(feature = "libm"), feature = "std"))]
+    {
+        value.exp()
+    }
+    #[cfg(all(not(feature = "libm"), not(feature = "std")))]
+    {
+        exp_fallback(value)
+    }
+}
+
+#[cfg(all(not(feature = "libm"), not(feature = "std")))]
+fn exp_fallback(value: f32) -> f32 {
+    if value > 88.0 {
+        return f32::INFINITY;
+    }
+    if value < -87.0 {
+        return 0.0;
+    }
+    // exp(value) = 2^k * e^r with |r| <= ln(2)/2.
+    let scaled = value * core::f32::consts::LOG2_E;
+    // Round-half-up (f32::round is std-only): keeps |r| <= ln(2)/2.
+    let quotient = if scaled >= 0.0 {
+        (scaled + 0.5) as i32
+    } else {
+        (scaled - 0.5) as i32
+    };
+    let r = (scaled - quotient as f32) * core::f32::consts::LN_2;
+    let mut term = 1.0;
+    let mut sum = 1.0;
+    let mut order = 1;
+    while order < 12 {
+        term *= r / order as f32;
+        sum += term;
+        order += 1;
+    }
+    // Scale by 2^quotient through the exponent field.
+    let exponent = ((quotient + 127) as u32) << 23;
+    sum * f32::from_bits(exponent)
+}
+
 /// Sine of `value` (radians).
 #[must_use]
 #[inline]
@@ -191,7 +242,7 @@ pub fn asin(value: f32) -> f32 {
     }
     #[cfg(all(not(feature = "libm"), not(feature = "std")))]
     {
-        let x = value.max(-1.0).min(1.0);
+        let x = value.clamp(-1.0, 1.0);
         atan2(x, sqrt((1.0 - x * x).max(0.0)))
     }
 }

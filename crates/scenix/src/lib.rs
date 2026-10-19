@@ -25,6 +25,27 @@ pub use scenix_mesh::*;
 #[cfg(feature = "material")]
 pub use scenix_material::*;
 
+// v1.8.0 environment crates: GPU-free terrain/sky/water math. The scene
+// schema (TerrainId/SkyId/WaterId) and material descriptors arrive via the
+// core and material globs above. Terrain/sky lists are curated because the
+// `lod`/`sky`/`sun` module names collide with the scene, material, and
+// light crate module globs.
+#[cfg(feature = "terrain")]
+pub use scenix_terrain::{
+    ChunkCoord, ChunkStreamer, Heightmap, LodBand, LodPolicy, NoiseConfig, SPLAT_LAYER_COUNT,
+    SplatLayer, SplatMap, StreamDiff, TerrainChunk, TerrainCollider, TerrainConfig, TerrainGrid,
+    noise_heights,
+};
+
+#[cfg(feature = "sky")]
+pub use scenix_sky::{
+    GroundedSkybox, SkyAmbient, SkyModel, SunPosition, bake_ambient, bake_equirectangular,
+    bake_light_probe,
+};
+
+#[cfg(feature = "water")]
+pub use scenix_water::*;
+
 // v1.7.0 particle surface: CPU systems + the material/texture types the
 // GPU draw path consumes. The dot-names collide with `scenix_material`'s
 // `particle` module and `scenix_texture`'s `flipbook` module, so this is a

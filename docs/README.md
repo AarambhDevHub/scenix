@@ -1,9 +1,10 @@
 # Scenix Developer Documentation
 
-Scenix v1.7.0 is a modular Rust-native 3D scene workspace. These docs are
+Scenix v1.8.0 is a modular Rust-native 3D scene workspace. These docs are
 written for application developers who need to choose crates, create scenes,
 add interaction/editor primitives, render or load assets, integrate Animato,
-target WASM, and debug performance.
+build terrain, sky, and water environments, target WASM, and debug
+performance.
 
 ## Start Here
 
@@ -60,6 +61,7 @@ target WASM, and debug performance.
 - [Migration](migration/from-0.9-to-1.0.md)
 - [Reference](reference/feature-matrix.md)
 - [v1.7.0 release notes](../.github/release-notes/1.7.0.md)
+- [v1.8.0 release notes — Terrain, Sky, And Water](release-v1.8.0.md)
 
 ## Feature Flags At A Glance
 
@@ -76,6 +78,11 @@ target WASM, and debug performance.
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |
 | `nodes` | no | Typed shader graphs, node materials, and post node effects (the `scenix-nodes` crate) with WGSL/GLSL backends. |
 | `particles` | no | Deterministic CPU particle systems (the `scenix-particles` crate) with the billboard GPU path and optional compute simulation. |
+| `terrain` | no | CPU heightfields, chunked LOD, splat maps, collision, and streaming (the `scenix-terrain` crate). |
+| `sky` | no | Procedural sky profiles, sun positions, baked environment maps, and grounded skyboxes (the `scenix-sky` crate). |
+| `water` | no | Gerstner waves, foam, fresnel, underwater tinting, and reflection helpers (the `scenix-water` crate). |
+| `environment` | no | Enables all three environment crates and forwards to the renderer's `environment` GPU pipeline gate. |
+
 | `animato` | no | Animato 1.7 bridge and clip-based animation runtime. |
 | `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |
 | `serde` | no | Serialization support where each crate supports it. |

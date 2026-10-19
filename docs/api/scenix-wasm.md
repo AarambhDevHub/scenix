@@ -66,6 +66,8 @@ Use this crate directly when you need its boundary in your own public API. Use t
 
 v1.7.0 adds `particle_fallback_plan(WebGlCapabilityLevel)` — the documented particle strategy per browser capability level.
 
+v1.8.0 adds `environment_fallback_plan(WebGlCapabilityLevel)` — the documented environment strategy per browser capability level (`Full` WGSL parity on WebGPU, `StaticUniforms` on WebGL 2, `VertexColorTint` on WebGL 1).
+
 
 ## Related Docs
 

@@ -26,6 +26,11 @@ generators, and `PostNodeEffect` by name (see
 [scenix-nodes](scenix-nodes.md)). With the `particles` feature the facade
 re-exports `ParticleEmitter`, `ParticleSystem`, the modifier vocabulary, and
 `ParticleRenderBatch` by name (see [scenix-particles](scenix-particles.md)).
+With the `terrain`, `sky`, `water`, and `environment` features the facade
+re-exports `Heightmap`, `TerrainGrid`, `SkyModel`, `SunPosition`,
+`WaveField`, `WaterSurface`, and friends by name (see
+[scenix-terrain](scenix-terrain.md), [scenix-sky](scenix-sky.md), and
+[scenix-water](scenix-water.md)).
 
 ## Common Use
 
@@ -43,6 +48,8 @@ scene.update_world_transforms();
 ```
 
 ## Notes
+
+v1.8.0 adds the `terrain`, `sky`, `water`, and `environment` features; curated re-exports keep the `lod`/`sky`/`sun` module names free for the scene, material, and light globs.
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 

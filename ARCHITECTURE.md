@@ -245,6 +245,36 @@ scenix/
 │   │       ├── flipbook.rs             ← FlipbookConfig frame playback
 │   │       └── rng.rs                  ← DeterministicRng seeded shuffling
 │   │
+│   ├── scenix-terrain/                  ← Optional CPU heightfields, chunk LOD, splats (no_std)
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs                  ← Root re-exports
+│   │       ├── heightmap.rs            ← Heightmap sampling and TerrainCollider ray probes
+│   │       ├── chunks.rs               ← TerrainConfig, TerrainChunk, TerrainGrid LOD geometry
+│   │       ├── lod.rs                  ← LodPolicy / LodBand distance bands
+│   │       ├── noise.rs                ← NoiseConfig deterministic value noise
+│   │       ├── splat.rs                ← SplatLayer / SplatMap weight math
+│   │       └── streaming.rs            ← ChunkStreamer poll/unload diffs
+│   │
+│   ├── scenix-sky/                      ← Optional procedural sky and bakes (no_std)
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs                  ← Root re-exports
+│   │       ├── sky.rs                  ← SkyModel profiles and direction taps
+│   │       ├── sun.rs                  ← SunPosition and light bridges
+│   │       ├── bake.rs                 ← Equirect / light-probe / ambient bakes
+│   │       └── skybox.rs               ← GroundedSkybox horizon fades
+│   │
+│   ├── scenix-water/                    ← Optional Gerstner waves and water math (no_std)
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs                  ← Root re-exports
+│   │       ├── waves.rs                ← WaveField, GerstnerWave, WaveSample
+│   │       ├── surface.rs              ← WaterSurface config, geometry, heights
+│   │       ├── foam.rs / fresnel.rs    ← Crest gating and Schlick reflectance
+│   │       ├── underwater.rs           ← UnderwaterView tinting
+│   │       └── reflection.rs           ← Planar mirror camera helpers
+│   │
 │   ├── scenix-light/                    ← Light types and shadow map management
 │   │   ├── Cargo.toml
 │   │   └── src/
@@ -418,7 +448,7 @@ scenix/
 
 ### Future Workspace Expansion
 
-The layout above describes the shipped v1.7.0 workspace. Future systems such as audio, physics, XR, editor tooling, terrain, sky, and water should be added as **new optional crates** only when implementation begins. They should not be listed as active workspace members in `Cargo.toml` until the crate directory, tests, docs, examples, and feature flags exist. The v1.6.0 shader-node work and the v1.7.0 particle work followed exactly this path and shipped as `scenix-nodes` and `scenix-particles`.
+The layout above describes the shipped v1.8.0 workspace (the v1.6.0 shader-node and v1.7.0 particle work shipped as `scenix-nodes` and `scenix-particles`; the v1.8.0 environment work shipped as `scenix-terrain`, `scenix-sky`, and `scenix-water`, each added as a new optional crate only once its directory, tests, docs, examples, and feature flags existed). Future systems such as audio, physics, XR, and editor tooling should be added as **new optional crates** only when implementation begins. They should not be listed as active workspace members in `Cargo.toml` until the crate directory, tests, docs, examples, and feature flags exist.
 
 Planned future crates may extend the workspace like this:
 
@@ -496,6 +526,9 @@ scenix-mesh       = { path = "crates/scenix-mesh",       version = "1" }
 scenix-material   = { path = "crates/scenix-material",   version = "1" }
 scenix-nodes      = { path = "crates/scenix-nodes",      version = "1" }
 scenix-particles  = { path = "crates/scenix-particles",  version = "1" }
+scenix-terrain    = { path = "crates/scenix-terrain",    version = "1" }
+scenix-sky        = { path = "crates/scenix-sky",        version = "1" }
+scenix-water      = { path = "crates/scenix-water",      version = "1" }
 scenix-light      = { path = "crates/scenix-light",      version = "1" }
 scenix-texture    = { path = "crates/scenix-texture",    version = "1" }
 scenix-loader     = { path = "crates/scenix-loader",     version = "1" }
@@ -2074,6 +2107,113 @@ scene linkage, and browser capability notes in `scenix-wasm`.
 - `examples/particles_basic.rs`: CPU fountain with an optional headless
   compute tail (feature `renderer`).
 
+### 4.20 `scenix-terrain` (v1.8.0)
+
+**Responsibility:** CPU heightfields, chunked LOD grid geometry, splat weight
+maps, collision ray probes, and deterministic chunk streaming.
+
+**Depends on:** `scenix-core`, `scenix-math`, `scenix-mesh`
+
+**Status in v1.8.0:** shipped as an optional crate behind the facade
+`terrain` feature. `no_std`-capable (`std`/`serde` features); chunk
+registration lives behind the renderer's `environment` feature, and the
+material descriptor lives in `scenix-material`.
+
+> **Design decisions:** seeded value noise replays identically and raw noise
+> stays in `[-1, 1]` until `remap_range` refits it, so heightfields stay
+> host-authoritative. Splat weights are normalized on the CPU before they
+> reach vertex channels or `SplatMap` lattices; the renderer samples them
+> without renormalizing. `ChunkStreamer` is a pure poll → `StreamDiff` loop
+> over a wrapping lattice, so host code owns every load/unload decision.
+
+#### Public API
+
+- `Heightmap`: `from_fn`/`from_noise` construction, `remap_range`,
+  `sample_bilinear`, `normal_at`, `height_range`, `world_bounds`.
+- `TerrainCollider`: ray probes with `with_step`/`with_max_steps`,
+  `height_at`/`normal_at` grounded follow-ups.
+- `TerrainGrid`/`TerrainConfig`/`TerrainChunk`: chunked LOD geometry
+  (`chunk_geometry`, `chunk_geometry_with_splat`, `level_for_distance`).
+- `LodPolicy`/`LodBand`: sorted distance bands with per-band sample counts.
+- `NoiseConfig`/`noise_heights`: deterministic seeded value noise.
+- `SplatLayer`/`SplatMap`: four-channel weight presets and lattice sampling.
+- `ChunkStreamer`/`ChunkCoord`/`StreamDiff`: wrapping-stream diffs.
+
+#### Tests, benches, examples
+
+- `tests/terrain_chunks.rs`: geometry/height round-trips, splat weights,
+  collider probes, streaming diffs.
+- `benches/terrain_bench.rs`: generate + splat hot paths.
+- `examples/terrain_lod.rs`: chunk LOD walk and collider probe.
+
+### 4.21 `scenix-sky` (v1.8.0)
+
+**Responsibility:** procedural sky profiles, sun positions, deterministic
+environment-map bakes, and grounded skyboxes.
+
+**Depends on:** `scenix-core`, `scenix-light`, `scenix-math`
+
+**Status in v1.8.0:** shipped as an optional crate behind the facade `sky`
+feature. `no_std`-capable (`std`/`serde`); `SunPosition::sun_light` bridges
+into `scenix-light`'s `SunLight`/`DirectionalLight`, and the WGSL dome
+material lives in `scenix-material`'s `SkyMaterial`.
+
+> **Design decisions:** sky colors are pure functions of view direction and
+> sun direction, so any tap replays bit-identically. Bakes keep the
+> row-0 = zenith equirect convention shared with `scenix-texture`'s
+> `EquirectSampler`; `GroundedSkybox` is a pure fade so it costs nothing on
+> the GPU beyond three colors.
+
+#### Public API
+
+- `SkyModel`: `clear_day`/`overcast_haze` profiles with turbidity,
+  rayleigh, and mie tuning; `rgb_at(view, sun)`.
+- `SunPosition`: degrees/radians constructors, `direction`, `sun_light`,
+  `directional_light`.
+- `bake_equirectangular`/`bake_light_probe`/`bake_ambient`: deterministic
+  bakes (map, SH taps, sky/ground hemisphere averages).
+- `GroundedSkybox`: top/horizon/ground fade with `rgb_at`/`sample_dome`.
+
+#### Tests, benches, examples
+
+- `tests/sky_cpu.rs`: determinism, tuning surface, light bridges, bakes.
+- `examples/sky_sun.rs`: profile taps, bakes, sunset lights.
+
+### 4.22 `scenix-water` (v1.8.0)
+
+**Responsibility:** Gerstner wave fields, displaced surface meshes, foam and
+fresnel shapes, underwater tinting, and planar reflection helpers.
+
+**Depends on:** `scenix-camera`, `scenix-core`, `scenix-math`, `scenix-mesh`
+
+**Status in v1.8.0:** shipped as an optional crate behind the facade `water`
+feature. `no_std`-capable (`std`/`serde`); the WGSL surface state lives in
+`scenix-material`'s `WaterMaterial`, and the renderer's `environment`
+feature paves GPU water grids from the same `WaveField`.
+
+> **Design decisions:** the CPU surface is the source of truth —
+> `WaterSurface::geometry(t)` produces vertices that match `height_at`
+> exactly with unit normals, so headless tests and uploads agree. Wave math
+> is the classic GPU Gems Gerstner stack capped at `MAX_WAVES`; foam gates
+> crest energy hard at its threshold; fresnel is Schlick with a water IOR.
+
+#### Public API
+
+- `WaveField`: `ocean_shore`/`calm` presets, stacked `GerstnerWave`s,
+  `evaluate` crest samples.
+- `GerstnerWave`: `wave_number`/`phase_speed` contracts.
+- `WaterSurface`/`WaterConfig`: config, `geometry(t)`, `height_at`.
+- `FoamParams`/`FresnelParams`/`UnderwaterView`: foam gate, Schlick
+  reflectance, murk drift.
+- `ReflectionSetup`/`mirror_transform`/`reflected_camera`: planar
+  reflection math.
+
+#### Tests, benches, examples
+
+- `tests/water_cpu.rs`: wave math, surface round-trips, aux shapes,
+  reflection helpers.
+- `examples/water_fresnel.rs`: displacement, fresnel ramp, mirrors.
+
 ---
 
 ## 5. Data Flow & Render Loop
@@ -2206,6 +2346,10 @@ raycaster = ["dep:scenix-raycaster"]
 animato  = ["dep:scenix-animato"]
 helpers  = ["dep:scenix-helpers"]
 wasm     = ["dep:scenix-wasm"]
+terrain      = ["dep:scenix-terrain"]
+sky          = ["dep:scenix-sky"]
+water        = ["dep:scenix-water"]
+environment  = ["terrain", "sky", "water", "scenix-renderer?/environment"]
 serde    = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde",
             "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde",
             "scenix-material?/serde", "scenix-light?/serde", "scenix-texture?/serde",
@@ -2690,7 +2834,7 @@ The roadmap assigns future work to concrete planning versions so contributors kn
 | `v1.5.0` | Controls, interaction, and editor primitives | None | `scenix-core`, `scenix-input`, `scenix-camera`, `scenix-scene`, `scenix-raycaster`, `scenix-helpers`, `scenix-material`, `scenix-light`, `scenix-texture`, `scenix-animato`, `scenix-renderer`, `scenix-wasm`, `scenix` |
 | `v1.6.0` | Shader nodes and node materials | `scenix-nodes` | `scenix-material`, `scenix-renderer`, `scenix-post`, `scenix-wasm`, `scenix` |
 | `v1.7.0` | Particles | `scenix-particles` | `scenix-scene`, `scenix-mesh`, `scenix-material`, `scenix-texture`, `scenix-renderer`, `scenix-wasm`, `scenix` |
-| `v1.8.0` | Terrain, sky, and water | `scenix-terrain`, `scenix-sky`, `scenix-water` | `scenix-renderer`, `scenix-material`, `scenix-texture`, `scenix-light`, `scenix-scene`, `scenix` |
+| `v1.8.0` | Terrain, Sky, And Water | `scenix-terrain`, `scenix-sky`, `scenix-water` | `scenix-core`, `scenix-scene`, `scenix-material`, `scenix-texture`, `scenix-light`, `scenix-renderer`, `scenix-wasm`, `scenix` |
 | `v1.9.0` | XR, audio, and physics bridges | `scenix-xr`, `scenix-audio`, `scenix-physics` | `scenix-scene`, `scenix-input`, `scenix-camera`, `scenix-helpers`, `scenix-renderer`, `scenix-wasm`, `scenix` |
 | `v1.10.0` | Editor and UI tooling | `scenix-editor`, `scenix-ui` or `scenix-egui` | `scenix-scene`, `scenix-renderer`, `scenix-material`, `scenix-loader`, `scenix-animato`, `scenix-helpers`, `scenix-wasm`, `scenix` |
 

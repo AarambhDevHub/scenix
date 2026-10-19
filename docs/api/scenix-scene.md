@@ -47,6 +47,8 @@ Use this crate directly when you need its boundary in your own public API. Use t
 
 v1.7.0 adds `NodeKind::Particles { system_id }` with the `SceneNode::particles` constructor and the `"particles"` inspector label.
 
+v1.8.0 adds `NodeKind::{Terrain, Sky, Water}` with the `SceneNode::terrain`, `SceneNode::sky`, and `SceneNode::water` constructors and their inspector labels; each node keys its renderer environment slot through the node material id.
+
 
 ## Related Docs
 

@@ -71,7 +71,7 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no-default CPU crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-terrain -p scenix-sky -p scenix-water -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
 
       - name: Test loader all features
         run: cargo test -p scenix-loader --all-features
@@ -101,6 +101,11 @@ jobs:
           cargo test -p scenix-particles --all-features
           cargo test -p scenix --test scenix_v17 --all-features
 
+      - name: Test v1.8 environment surface
+        run: |
+          cargo test -p scenix-terrain -p scenix-sky -p scenix-water --all-features
+          cargo test -p scenix --test scenix_v18 --all-features
+
       - name: Check v1.5 facade feature lanes
         run: |
           cargo check -p scenix --no-default-features --features interaction
@@ -117,6 +122,15 @@ jobs:
         run: |
           cargo check -p scenix --no-default-features --features particles
           cargo check -p scenix --no-default-features --features particles,renderer
+
+      - name: Check v1.8 facade feature lanes
+        run: |
+          cargo check -p scenix --no-default-features --features terrain
+          cargo check -p scenix --no-default-features --features sky
+          cargo check -p scenix --no-default-features --features water
+          cargo check -p scenix --no-default-features --features environment
+          cargo check -p scenix --no-default-features --features environment,material
+          cargo check -p scenix --no-default-features --features environment,renderer
 
   msrv:
     name: Minimum supported Rust 1.98
@@ -226,3 +240,6 @@ jobs:
 
       - name: Test node-material GPU paths
         run: cargo test -p scenix --test nodes_gpu --features nodes,material,renderer,scene,camera,mesh
+
+      - name: Test environment GPU paths
+        run: cargo test -p scenix-renderer --features environment --all-targets
