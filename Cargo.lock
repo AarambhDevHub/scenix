@@ -79,9 +79,9 @@ dependencies = [
 
 [[package]]
 name = "animato"
-version = "1.7.2"
+version = "1.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3442e820517e920a1ac56d9e331be066374ecf1e9deda46c4107e3fde0ce12e3"
+checksum = "5951577396defd291d3b73826a062dc95f89672caee4bbc99553126d9ea6b83f"
 dependencies = [
  "animato-color",
  "animato-core",
@@ -97,9 +97,9 @@ dependencies = [
 
 [[package]]
 name = "animato-color"
-version = "1.7.2"
+version = "1.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc1df04494af8cebba5be3f2246305773f0d277c19e1d17c8c9821fa9d7a2998"
+checksum = "ae687605dc0cea49647d0b9f63d9b701de5abbebd085f7e2a3b215a776fa6fb3"
 dependencies = [
  "animato-core",
  "palette",
@@ -108,9 +108,9 @@ dependencies = [
 
 [[package]]
 name = "animato-core"
-version = "1.7.2"
+version = "1.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bec574aad55366acee5e4bcce6f75045f11459db2b1ab4e0ac456fc1d9357ff"
+checksum = "fa035ff26c6ba3f61fa1878f75daa65d935bb22cd0c7df103ad197fab6301997"
 dependencies = [
  "libm",
  "serde",
@@ -118,18 +118,18 @@ dependencies = [
 
 [[package]]
 name = "animato-driver"
-version = "1.7.2"
+version = "1.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13ab9246e96b6a684d1993d9d5126d8ea1401143289783fc627f4007310b9625"
+checksum = "ba12406203cab75f710c05d145c8a81754f533978eafd3fe7142d0d6e804b012"
 dependencies = [
  "animato-core",
 ]
 
 [[package]]
 name = "animato-path"
-version = "1.7.2"
+version = "1.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c620d219530cae27b3f662c898abb8a20912a9f69fc48d81764061c18716796c"
+checksum = "3cea2d9e75d1947a8e1bd2aa684e6e7661a2573649d79ba5ef78a0978bdf86b6"
 dependencies = [
  "animato-core",
  "animato-tween",
@@ -139,9 +139,9 @@ dependencies = [
 
 [[package]]
 name = "animato-physics"
-version = "1.7.2"
+version = "1.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcbf115da430fd4f504eeb4b184d9343490988839778e941f0c769f9ec0f5866"
+checksum = "80fbb9398f259785e789518db63f5841c18a7391cc90be2b12559cf9605cb2ca"
 dependencies = [
  "animato-core",
  "libm",
@@ -150,9 +150,9 @@ dependencies = [
 
 [[package]]
 name = "animato-spring"
-version = "1.7.2"
+version = "1.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42248f390dffc3d3c667f33334f1a2745a3f45d3269a6acad04208f8ff785940"
+checksum = "13b551db44d55cd10e1f81d48e0046b37149b028b02bd1d5612843adf573594d"
 dependencies = [
  "animato-core",
  "serde",
@@ -160,9 +160,9 @@ dependencies = [
 
 [[package]]
 name = "animato-timeline"
-version = "1.7.2"
+version = "1.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c9dd50eebac8b2079fa5948609939513ea6f3981f3beb920adca41b8fde96c7"
+checksum = "179b25c2e387c7826ec1b61f6b75ed4499ab74c643084ec79de871cae904aaf6"
 dependencies = [
  "animato-core",
  "animato-tween",
@@ -171,9 +171,9 @@ dependencies = [
 
 [[package]]
 name = "animato-tween"
-version = "1.7.2"
+version = "1.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3dde84d5eb9a52c61447b0026fd4e1026b96bcb591d99637d9d90770cf4ed20e"
+checksum = "b1fa7edc546b1345ece6a6aa13f029e42986e6bbaaf62a110110695331ef7b1d"
 dependencies = [
  "animato-core",
  "serde",
