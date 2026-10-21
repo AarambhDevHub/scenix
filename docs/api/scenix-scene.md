@@ -49,9 +49,18 @@ v1.7.0 adds `NodeKind::Particles { system_id }` with the `SceneNode::particles` 
 
 v1.8.0 adds `NodeKind::{Terrain, Sky, Water}` with the `SceneNode::terrain`, `SceneNode::sky`, and `SceneNode::water` constructors and their inspector labels; each node keys its renderer environment slot through the node material id.
 
+v1.9.0 adds the CPU-bridge rider nodes — `NodeKind::XrAnchor { anchor_id }`,
+`NodeKind::AudioSource { source_id, listener_id }`, and
+`NodeKind::PhysicsBody { body_id, collider_id }`. These payloads live on the
+CPU side (the renderer's culling pass matches them in a no-op arm, so they
+submit no draws) and hosts drive them through the `scenix-xr`,
+`scenix-audio`, and `scenix-physics` crates with `PhysicsTransformSync`
+batching the body→node-key write list.
+
 
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
 - [Interaction and editor primitives](../concepts/interaction-and-editor.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)
+- [Scenix v1.9.0 release](../release-v1.9.0.md)

@@ -51,9 +51,12 @@ v1.7.0 adds the particle surface (behind `particles`): `register_particles`, `up
 
 v1.8.0 adds the environment surface (behind `environment`): `register_environment`/`unregister_environment` with `EnvironmentMaterial::{Terrain, Sky, Water}`, the `terrain_splat`/`sky_dome`/`water_surface` WGSL pipelines, sky-before-opaque and water-after-transparent draw ordering, and `scene_environments`/`visible_environments` in `CullingStats` and `FrameStats`; see [scenix-terrain](scenix-terrain.md), [scenix-sky](scenix-sky.md), and [scenix-water](scenix-water.md).
 
+v1.9.0 changes nothing in the GPU path: the WGSL pipelines are untouched, and the culling pass gains a no-op arm for `NodeKind::{XrAnchor, AudioSource, PhysicsBody}` so bridge rider nodes traverse without submitting draws.
+
 
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
 - [Renderer picking example](../examples/renderer-picking.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)
+- [Scenix v1.9.0 release](../release-v1.9.0.md)

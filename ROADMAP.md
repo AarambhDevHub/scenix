@@ -41,7 +41,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v1.6.0` | Shader nodes | New optional shader graph and node material crate | ✅ |
 | `v1.7.0` | Particles | New optional CPU/GPU particle crate | ✅ |
 | `v1.8.0` | Environment systems | New optional terrain, sky, and water crates | ✅ |
-| `v1.9.0` | Runtime bridges | New optional XR, audio, and physics crates | 🔮 |
+| `v1.9.0` | Runtime bridges | New optional XR, audio, and physics crates | ✅ |
 | `v1.10.0` | Editor tooling | New optional editor and UI overlay crates | 🔮 |
 | `v1.x+` | Advanced rendering | Post effects, geometry extras, modifiers, GPU-driven rendering, realtime GI | 🔮 |
 
@@ -473,8 +473,8 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 
 ## Current Focus
 
-The project has completed v1.6.0 and will next scope the optional particle
-crate planned for v1.7.0. New work must preserve the stable modular API, keep
+The project has completed v1.9.0 and will next scope the optional editor
+crates planned for v1.10.0. New work must preserve the stable modular API, keep
 heavy dependencies optional, and add deprecations before removing public APIs.
 
 Scenix is not only a website or WASM demo library. Future work must treat **desktop, mobile, and web** as first-class runtime targets:
@@ -664,7 +664,7 @@ The version numbers below are planning buckets, not release promises. Each miles
 
 - `scenix-xr` — new optional crate for WebXR/OpenXR sessions, controllers, hands, hit tests, anchors, planes, depth sensing, estimated lighting, and mobile XR lifecycle.
 - `scenix-audio` — new optional crate for audio listeners, positional audio sources, streaming audio, analyser data, and scene-node attachment.
-- `scenix-physics` — new optional crate for Rapier/Jolt bridge, rigid bodies, colliders, character controller helpers, debug visualization, and scene transform sync.
+- `scenix-physics` — new optional crate for deterministic CPU rigid bodies (a scenix-native penalty solver, no engine dependency), colliders, character controller helpers, debug visualization, and scene transform sync.
 - `scenix-scene` — node attachments and sync metadata for XR, audio, and physics.
 - `scenix-input` — XR controller, gamepad, touch, and device input mapping.
 - `scenix-camera` — XR camera rigs, stereo camera helpers, and listener/camera sync.
@@ -673,12 +673,12 @@ The version numbers below are planning buckets, not release promises. Each miles
 - `scenix-wasm` — WebXR browser integration.
 - `scenix` — optional `xr`, `audio`, and `physics` facade features and re-exports.
 
-- [ ] One WebXR or OpenXR viewer example.
-- [ ] XR controller input and pose mapping.
-- [ ] Audio listener plus positional source attached to scene nodes.
-- [ ] Physics rigid body/collider bridge with transform synchronization.
-- [ ] Character-controller or simple collision example.
-- [ ] Debug helpers for controllers, colliders, and physics state.
+- [x] One WebXR or OpenXR viewer example (`xr_viewer`, plus `xr_controllers`).
+- [x] XR controller input and pose mapping (`XrControllerBay`, `scenix-input` XR types).
+- [x] Audio listener plus positional source attached to scene nodes (`NodeKind::AudioSource`).
+- [x] Physics rigid body/collider bridge with transform synchronization (`PhysicsTransformSync`, `NodeKind::PhysicsBody`).
+- [x] Character-controller or simple collision example (`character_controller`).
+- [x] Debug helpers for controllers, colliders, and physics state (`PoseAxesHelper`, `HandSkeletonHelper`, `ColliderDebugHelper`).
 
 ## v1.10.0 — Editor And UI Tooling
 
@@ -831,7 +831,7 @@ The best way to contribute now is to propose a focused post-1.1 planning issue o
 
 ---
 
-*Roadmap version: 1.8.0 terrain, sky, and water — last updated October 19, 2026*
-*Next milestone: v1.9.0 runtime bridges (xr, audio, physics)*
+*Roadmap version: 1.9.0 XR, audio, and physics bridges — last updated October 20, 2026*
+*Next milestone: v1.10.0 editor and UI tooling*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

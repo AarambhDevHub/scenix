@@ -11,7 +11,7 @@ readme.workspace = true
 
 [features]
 default = ["std", "scene", "camera", "mesh", "material", "light", "texture", "raycaster", "helpers"]
-std = ["scenix-math/std", "scenix-core/std", "scenix-input/std", "scenix-scene?/std", "scenix-camera?/std", "scenix-mesh?/std", "scenix-nodes?/std", "scenix-material?/std", "scenix-light?/std", "scenix-texture?/std", "scenix-loader?/std", "scenix-post?/std", "scenix-renderer?/std", "scenix-raycaster?/std", "scenix-helpers?/std", "scenix-animato?/std", "scenix-wasm?/std", "scenix-particles?/std", "scenix-terrain?/std", "scenix-sky?/std", "scenix-water?/std"]
+std = ["scenix-math/std", "scenix-core/std", "scenix-input/std", "scenix-scene?/std", "scenix-camera?/std", "scenix-mesh?/std", "scenix-nodes?/std", "scenix-material?/std", "scenix-light?/std", "scenix-texture?/std", "scenix-loader?/std", "scenix-post?/std", "scenix-renderer?/std", "scenix-raycaster?/std", "scenix-helpers?/std", "scenix-animato?/std", "scenix-wasm?/std", "scenix-particles?/std", "scenix-terrain?/std", "scenix-sky?/std", "scenix-water?/std", "scenix-xr?/std", "scenix-audio?/std", "scenix-physics?/std"]
 scene = ["dep:scenix-scene"]
 camera = ["dep:scenix-camera"]
 mesh = ["dep:scenix-mesh"]
@@ -27,6 +27,10 @@ terrain = ["dep:scenix-terrain"]
 sky = ["dep:scenix-sky"]
 water = ["dep:scenix-water"]
 environment = ["terrain", "sky", "water", "scenix-renderer?/environment"]
+xr = ["dep:scenix-xr"]
+audio = ["dep:scenix-audio"]
+physics = ["dep:scenix-physics", "scenix-helpers?/physics"]
+bridges = ["xr", "audio", "physics"]
 raycaster = ["dep:scenix-raycaster"]
 helpers = ["dep:scenix-helpers"]
 interaction = ["scene", "camera", "raycaster", "helpers"]
@@ -49,7 +53,7 @@ egui = ["editor", "scenix-helpers/egui"]
 animato = ["dep:scenix-animato"]
 wasm = ["dep:scenix-wasm"]
 libm = ["scenix-math/libm"]
-serde = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde", "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde", "scenix-material?/serde", "scenix-particles?/serde", "scenix-light?/serde", "scenix-texture?/serde", "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde", "scenix-raycaster?/serde", "scenix-helpers?/serde", "scenix-animato?/serde", "scenix-wasm?/serde", "scenix-terrain?/serde", "scenix-sky?/serde", "scenix-water?/serde"]
+serde = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde", "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde", "scenix-material?/serde", "scenix-particles?/serde", "scenix-light?/serde", "scenix-texture?/serde", "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde", "scenix-raycaster?/serde", "scenix-helpers?/serde", "scenix-animato?/serde", "scenix-wasm?/serde", "scenix-terrain?/serde", "scenix-sky?/serde", "scenix-water?/serde", "scenix-xr?/serde", "scenix-audio?/serde", "scenix-physics?/serde"]
 approx = ["scenix-math/approx"]
 gpu = ["scenix-core/gpu"]
 
@@ -75,6 +79,9 @@ scenix-water = { workspace = true, optional = true }
 scenix-helpers = { workspace = true, optional = true }
 scenix-animato = { workspace = true, optional = true }
 scenix-wasm = { workspace = true, optional = true }
+scenix-xr = { workspace = true, optional = true }
+scenix-audio = { workspace = true, optional = true }
+scenix-physics = { workspace = true, optional = true }
 
 [dev-dependencies]
 egui = { workspace = true }
@@ -345,3 +352,33 @@ required-features = ["particles", "scene", "material", "texture", "mesh", "wasm"
 name = "scenix_v18"
 path = "../../tests/scenix_v18.rs"
 required-features = ["environment", "material", "camera"]
+
+[[test]]
+name = "scenix_v19"
+path = "../../tests/scenix_v19.rs"
+required-features = ["bridges", "scene", "camera", "helpers"]
+
+[[example]]
+name = "xr_viewer"
+path = "../../examples/xr_viewer.rs"
+required-features = ["xr", "camera"]
+
+[[example]]
+name = "xr_controllers"
+path = "../../examples/xr_controllers.rs"
+required-features = ["xr"]
+
+[[example]]
+name = "audio_positions"
+path = "../../examples/audio_positions.rs"
+required-features = ["audio"]
+
+[[example]]
+name = "physics_sync"
+path = "../../examples/physics_sync.rs"
+required-features = ["physics", "scene", "helpers"]
+
+[[example]]
+name = "character_controller"
+path = "../../examples/character_controller.rs"
+required-features = ["physics", "scene"]

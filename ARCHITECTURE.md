@@ -174,7 +174,8 @@ scenix/
 │   │       ├── orthographic.rs         ← OrthographicCamera (left/right/top/bottom)
 │   │       ├── cube_camera.rs          ← CubeCamera (6-face capture for environment maps)
 │   │       ├── frustum.rs              ← Frustum planes, visibility testing
-│   │       └── controller.rs           ← OrbitController, FlyController (std feature)
+│   │       ├── controller.rs           ← OrbitController, FlyController (std feature)
+│   │       └── stereo.rs               ← XrFov, XrEyeProjection, XrCameraRig (v1.9)
 │   │
 │   ├── scenix-mesh/                     ← Geometry buffers and primitive generators
 │   │   ├── Cargo.toml
@@ -275,6 +276,42 @@ scenix/
 │   │       ├── underwater.rs           ← UnderwaterView tinting
 │   │       └── reflection.rs           ← Planar mirror camera helpers
 │   │
+│   ├── scenix-xr/                       ← Optional XR session planning and tracking (no_std)
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs                  ← Root re-exports and XR_VERSION
+│   │       ├── session.rs              ← XrSessionPlan lifecycle, XrFeatures negotiation
+│   │       ├── controllers.rs          ← XrController / XrControllerBay, XrPose spaces
+│   │       ├── hands.rs                ← XrHandFrame over the 26-slot hand profile
+│   │       ├── frames.rs               ← XrFramePlan, XrFrameStats, XrViewport
+│   │       ├── anchors.rs              ← XrAnchorStore age-pruned world locks
+│   │       ├── planes.rs               ← XrPlaneStore reconciliation
+│   │       ├── hit_test.rs             ← XrHitTestProbe floor/wall/window casts
+│   │       └── lighting.rs             ← XrLightEstimate ambient/reflection planning
+│   │
+│   ├── scenix-audio/                    ← Optional spatial audio decision math (no_std)
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs                  ← Root re-exports and SPEED_OF_SOUND
+│   │       ├── listener.rs             ← AudioListener orthonormal axes
+│   │       ├── source.rs               ← AudioSource, AudioChannel, AudioLoop scheduling
+│   │       ├── spatial.rs              ← compute_spatial_decision, DirectionalCone, blend_pan
+│   │       ├── distance.rs             ← AttenuationModel / DistanceGain curves
+│   │       ├── doppler.rs              ← DopplerModel::shift frequency multipliers
+│   │       ├── stream.rs               ← AudioStreamPlan chunk buffering health
+│   │       └── analyser.rs             ← AudioAnalyser RMS/peak/bands metering
+│   │
+│   ├── scenix-physics/                  ← Optional deterministic CPU rigid-body solver (no_std)
+│   │   ├── Cargo.toml
+│   │   └── src/
+│   │       ├── lib.rs                  ← Root re-exports and solver constants
+│   │       ├── world.rs                ← PhysicsWorld broad/narrow phase, substeps, contacts
+│   │       ├── bodies.rs               ← PhysicsBody, RigidBodyKind, damping, sleep state
+│   │       ├── colliders.rs            ← Collider shapes, groups, sensors
+│   │       ├── character.rs            ← CharacterState::move_and_slide kinematic capsule
+│   │       ├── sync.rs                 ← PhysicsTransformSync body→node-key write list
+│   │       └── debug.rs                ← debug_wireframe collider debug geometry
+│   │
 │   ├── scenix-light/                    ← Light types and shadow map management
 │   │   ├── Cargo.toml
 │   │   └── src/
@@ -371,7 +408,8 @@ scenix/
 │   │   └── src/
 │   │       ├── lib.rs
 │   │       ├── input.rs                ← DOM key/button mapping helpers
-│   │       └── web.rs                  ← BrowserRenderer, WebRenderer, WebGlRenderer, generated scene
+│   │       ├── web.rs                  ← BrowserRenderer, WebRenderer, WebGlRenderer, generated scene
+│   │       └── webxr_fallback.rs       ← WebXrFallbackPlan emulation (v1.9 xr feature)
 │   │
 │   ├── scenix-helpers/                  ← Debug visualization helpers
 │   │   ├── Cargo.toml
@@ -383,7 +421,9 @@ scenix/
 │   │       ├── arrow.rs                ← ArrowHelper (directional arrow mesh)
 │   │       ├── light_helper.rs         ← SpotLightHelper, PointLightHelper, DirLightHelper
 │   │       ├── camera_helper.rs        ← CameraHelper (frustum wireframe)
-│   │       └── skeleton_helper.rs      ← SkeletonHelper (bone visualization)
+│   │       ├── skeleton_helper.rs      ← SkeletonHelper (bone visualization)
+│   │       ├── xr_helper.rs            ← PoseAxesHelper, HandSkeletonHelper (v1.9)
+│   │       └── physics_helper.rs       ← ColliderDebugHelper wireframes (v1.9 physics feature)
 │   │
 │   ├── scenix-input/                    ← Shared input state types
 │   │   ├── Cargo.toml
@@ -392,7 +432,8 @@ scenix/
 │   │       ├── pointer.rs              ← PointerState, PointerButton, PointerEvent
 │   │       ├── keyboard.rs             ← KeyboardState, KeyCode, Modifiers
 │   │       ├── touch.rs                ← TouchState, TouchPoint, pinch/rotate gesture
-│   │       └── gamepad.rs              ← GamepadState, GamepadButton, axes
+│   │       ├── gamepad.rs              ← GamepadState, GamepadButton, axes
+│   │       └── xr.rs                   ← XrHand, XrControllerInput, XrTrackingStatus (v1.9)
 │   │
 │   └── scenix/                          ← facade crate — the one users add to Cargo.toml
 │       ├── Cargo.toml
@@ -448,18 +489,15 @@ scenix/
 
 ### Future Workspace Expansion
 
-The layout above describes the shipped v1.8.0 workspace (the v1.6.0 shader-node and v1.7.0 particle work shipped as `scenix-nodes` and `scenix-particles`; the v1.8.0 environment work shipped as `scenix-terrain`, `scenix-sky`, and `scenix-water`, each added as a new optional crate only once its directory, tests, docs, examples, and feature flags existed). Future systems such as audio, physics, XR, and editor tooling should be added as **new optional crates** only when implementation begins. They should not be listed as active workspace members in `Cargo.toml` until the crate directory, tests, docs, examples, and feature flags exist.
+The layout above describes the shipped v1.9.0 workspace (the v1.6.0 shader-node and v1.7.0 particle work shipped as `scenix-nodes` and `scenix-particles`; the v1.8.0 environment work shipped as `scenix-terrain`, `scenix-sky`, and `scenix-water`; the v1.9.0 runtime-bridge work shipped as `scenix-xr`, `scenix-audio`, and `scenix-physics`, each added as a new optional crate only once its directory, tests, docs, examples, and feature flags existed). Future systems such as editor tooling should be added as **new optional crates** only when implementation begins. They should not be listed as active workspace members in `Cargo.toml` until the crate directory, tests, docs, examples, and feature flags exist.
 
 Planned future crates may extend the workspace like this:
 
 ```text
 crates/
-├── scenix-terrain/     ← optional heightmap terrain and chunked LOD
-├── scenix-sky/         ← optional procedural sky and atmosphere
-├── scenix-water/       ← optional water, reflection, and refraction helpers
-├── scenix-xr/          ← optional WebXR/OpenXR integration
-├── scenix-audio/       ← optional spatial audio bridge
-├── scenix-physics/     ← optional Rapier/Jolt physics bridge
+├── scenix-xr/          ← optional XR session planning and tracking (shipped v1.9.0)
+├── scenix-audio/       ← optional spatial audio decision math (shipped v1.9.0)
+├── scenix-physics/     ← optional deterministic CPU rigid-body solver (shipped v1.9.0)
 ├── scenix-editor/      ← optional visual editor shell and tools
 └── scenix-ui/          ← optional cross-platform debug UI overlays
 ```
@@ -505,6 +543,9 @@ members = [
     "crates/scenix-wasm",
     "crates/scenix-helpers",
     "crates/scenix-input",
+    "crates/scenix-xr",
+    "crates/scenix-audio",
+    "crates/scenix-physics",
     "crates/scenix",
 ]
 
@@ -529,6 +570,9 @@ scenix-particles  = { path = "crates/scenix-particles",  version = "1" }
 scenix-terrain    = { path = "crates/scenix-terrain",    version = "1" }
 scenix-sky        = { path = "crates/scenix-sky",        version = "1" }
 scenix-water      = { path = "crates/scenix-water",      version = "1" }
+scenix-xr         = { path = "crates/scenix-xr",         version = "1" }
+scenix-audio      = { path = "crates/scenix-audio",      version = "1" }
+scenix-physics    = { path = "crates/scenix-physics",    version = "1" }
 scenix-light      = { path = "crates/scenix-light",      version = "1" }
 scenix-texture    = { path = "crates/scenix-texture",    version = "1" }
 scenix-loader     = { path = "crates/scenix-loader",     version = "1" }
@@ -2214,6 +2258,148 @@ feature paves GPU water grids from the same `WaveField`.
   reflection helpers.
 - `examples/water_fresnel.rs`: displacement, fresnel ramp, mirrors.
 
+### 4.23 `scenix-xr` (v1.9.0)
+
+**Responsibility:** deterministic CPU source of truth for XR runtime
+agreements — session plans and lifecycle, controller and hand tracking,
+anchors, planes, hit testing, light estimation, and per-frame stereo stats.
+
+**Depends on:** `scenix-camera`, `scenix-core`, `scenix-input`, `scenix-math`
+
+**Status in v1.9.0:** shipped as an optional crate behind the facade `xr`
+feature. `no_std`-capable (`std`/`serde`); `scenix-input` owns the shared
+`XrHand`/`XrTrackingStatus`/`XrControllerInput` vocabulary (also globbed by
+the facade), and `scenix-wasm`'s `xr` feature consumes the plan types for
+its browser fallback.
+
+> **Design decisions:** no engine or SDK dependency — the crate models what
+> a runtime *would* grant and hands hosts a deterministic agreement they
+> can replay in tests. Session lifecycle transitions are total functions;
+> hand frames fix a 26-slot joint layout shared with `scenix-helpers`'s
+> `HandSkeletonHelper`; anchor pruning is an age rule, not a garbage pass.
+
+#### Public API
+
+- `XrSessionPlan`: `immersive_vr`/`immersive_ar`/`inline` constructors,
+  `with_reference_space`/`with_features`/`with_foveation`, `validate` with
+  `XrSessionPlanError` diagnostics, `advance` lifecycle moves,
+  `is_presenting`, and `camera_rig` head-anchored stereo output.
+- `XrSessionState`: `can_transition` total transition table.
+- `XrFeatures`: bitset negotiation (`CONTROLLERS`, `HANDS`, `HIT_TEST`,
+  `ANCHORS`, `PLANES`, `DEPTH_SENSING`, `LIGHT_ESTIMATION`, `PASSTHROUGH`)
+  with `room_scale_vr`/`mobile_ar` bundles and `FEATURE_NAMES`.
+- `XrControllerBay`/`XrController`: both-hand pointer/grip tracking,
+  `aim_ray`, `predicted_pose` kinematics, `reset`.
+- `XrHandFrame`/`XrJointPose`: 26-slot `JOINT_*` layout, `track_joint`,
+  `tracked_joints`, `thumb_index_distance`, `is_pinching`.
+- `XrAnchorStore`/`XrAnchor`: insert/contains/prune over `XR_ANCHOR_MAX_AGE`.
+- `XrPlaneStore`/`XrPlane`: `reconcile` diffs toward runtime planes.
+- `XrHitTestProbe`: floor/wall/window surface casts with `XrPose` hits.
+- `XrLightEstimate`: ambient cube / reflection planning.
+- `XrFramePlan`/`XrFrameStats`/`XrViewport`: per-frame stats, scaled stereo
+  pixel counts, and the head-anchored `camera_rig` builder.
+
+#### Tests, examples
+
+- `tests/xr_cpu.rs`: session validation, controller bays, hand frames,
+  anchors, planes, hit tests, viewport math.
+- `examples/xr_viewer.rs`, `examples/xr_controllers.rs` (facade).
+
+### 4.24 `scenix-audio` (v1.9.0)
+
+**Responsibility:** deterministic CPU source of truth for spatial audio
+mixing decisions — listener/source state, attenuation and pan, Doppler,
+streamed buffering health, and spectrum metering.
+
+**Depends on:** `scenix-core`, `scenix-math`
+
+**Status in v1.9.0:** shipped as an optional crate behind the facade `audio`
+feature. `no_std`-capable (`std`/`serde`); the crate decides mixes and
+buffers, the host applies them to whatever DSP backend it owns.
+
+> **Design decisions:** one `SpatialDecision` per source per frame so hosts
+> replay identical mixes in tests; the Doppler `direction` is the
+> wave-travel direction (source → listener), clamped multipliers keep the
+> resampling finite; stream plans track chunk hand-off health without
+> owning PCM; the analyser keeps three fixed bands and smoothing as plain
+> arithmetic.
+
+#### Public API
+
+- `AudioListener`: `axes` ortho-normal construction, `velocity`.
+- `AudioSource`: position/direction/velocity state, `AudioChannel` speaker
+  routing, `AudioLoop::{Once, Infinite, Times}` pass scheduling,
+  `PlaybackState`.
+- `compute_spatial_decision`: one `SpatialDecision` folding pan weights,
+  `AttenuationModel::{None, Linear, Inverse, InverseSquare}`, speaker
+  layouts, cone filtering, and Doppler (`blend_pan` cross-fades two mixes).
+- `compute_spatial_gain`: final left/right route gains.
+- `DirectionalCone`/`SpeakerLayout`/`DistanceGain`: WebAudio-convention
+  helpers with gain clamps.
+- `AudioStreamPlan`: `accept_chunk`/`promote_pending`/`consume_chunk`, ready
+  vs pending counts, underrun accounting, `buffered_milliseconds`.
+- `AudioAnalyser`: `new(fft_size, smoothing)`, `analyse_mono`/
+  `analyse_stereo` → `AnalyserFrame` with `rms`/`peak`/`band` energy over
+  `AnalyserBand::{Bass, Mid, Treble}` and `is_peaking`.
+- Constants: `SPEED_OF_SOUND`, `STREAM_MAX_CHUNKS`,
+  `AUDIO_LISTENER_MAX_SOURCES`, `ANALYSER_MIN_FFT_SIZE`,
+  `ANALYSER_MAX_FFT_SIZE`.
+
+#### Tests, examples
+
+- `tests/audio_cpu.rs`: spatial decisions, Doppler, streams, analyser.
+- `examples/audio_positions.rs` (facade).
+
+### 4.25 `scenix-physics` (v1.9.0)
+
+**Responsibility:** deterministic CPU source of truth for rigid-body
+simulation — a scenix-native penalty solver (no Rapier/Jolt dependency),
+spatial queries, sleeping, and the kinematic character controller.
+
+**Depends on:** `scenix-core`, `scenix-math`, `scenix-mesh`
+
+**Status in v1.9.0:** shipped as an optional crate behind the facade
+`physics` feature. `no_std`-capable (`std`/`serde`); `scenix-helpers`'
+`physics` feature consumes `debug_wireframe` for collider wireframes, and
+the facade's `PhysicsTransformSync` maps body transforms onto scene node
+keys.
+
+> **Design decisions:** boxes stay world-axis-aligned so the analytic
+> narrow phase stays branch-light; contacts resolve restitution + Coulomb
+> friction with a Baumgarte positional push (`CONTACT_RESOLVE_PERCENT` 0.2,
+> `CONTACT_SLOP` 5 mm) so equilibrium penetration stays near the slop;
+> substeps realign long frames up to `MAX_SUBSTEPS` at `≤ MAX_SUBSTEP_DT`;
+> sleeping is frame-count based with wake events, and body ids start at 1
+> with `Contact.a` always the lower id and normals pointing a→b.
+
+#### Public API
+
+- `PhysicsWorld`: `earth()` construction, `add_body`/`add_solid`,
+  `attach_collider`/`insert_collider` (sensors and groups), `step(dt)` with
+  real substeps, `take_events`, `body`/`body_mut` accessors.
+- `PhysicsBody`: mass/surface/damping builders (`with_mass`, `with_surface`,
+  `with_kind`), `apply_impulse`/`apply_force`, integrated velocity, sleep
+  state.
+- `Collider`/`ColliderShape`/`ColliderGroup`: sphere/box/capsule shapes,
+  membership/filter masks, sensors (`as_sensor`), densities.
+- `WorldEvent`/`Contact`/`ContactEvent`: contact begin/end and sleep/wake
+  stream with a/b ids, penetration, and a→b normals.
+- `cast_ray`/`cast_ray_excluding`/`overlap_sphere`: spatial queries with
+  `SpatialQueryHit` (self-hit exclusion feeds the character probe).
+- `CharacterState`/`CharacterInput`: `move_and_slide` kinematic capsule —
+  slope limits, step offsets, jump launch, and probe-based ground snapping
+  (`PHYSICS_GROUND_REATTACH_SPEED` guards re-attachment mid-launch).
+- `PhysicsTransformSync`/`SyncQueue`/`SyncEntry`: one-to-one body→node-key
+  bindings, static skipping, and sorted per-frame write lists.
+- `debug_wireframe`/`debug_wireframe_world`/`wireframe_*`: collider debug
+  geometry with `WIREFRAME_SEGMENTS` density.
+
+#### Tests, examples
+
+- `tests/physics_cpu.rs`: determinism, restitution/friction, sensors,
+  groups, queries, sleep, character walk/jump/land, respawn.
+- `examples/physics_sync.rs`, `examples/character_controller.rs` (facade).
+
 ---
 
 ## 5. Data Flow & Render Loop
@@ -2350,12 +2536,17 @@ terrain      = ["dep:scenix-terrain"]
 sky          = ["dep:scenix-sky"]
 water        = ["dep:scenix-water"]
 environment  = ["terrain", "sky", "water", "scenix-renderer?/environment"]
+xr       = ["dep:scenix-xr"]
+audio    = ["dep:scenix-audio"]
+physics  = ["dep:scenix-physics", "scenix-helpers?/physics"]
+bridges  = ["xr", "audio", "physics"]
 serde    = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde",
             "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde",
             "scenix-material?/serde", "scenix-light?/serde", "scenix-texture?/serde",
             "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde",
             "scenix-raycaster?/serde", "scenix-helpers?/serde",
-            "scenix-animato?/serde", "scenix-wasm?/serde"]
+            "scenix-animato?/serde", "scenix-wasm?/serde",
+            "scenix-terrain?/serde", "scenix-sky?/serde", "scenix-water?/serde"]
 ```
 
 **Minimum useful combination** — scene graph and authoring data only, zero GPU:
@@ -2835,7 +3026,7 @@ The roadmap assigns future work to concrete planning versions so contributors kn
 | `v1.6.0` | Shader nodes and node materials | `scenix-nodes` | `scenix-material`, `scenix-renderer`, `scenix-post`, `scenix-wasm`, `scenix` |
 | `v1.7.0` | Particles | `scenix-particles` | `scenix-scene`, `scenix-mesh`, `scenix-material`, `scenix-texture`, `scenix-renderer`, `scenix-wasm`, `scenix` |
 | `v1.8.0` | Terrain, Sky, And Water | `scenix-terrain`, `scenix-sky`, `scenix-water` | `scenix-core`, `scenix-scene`, `scenix-material`, `scenix-texture`, `scenix-light`, `scenix-renderer`, `scenix-wasm`, `scenix` |
-| `v1.9.0` | XR, audio, and physics bridges | `scenix-xr`, `scenix-audio`, `scenix-physics` | `scenix-scene`, `scenix-input`, `scenix-camera`, `scenix-helpers`, `scenix-renderer`, `scenix-wasm`, `scenix` |
+| `v1.9.0` | XR, Audio, And Physics Bridges | `scenix-xr`, `scenix-audio`, `scenix-physics` | `scenix-core`, `scenix-math`, `scenix-scene`, `scenix-input`, `scenix-camera`, `scenix-helpers`, `scenix-renderer`, `scenix-wasm`, `scenix` |
 | `v1.10.0` | Editor and UI tooling | `scenix-editor`, `scenix-ui` or `scenix-egui` | `scenix-scene`, `scenix-renderer`, `scenix-material`, `scenix-loader`, `scenix-animato`, `scenix-helpers`, `scenix-wasm`, `scenix` |
 
 Future crates become active workspace members only when their crate directory, docs, tests, examples, and facade feature exist. Until then, the architecture treats them as planned extension points.

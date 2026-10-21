@@ -23,7 +23,9 @@ scenix-wasm = "1"
 `WebRenderer`, `WebGlRenderer`, `WebGlCapabilityLevel`, `CanvasMetrics`,
 `set_panic_hook`, `key_code_from_dom`, `pointer_button_from_dom`,
 `touch_phase_from_dom`, standard gamepad mapping, `canvas_metrics`, touch and
-pointer-lock methods, `set_transform_mode`, and `inspector_snapshot_json`.
+pointer-lock methods, `set_transform_mode`, `inspector_snapshot_json`, and
+the v1.9.0 XR fallbacks behind the `xr` feature: `webxr_fallback_plan`,
+`WebXrFallbackPlan`, `emulated_headset_rig`, and `emulated_controller_pose`.
 
 ## Backend Choice
 
@@ -68,9 +70,17 @@ v1.7.0 adds `particle_fallback_plan(WebGlCapabilityLevel)` — the documented pa
 
 v1.8.0 adds `environment_fallback_plan(WebGlCapabilityLevel)` — the documented environment strategy per browser capability level (`Full` WGSL parity on WebGPU, `StaticUniforms` on WebGL 2, `VertexColorTint` on WebGL 1).
 
+v1.9.0 adds the `xr` feature with `webxr_fallback_plan(granted)` →
+`WebXrFallbackPlan::{RuntimeGranted, EmulatedDesktop}` (const profiles
+`immersive`/`emulated_controller` with human labels), `emulated_headset_rig`
+(standing desk headset at (0, 1.6, 2.4), 64 mm eye separation, `XrEyeProjection`
+stereo), and `emulated_controller_pose` (0.7 m forward, 0.35 m down along head
+axes) — demos never dead-end when `navigator.xr` is missing.
+
 
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
 - [Interaction and editor primitives](../concepts/interaction-and-editor.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)
+- [Scenix v1.9.0 release](../release-v1.9.0.md)

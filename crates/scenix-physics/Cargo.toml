@@ -1,0 +1,28 @@
+[package]
+name = "scenix-physics"
+description = "CPU physics bridge for scenix: rigid bodies, colliders, a deterministic penalty-solver world step, kinematic character controllers, transform sync bookkeeping, and collider wireframe debug data."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std", "scenix-math/std", "scenix-mesh/std"]
+serde = ["dep:serde", "scenix-core/serde", "scenix-math/serde", "scenix-mesh/serde"]
+
+[dependencies]
+scenix-core = { workspace = true }
+scenix-math = { workspace = true }
+scenix-mesh = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[test]]
+name = "physics_cpu"
+path = "../../tests/physics_cpu.rs"

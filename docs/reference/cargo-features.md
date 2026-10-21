@@ -19,6 +19,10 @@ The facade forwards feature flags to focused crates. Keep features explicit in a
 | `sky` | no | Procedural sky profiles, sun positions, baked environment maps, and grounded skyboxes (the `scenix-sky` crate). |
 | `water` | no | Gerstner waves, foam, fresnel, underwater tinting, and reflection helpers (the `scenix-water` crate). |
 | `environment` | no | Enables all three environment crates and forwards to the renderer's `environment` GPU pipeline gate. |
+| `xr` | no | Session plans, controller bays, hand frames, anchors, planes, hit tests, and light estimation (the `scenix-xr` crate). |
+| `audio` | no | Spatial mixing with Doppler, streamed buffer health, and spectrum analysis (the `scenix-audio` crate). |
+| `physics` | no | Deterministic rigid-body solver, sensors, spatial queries, sleeping, and the character controller (the `scenix-physics` crate). |
+| `bridges` | no | Enables `xr`, `audio`, and `physics` together. |
 
 | `serde` | no | Serialization support where each crate supports it. |
 

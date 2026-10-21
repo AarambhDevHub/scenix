@@ -72,6 +72,31 @@ id_type!(
 );
 id_type!(SkyId, "Typed identifier for a registered sky.");
 id_type!(WaterId, "Typed identifier for a registered water surface.");
+id_type!(
+    XrSessionId,
+    "Typed identifier for a registered XR session plan."
+);
+id_type!(XrAnchorId, "Typed identifier for a tracked XR anchor.");
+id_type!(
+    AudioListenerId,
+    "Typed identifier for a registered audio listener."
+);
+id_type!(
+    AudioSourceId,
+    "Typed identifier for a registered audio source."
+);
+id_type!(
+    PhysicsWorldId,
+    "Typed identifier for a registered physics world."
+);
+id_type!(
+    PhysicsBodyId,
+    "Typed identifier for a registered physics body."
+);
+id_type!(
+    ColliderId,
+    "Typed identifier for a registered physics collider."
+);
 
 #[cfg(all(test, feature = "std"))]
 mod tests {

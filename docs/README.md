@@ -1,10 +1,10 @@
 # Scenix Developer Documentation
 
-Scenix v1.8.0 is a modular Rust-native 3D scene workspace. These docs are
+Scenix v1.9.0 is a modular Rust-native 3D scene workspace. These docs are
 written for application developers who need to choose crates, create scenes,
 add interaction/editor primitives, render or load assets, integrate Animato,
-build terrain, sky, and water environments, target WASM, and debug
-performance.
+build terrain, sky, and water environments, bridge XR, audio, and physics
+runtime systems, target WASM, and debug performance.
 
 ## Start Here
 
@@ -62,6 +62,7 @@ performance.
 - [Reference](reference/feature-matrix.md)
 - [v1.7.0 release notes](../.github/release-notes/1.7.0.md)
 - [v1.8.0 release notes — Terrain, Sky, And Water](release-v1.8.0.md)
+- [v1.9.0 release notes — XR, Audio, And Physics Bridges](release-v1.9.0.md)
 
 ## Feature Flags At A Glance
 
@@ -82,6 +83,10 @@ performance.
 | `sky` | no | Procedural sky profiles, sun positions, baked environment maps, and grounded skyboxes (the `scenix-sky` crate). |
 | `water` | no | Gerstner waves, foam, fresnel, underwater tinting, and reflection helpers (the `scenix-water` crate). |
 | `environment` | no | Enables all three environment crates and forwards to the renderer's `environment` GPU pipeline gate. |
+| `xr` | no | Session plans, controller bays, hand frames, anchors, planes, hit tests, and light estimation (the `scenix-xr` crate). |
+| `audio` | no | Spatial mixing with Doppler, streamed buffer health, and spectrum analysis (the `scenix-audio` crate). |
+| `physics` | no | Deterministic rigid-body solver, sensors, spatial queries, sleeping, and the character controller (the `scenix-physics` crate). |
+| `bridges` | no | Enables `xr`, `audio`, and `physics` together. |
 
 | `animato` | no | Animato 1.7 bridge and clip-based animation runtime. |
 | `wasm` | no | Browser canvas wrapper, DOM input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |

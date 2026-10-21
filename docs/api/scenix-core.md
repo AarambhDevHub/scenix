@@ -17,7 +17,9 @@ scenix-core = "1"
 
 ## Key Public API
 
-NodeId, MeshId, MaterialId, TextureId, LightId, CameraId, Color, ScenixError, ValidationError
+NodeId, MeshId, MaterialId, TextureId, LightId, CameraId,
+XrSessionId, XrAnchorId, AudioSourceId, AudioListenerId, PhysicsWorldId,
+PhysicsBodyId, ColliderId, Color, ScenixError, ValidationError
 
 ## Common Use
 
@@ -38,7 +40,14 @@ v1.7.0 adds the `ParticleSystemId` newtype alongside the other resource ids.
 
 v1.8.0 adds the `TerrainId`, `SkyId`, and `WaterId` newtypes next to the other resource ids.
 
+v1.9.0 adds the runtime-bridge newtypes — `XrSessionId`, `XrAnchorId`,
+`AudioSourceId`, `AudioListenerId`, `PhysicsWorldId`, `PhysicsBodyId`, and
+`ColliderId` — so session, anchor, audio, and simulation payloads key scene
+nodes and helper payloads through the same opaque-id discipline (ids start
+at 1 for physics bodies; `.0` stays private, read through `.get()`).
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)
+- [Scenix v1.9.0 release](../release-v1.9.0.md)

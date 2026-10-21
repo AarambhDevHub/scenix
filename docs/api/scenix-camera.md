@@ -2,7 +2,8 @@
 
 ## Role
 
-Perspective, orthographic, cube cameras, frustums, and controllers.
+Perspective, orthographic, cube cameras, frustums, controllers, and the XR
+stereo surface.
 
 ## Dependency Weight
 
@@ -19,7 +20,8 @@ scenix-camera = "1"
 
 `PerspectiveCamera`, `OrthographicCamera`, `CubeCamera`, `Frustum`,
 `OrbitController`, `FlyController`, `ArcballController`, `TrackballController`,
-`MapController`, `FirstPersonController`, and `PointerLockController`.
+`MapController`, `FirstPersonController`, `PointerLockController`, and the
+v1.9.0 stereo surface: `XrFov`, `XrEyeProjection`, `XrCameraRig`.
 
 ## Common Use
 
@@ -39,8 +41,16 @@ controls.apply_to_perspective(&mut camera);
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 
+v1.9.0 adds the stereo surface: `XrFov` stores the asymmetric four-angle
+eye frustum WebXR runtimes report, `XrEyeProjection` builds WebGPU-convention
+projection matrices from it (plus a `symmetric` helper), and `XrCameraRig`
+couples a tracked head `Transform` with eye separation into left/right view
+and view-projection matrices. `scenix-xr`'s `XrFramePlan::camera_rig` and
+`scenix-xr`'s `XrSessionPlan::camera_rig` hand rigs to renderers directly.
+
 ## Related Docs
 
 - [Feature flags](../concepts/feature-flags.md)
 - [Interaction and editor primitives](../concepts/interaction-and-editor.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)
+- [Scenix v1.9.0 release](../release-v1.9.0.md)

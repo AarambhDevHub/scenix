@@ -71,7 +71,7 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no-default CPU crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-terrain -p scenix-sky -p scenix-water -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-terrain -p scenix-sky -p scenix-water -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato -p scenix-xr -p scenix-audio -p scenix-physics --no-default-features
 
       - name: Test loader all features
         run: cargo test -p scenix-loader --all-features
@@ -81,6 +81,14 @@ jobs:
 
       - name: Test animato bridge all features
         run: cargo test -p scenix-animato --all-features
+
+      - name: Test v1.9 bridge surface
+        run: |
+          cargo test -p scenix-xr -p scenix-audio -p scenix-physics --all-features
+          cargo test -p scenix --test scenix_v19 --all-features
+
+      - name: Check v1.9 bridge examples
+        run: cargo check -p scenix --examples --features xr,audio,physics
 
       - name: Test animation runtime
         run: cargo test -p scenix --test animation_runtime --all-features
@@ -131,6 +139,15 @@ jobs:
           cargo check -p scenix --no-default-features --features environment
           cargo check -p scenix --no-default-features --features environment,material
           cargo check -p scenix --no-default-features --features environment,renderer
+
+      - name: Check v1.9 facade feature lanes
+        run: |
+          cargo check -p scenix --no-default-features --features xr
+          cargo check -p scenix --no-default-features --features audio
+          cargo check -p scenix --no-default-features --features physics
+          cargo check -p scenix --no-default-features --features xr,scene,camera
+          cargo check -p scenix --no-default-features --features physics,helpers
+          cargo check -p scenix --no-default-features --features bridges,scene,camera,helpers
 
   msrv:
     name: Minimum supported Rust 1.98
