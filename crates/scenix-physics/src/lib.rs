@@ -80,7 +80,7 @@ pub use world::{
 };
 
 /// Crate version reported for physics tooling.
-pub const PHYSICS_VERSION: &str = "1.9.0";
+pub const PHYSICS_VERSION: &str = "1.9.1";
 
 /// Re-export of the math transform for engine adapters that want one call.
 pub use scenix_math::Transform;

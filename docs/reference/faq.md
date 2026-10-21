@@ -15,7 +15,7 @@ No. Loader output remains CPU data. Register assets with `Renderer` explicitly.
 ## Does Animato come by default?
 
 No. Enable `animato` when you need the bridge or clip runtime. Scenix v1.6.0
-targets Animato 1.7.2.
+targets Animato 1.7.3.
 
 ## Can the website deploy to static hosting?
 

@@ -42,6 +42,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v1.7.0` | Particles | New optional CPU/GPU particle crate | ✅ |
 | `v1.8.0` | Environment systems | New optional terrain, sky, and water crates | ✅ |
 | `v1.9.0` | Runtime bridges | New optional XR, audio, and physics crates | ✅ |
+| `v1.9.1` | Bridge patch | Animato `1.7.3` facade no_std fix for the bridge dependency | ✅ |
 | `v1.10.0` | Editor tooling | New optional editor and UI overlay crates | 🔮 |
 | `v1.x+` | Advanced rendering | Post effects, geometry extras, modifiers, GPU-driven rendering, realtime GI | 🔮 |
 
@@ -473,8 +474,9 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 
 ## Current Focus
 
-The project has completed v1.9.0 and will next scope the optional editor
-crates planned for v1.10.0. New work must preserve the stable modular API, keep
+The project has completed v1.9.1 (the Animato `1.7.3` no_std bridge patch)
+and will next scope the optional editor crates planned for v1.10.0. New work
+must preserve the stable modular API, keep
 heavy dependencies optional, and add deprecations before removing public APIs.
 
 Scenix is not only a website or WASM demo library. Future work must treat **desktop, mobile, and web** as first-class runtime targets:
@@ -680,6 +682,17 @@ The version numbers below are planning buckets, not release promises. Each miles
 - [x] Character-controller or simple collision example (`character_controller`).
 - [x] Debug helpers for controllers, colliders, and physics state (`PoseAxesHelper`, `HandSkeletonHelper`, `ColliderDebugHelper`).
 
+## v1.9.1 — Animato no_std Bridge Patch
+
+**Goal:** Close scenix issue #21 by picking up the Animato `1.7.3` facade fix so the `animato` bridge feature compiles with `std` disabled.
+
+### Deliverables
+
+- [x] Workspace bridge dependency bumped to `animato = "1.7.3"` (upstream facade fix: AarambhDevHub/animato#56).
+- [x] Bare-metal verification: `cargo check -p scenix-animato --no-default-features --target thumbv7m-none-eabi` passes.
+- [x] Animato version references refreshed across README, ARCHITECTURE, animation concepts, and FAQ docs.
+- [x] No public scenix API changes; `XR_VERSION`/`AUDIO_VERSION`/`PHYSICS_VERSION` markers updated with the release.
+
 ## v1.10.0 — Editor And UI Tooling
 
 **Goal:** Build editor-facing tools only after renderer, asset, animation, controls, and resource lifecycle APIs are strong enough.
@@ -831,7 +844,7 @@ The best way to contribute now is to propose a focused post-1.1 planning issue o
 
 ---
 
-*Roadmap version: 1.9.0 XR, audio, and physics bridges — last updated October 20, 2026*
+*Roadmap version: 1.9.1 Animato no_std bridge patch over the 1.9.0 XR, audio, and physics bridges — last updated October 21, 2026*
 *Next milestone: v1.10.0 editor and UI tooling*
 *Project: Aarambh Dev Hub — github.com/AarambhDevHub/scenix*
 *Companion library: animato — github.com/AarambhDevHub/animato*

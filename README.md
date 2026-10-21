@@ -5,7 +5,7 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix `1.9.0` is the current stable release. It adds the XR, audio, and
+scenix `1.9.1` is the current stable release. It ships the XR, audio, and
 physics bridges — `scenix-xr` (session plans, controller bays, 26-slot hand
 frames, anchors, planes, hit testing, light estimation), `scenix-audio`
 (spatial mixing with Doppler, streamed buffer health, spectrum analysis),
@@ -20,7 +20,9 @@ remain the shading backbone, and v1.5.0's cross-platform controls, input
 stack, selection/transform primitives, reusable gizmos, inspector snapshots,
 optional egui rendering, and on-demand GPU picking remain the interaction
 backbone. CPU authoring stays lightweight by default while GPU, browser, and
-UI paths remain opt-in.
+UI paths remain opt-in. The `1.9.1` patch picks up Animato `1.7.3`, whose
+facade is now `no_std`-capable, so the `animato` bridge compiles for
+bare-metal targets ([release notes](./.github/release-notes/1.9.1.md)).
 
 ## Install
 
@@ -97,7 +99,7 @@ scenix-helpers = { version = "1", default-features = false }
 
 `scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and
 `scenix-wasm` are optional `std` paths. `scenix-animato` targets Animato
-`1.7.2`. `scenix-nodes` is a `no_std`-capable CPU crate; its renderer, post
+`1.7.3`. `scenix-nodes` is a `no_std`-capable CPU crate; its renderer, post
 stack, and browser preflight integrations are `std`/`wasm32` features of their
 host crates.
 
@@ -120,7 +122,7 @@ host crates.
 | `sky` | no | Procedural sky profiles, sun positions, baked environment maps, and grounded skyboxes under the `scenix-sky` crate. |
 | `water` | no | Gerstner wave fields, displaced surface meshes, foam/fresnel/underwater math, and mirror helpers under the `scenix-water` crate. |
 | `environment` | no | Bundles `terrain`, `sky`, and `water`; enables the environment WGSL pipelines (terrain splats, sky dome, water surface) in `renderer` when that feature is on. |
-| `animato` | no | Animato bridge: procedural tween/spring tracks **and** the clip-based Animation Runtime (clips, actions, mixer, loop modes, crossfade, additive blending, markers/events, light/morph targets, retargeting, CPU skinning). Targets Animato `1.7.2`. |
+| `animato` | no | Animato bridge: procedural tween/spring tracks **and** the clip-based Animation Runtime (clips, actions, mixer, loop modes, crossfade, additive blending, markers/events, light/morph targets, retargeting, CPU skinning). Targets Animato `1.7.3`. |
 | `wasm` | no | Browser canvas wrapper with WebGPU first, WebGL2 full fallback, WebGL1 reduced fallback, and generated demo scene. |
 | `serde` | no | Serialization support where the focused crate supports it. |
 
@@ -506,6 +508,7 @@ cargo llvm-cov --workspace --all-features
 - [Deployment](./docs/deployment/README.md)
 - [Migration](./docs/migration/from-0.9-to-1.0.md)
 - [Reference](./docs/reference/feature-matrix.md)
+- [v1.9.1 release notes](./.github/release-notes/1.9.1.md)
 - [v1.9.0 release notes](./.github/release-notes/1.9.0.md)
 - [v1.8.0 release notes](./.github/release-notes/1.8.0.md)
 - [v1.7.0 release notes](./.github/release-notes/1.7.0.md)
