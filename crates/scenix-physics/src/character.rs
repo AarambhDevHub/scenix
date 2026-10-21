@@ -234,8 +234,7 @@ impl CharacterState {
             {
                 let pad = self.radius * 0.5;
                 let snap = (pad - distance).clamp(-self.step_offset, self.step_offset);
-                body.transform.translation.y =
-                    clamp_finite(body.transform.translation.y + snap);
+                body.transform.translation.y = clamp_finite(body.transform.translation.y + snap);
             }
             body.linear_velocity = Vec3::new(
                 clamp_finite(wish_velocity.x),
