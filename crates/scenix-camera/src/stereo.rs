@@ -336,8 +336,8 @@ fn eye_camera(eye: XrEyeProjection, origin: Vec3, head: Transform) -> crate::Per
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::f32::consts::FRAC_PI_2;
     use scenix_math::Quat;
-    use std::f32::consts::FRAC_PI_2;
 
     #[test]
     fn symmetric_fov_roundtrip() {
