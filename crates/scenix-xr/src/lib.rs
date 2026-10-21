@@ -60,7 +60,7 @@ pub use session::{
 };
 
 /// Crate version reported for XR tooling and the wasm inspector.
-pub const XR_VERSION: &str = "1.9.0";
+pub const XR_VERSION: &str = "1.9.1";
 
 /// Convenience alias pairing a controller with its current input snapshot.
 ///

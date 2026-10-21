@@ -7,6 +7,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-10-21
+
+### Fixed
+
+- Bumped the upstream Animato bridge dependency from `1.7.2` to `1.7.3`
+  (AarambhDevHub/animato#56): the Animato facade now declares
+  `#![cfg_attr(not(feature = "std"), no_std)]`, so `scenix-animato` with the
+  `animato` facade feature and `std` disabled compiles for `no_std`
+  bare-metal targets (verified for `thumbv7m-none-eabi`; scenix issue #21).
+  The upstream `timeline` and `path` facade features remain `std`-gated in
+  Animato itself, unchanged in this release.
+- Updated the `XR_VERSION`, `AUDIO_VERSION`, and `PHYSICS_VERSION` crate
+  version markers to `1.9.1`.
+- Refreshed the Animato version references across the README feature
+  flags/table, the ARCHITECTURE `scenix-animato` section, and the animation
+  concepts and FAQ docs to the new `1.7.3` bridge target.
+
 ## [1.9.0] - 2026-10-20
 
 ### Added
@@ -738,7 +755,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.9.1...HEAD
+[1.9.1]: https://github.com/AarambhDevHub/scenix/compare/v1.9.0...v1.9.1
+[1.9.0]: https://github.com/AarambhDevHub/scenix/compare/v1.8.0...v1.9.0
+[1.8.0]: https://github.com/AarambhDevHub/scenix/compare/v1.7.0...v1.8.0
+[1.7.0]: https://github.com/AarambhDevHub/scenix/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/AarambhDevHub/scenix/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/AarambhDevHub/scenix/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/AarambhDevHub/scenix/compare/v1.3.0...v1.4.0

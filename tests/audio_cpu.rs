@@ -223,5 +223,5 @@ fn listener_budget_is_stable() {
     assert_eq!(DistanceGain::flat(0.75).center(), 0.75);
     assert_eq!(SpeakerLayout::Stereo.speaker_count(), 2);
     assert_eq!(SpeakerLayout::Surround51.speaker_count(), 6);
-    assert_eq!(AUDIO_VERSION, "1.9.0");
+    assert_eq!(AUDIO_VERSION, "1.9.1");
 }

@@ -1,6 +1,6 @@
 # Scenix Developer Documentation
 
-Scenix v1.9.0 is a modular Rust-native 3D scene workspace. These docs are
+Scenix v1.9.1 is a modular Rust-native 3D scene workspace. These docs are
 written for application developers who need to choose crates, create scenes,
 add interaction/editor primitives, render or load assets, integrate Animato,
 build terrain, sky, and water environments, bridge XR, audio, and physics

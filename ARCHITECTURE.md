@@ -1673,7 +1673,7 @@ Memory: ~48 bytes per node (AABB + child indices)
 
 **Responsibility:** The bridge between Animato animation values and scenix data. It exposes two layers: (1) procedural Animato `Tween`/`Spring` tracks that drive scene node transforms, camera fields, PBR material fields, light fields, morph weights, and explicit skeleton pose arrays; and (2) a clip-based Animation Runtime (`AnimationClip`/`AnimationAction`/`AnimationMixer`) with keyframe tracks, typed `PropertyBinding`s, loop modes, markers/events, crossfade, additive blending, retargeting, and deterministic per-tick sampling — comparable to Three.js's mixer, layered on top of Animato as the value engine.
 
-**Depends on:** `scenix-math`, `scenix-core`, `scenix-scene`, `scenix-camera`, `scenix-material`, `scenix-light`, `animato = "1.7.2"`
+**Depends on:** `scenix-math`, `scenix-core`, `scenix-scene`, `scenix-camera`, `scenix-material`, `scenix-light`, `animato = "1.7.3"`
 
 **Status in v1.4.0:** shipped as an optional facade feature. The procedural bridge uses local `AnimVec3`, `AnimQuat`, and `AnimColor` wrappers so scenix math/color types can participate in Animato interpolation without changing the underlying CPU crates. The v1.4.0 clip runtime adds `KeyframeScalar`/`Vec3`/`Quat`/`Color`/`Bool` tracks (Linear/Step/CubicSpline), `PropertyBinding` typed targets, `LoopMode` (Once/Repeat/PingPong), `AnimationMarker`/`AnimationEvent`, `LightAnimator`, `MorphWeightAnimator`, `RetargetMap`, and `AnimationMixer` that samples clips, accumulates weighted samples per `BindingKey`, and applies them to the scene/cameras/materials/lights/skeletons/morphs stores. Animato `1.7.0` resolves the previous `1.6.0` release gate.
 
