@@ -17,6 +17,7 @@ std = [
     "scenix-light/std",
     "scenix-math/std",
     "scenix-scene/std",
+    "scenix-physics?/std",
 ]
 serde = [
     "dep:serde",
@@ -25,14 +26,17 @@ serde = [
     "scenix-light/serde",
     "scenix-math/serde",
     "scenix-scene/serde",
+    "scenix-physics?/serde",
 ]
 egui = ["std", "dep:egui", "scenix-core/inspector"]
+physics = ["dep:scenix-physics", "scenix-physics/std"]
 
 [dependencies]
 scenix-camera = { workspace = true }
 scenix-core = { workspace = true }
 scenix-light = { workspace = true }
 scenix-math = { workspace = true }
+scenix-physics = { workspace = true, optional = true }
 scenix-scene = { workspace = true }
 serde = { workspace = true, optional = true }
 egui = { workspace = true, optional = true }

@@ -46,6 +46,49 @@ pub use scenix_sky::{
 #[cfg(feature = "water")]
 pub use scenix_water::*;
 
+// v1.9.0 CPU bridges: XR session planning, spatial audio systems, and the
+// deterministic physics penalty solver. All three are GPU-free CPU
+// source-of-truth crates with no engine or SDK dependency. Curated lists
+// beyond v1.8-style globs: the crates' module namespaces (`xr`, `audio`,
+// `physics`, `world`, `sync`, ...) and constants would shadow the
+// scene/input glob re-exports above, and the camera stereo surface
+// (`XrCameraRig`, `XrEyeProjection`, `XrFov`) already arrives via the
+// `camera` glob.
+#[cfg(feature = "xr")]
+pub use scenix_xr::{
+    FEATURE_NAMES, JOINT_INDEX_TIP, JOINT_THUMB_TIP, JOINT_WRIST, XR_ANCHOR_MAX_AGE,
+    XR_FEATURE_COUNT, XR_HAND_JOINT_COUNT, XR_HIT_MAX_RESULTS, XR_MAX_VIEWPORT_SCALE, XR_VERSION,
+    XrAmbientEstimate, XrAnchor, XrAnchorStore, XrController, XrControllerBay,
+    XrControllerSnapshot, XrFeatureIter, XrFeatures, XrFoveation, XrFramePlan, XrFrameStats,
+    XrHandFrame, XrHit, XrHitSurface, XrHitTestProbe, XrJointPose, XrLightEstimate,
+    XrLightEstimationMode, XrPlane, XrPlaneKind, XrPlaneStore, XrPose, XrReferenceSpace,
+    XrSessionMode, XrSessionPlan, XrSessionPlanError, XrSessionState, XrSpace, XrViewport,
+};
+
+#[cfg(feature = "audio")]
+pub use scenix_audio::{
+    AUDIO_LISTENER_MAX_SOURCES, AUDIO_VERSION, AnalyserBand, AnalyserFrame, AttenuationModel,
+    AudioAnalyser, AudioChannel, AudioListener, AudioLoop, AudioSource, AudioStreamPlan,
+    DistanceGain, DopplerModel, DopplerShift, PlaybackState, SPEED_OF_SOUND, STREAM_MAX_CHUNKS,
+    STREAM_UNDERRUN_CAPACITY, SpatialDecision, SpatialMix, SpeakerLayout, StreamFormat,
+    StreamState, blend_pan, compute_spatial_decision, compute_spatial_gain,
+};
+
+#[cfg(feature = "physics")]
+pub use scenix_physics::{
+    CharacterInput, CharacterState, CharacterStepResult, Collider, ColliderGroup, ColliderShape,
+    Contact, ContactEvent, GRAVITY_DEFAULT, GroundContact, MAX_LINEAR_VELOCITY, MAX_SUBSTEP_DT,
+    MAX_SUBSTEPS, MIN_BODY_MASS, MIN_FRICTION, PHYSICS_DEFAULT_STEP_OFFSET,
+    PHYSICS_GROUND_REATTACH_SPEED, PHYSICS_MAX_CLIMBABLE_SLOPE, PHYSICS_VERSION, PhysicsBody,
+    PhysicsTransformSync, PhysicsWorld, REST_CONTACT_VELOCITY, RigidBodyKind,
+    SLEEP_FRAME_THRESHOLD, SLEEP_MOTION_THRESHOLD, SpatialQueryHit, SyncEntry, SyncQueue,
+    WIREFRAME_SEGMENTS, WORLD_MAX_BODIES, WireframeSeg, WorldEvent, debug_wireframe,
+    debug_wireframe_world, wireframe_box, wireframe_capsule, wireframe_sphere,
+};
+
+#[cfg(all(feature = "physics", feature = "helpers"))]
+pub use scenix_helpers::ColliderDebugHelper;
+
 // v1.7.0 particle surface: CPU systems + the material/texture types the
 // GPU draw path consumes. The dot-names collide with `scenix_material`'s
 // `particle` module and `scenix_texture`'s `flipbook` module, so this is a

@@ -1,0 +1,29 @@
+[package]
+name = "scenix-xr"
+description = "CPU XR session planning for scenix: Immersive AR/VR session plans, WebXR/OpenXR feature negotiation, controller poses, hand tracking, hit tests, anchors, planes, and estimated lighting."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std", "scenix-input/std", "scenix-camera/std", "scenix-math/std"]
+serde = ["dep:serde", "scenix-core/serde", "scenix-input/serde", "scenix-camera/serde", "scenix-math/serde"]
+
+[dependencies]
+scenix-camera = { workspace = true }
+scenix-core = { workspace = true }
+scenix-input = { workspace = true }
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[test]]
+name = "xr_cpu"
+path = "../../tests/xr_cpu.rs"

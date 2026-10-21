@@ -46,3 +46,11 @@ Each page maps to a real example file or the standalone WASM viewer crate. Comma
 - [Sky And Sun](sky-sun.md) - `examples/sky_sun.rs`
 - [Water Fresnel](water-fresnel.md) - `examples/water_fresnel.rs`
 - [Environment Demo](environment-demo.md) - `examples/environment_demo.rs`
+
+## v1.9 Bridge Examples
+
+- [XR Viewer](xr-viewer.md) - `examples/xr_viewer.rs`
+- [XR Controllers](xr-controllers.md) - `examples/xr_controllers.rs`
+- [Audio Positions](audio-positions.md) - `examples/audio_positions.rs`
+- [Physics Sync](physics-sync.md) - `examples/physics_sync.rs`
+- [Character Controller](character-controller.md) - `examples/character_controller.rs`

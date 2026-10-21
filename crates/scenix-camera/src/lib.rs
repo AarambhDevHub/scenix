@@ -10,6 +10,7 @@ pub mod frustum;
 mod inspector;
 pub mod orthographic;
 pub mod perspective;
+pub mod stereo;
 
 pub use advanced_controls::{
     ArcballController, FirstPersonController, MapController, PointerLockController,
@@ -20,6 +21,7 @@ pub use cube_camera::{CubeCamera, CubeFace};
 pub use frustum::{Frustum, Visibility};
 pub use orthographic::OrthographicCamera;
 pub use perspective::PerspectiveCamera;
+pub use stereo::{XrCameraRig, XrEyeProjection, XrFov};
 
 pub(crate) const EPSILON: f32 = 1.0e-6;
 

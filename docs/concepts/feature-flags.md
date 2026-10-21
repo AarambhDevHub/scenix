@@ -38,6 +38,10 @@ All facade features are documented here.
 | `sky` | no | Procedural sky profiles, sun positions, baked environment maps, and grounded skyboxes (the `scenix-sky` crate). |
 | `water` | no | Gerstner waves, foam, fresnel, underwater tinting, and reflection helpers (the `scenix-water` crate). |
 | `environment` | no | Enables all three environment crates and forwards to the renderer's `environment` GPU pipeline gate. |
+| `xr` | no | Session plans, controller bays, hand frames, anchors, planes, hit tests, and light estimation (the `scenix-xr` crate). |
+| `audio` | no | Spatial mixing with Doppler, streamed buffer health, and spectrum analysis (the `scenix-audio` crate). |
+| `physics` | no | Deterministic rigid-body solver, sensors, spatial queries, sleeping, and the character controller (the `scenix-physics` crate). |
+| `bridges` | no | Enables `xr`, `audio`, and `physics` together. |
 
 | `animato` | no | Animato 1.7 bridge and clip-based animation runtime. |
 | `wasm` | no | Browser canvas wrapper, DPR-aware input mapping, WebGPU path, WebGL2 full fallback, and WebGL1 reduced fallback. |

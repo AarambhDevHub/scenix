@@ -5,13 +5,15 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix `1.8.0` is the current stable release. It adds the environment
-crates — `scenix-terrain` (heightfields, chunked LOD, splat maps, collision,
-chunk streaming), `scenix-sky` (procedural atmosphere, sun positions,
-deterministic sky bakes, grounded skyboxes), and `scenix-water` (Gerstner
-waves, foam, fresnel, underwater tinting, planar reflection helpers) — wired
-through the scene schema, materials, textures, the renderer's `environment`
-GPU draw path, browser capability notes, and facade feature flags.
+scenix `1.9.0` is the current stable release. It adds the XR, audio, and
+physics bridges — `scenix-xr` (session plans, controller bays, 26-slot hand
+frames, anchors, planes, hit testing, light estimation), `scenix-audio`
+(spatial mixing with Doppler, streamed buffer health, spectrum analysis),
+and `scenix-physics` (a deterministic penalty-based rigid-body solver with
+sensors, spatial queries, sleeping, and a jump-capable character
+controller) — wired through the scene schema, camera stereo math, debug
+helpers, a WebXR fallback plan, and facade feature flags. v1.8.0's
+environment crates (terrain, sky, water) keep their GPU draw path,
 v1.7.0's deterministic CPU particle systems keep their billboard GPU path,
 v1.6.0's typed shader graphs, node materials, and post-node effect language
 remain the shading backbone, and v1.5.0's cross-platform controls, input
@@ -38,6 +40,10 @@ scenix = { version = "1", features = ["renderer", "post"] }
 scenix = { version = "1", features = ["animato"] }
 scenix = { version = "1", features = ["nodes"] }
 scenix = { version = "1", features = ["environment"] }
+scenix = { version = "1", features = ["bridges"] }
+scenix = { version = "1", features = ["xr"] }
+scenix = { version = "1", features = ["audio"] }
+scenix = { version = "1", features = ["physics"] }
 scenix = { version = "1", features = ["wasm"] }
 scenix = { version = "1", features = ["interaction"] }
 scenix = { version = "1", features = ["editor", "egui"] }
@@ -500,6 +506,7 @@ cargo llvm-cov --workspace --all-features
 - [Deployment](./docs/deployment/README.md)
 - [Migration](./docs/migration/from-0.9-to-1.0.md)
 - [Reference](./docs/reference/feature-matrix.md)
+- [v1.9.0 release notes](./.github/release-notes/1.9.0.md)
 - [v1.8.0 release notes](./.github/release-notes/1.8.0.md)
 - [v1.7.0 release notes](./.github/release-notes/1.7.0.md)
 - [v1.6.0 release notes](./docs/release-v1.6.0.md)

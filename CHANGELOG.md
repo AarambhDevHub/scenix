@@ -7,6 +7,80 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-10-20
+
+### Added
+
+- Added the optional `scenix-xr` crate (`no_std`-capable on `std`/`serde`,
+  depending on core/input/math/camera): `XrSessionPlan` validation with
+  `XrSessionPlanError` diagnostics and the explicit
+  Idle→Requesting→Starting→Active→Paused/Ending→Ended lifecycle
+  (`XrSessionState::can_transition`); `XrControllerBay` pointer/grip pose
+  tracking for both hands with kinematic prediction; `XrHandFrame` over the
+  26-slot hand profile (`JOINT_WRIST`, `JOINT_THUMB_TIP`, `JOINT_INDEX_TIP`,
+  `XR_HAND_JOINT_COUNT`) with pinch distance and strength classifiers;
+  `XrAnchorStore` age-pruned anchors, `XrPlaneStore` plane reconciliation,
+  `XrHitTestProbe` floor/wall/window casts, and ambient/light-estimation
+  planning; `XrFramePlan` frame stats with the swapchain `XrViewport`
+  (`XR_MAX_VIEWPORT_SCALE` clamp) and `XR_VERSION`.
+- Added the optional `scenix-audio` crate (core/math): `AudioListener`
+  positional/orientation state (`AUDIO_LISTENER_MAX_SOURCES`), the
+  `compute_spatial_decision` spatial mix folding pan weights
+  (`AttenuationModel::{None, Linear, Inverse, InverseSquare}` with gain
+  clamps, `SpeakerLayout`, `blend_pan`), `DopplerModel::shift` over
+  `SPEED_OF_SOUND` clamped to `0.25..=4`, `AudioSource`/`AudioLoop`
+  pass scheduling (`has_next_pass`, `total_passes`), `AudioStreamPlan`
+  chunk-buffer health (`accept_chunk`, `promote_pending`, `consume_chunk`,
+  underrun accounting, `STREAM_MAX_CHUNKS`), and `AudioAnalyser` RMS/peak
+  metering with three energy bands (`AnalyserBand::{Bass, Mid, Treble}`,
+  `ANALYSER_MIN_FFT_SIZE..ANALYSER_MAX_FFT_SIZE` snapping).
+- Added the optional `scenix-physics` crate (core/math/mesh): the
+  deterministic penalty-based rigid-body solver — `PhysicsWorld::earth`
+  O(n²) AABB broad phase with `ColliderGroup` filtering, analytic narrow
+  phase over sphere/box/capsule/plane pairs (world-axis-aligned),
+  restitution with Coulomb friction plus the Baumgarte positional push
+  (`CONTACT_RESOLVE_PERCENT`, `CONTACT_SLOP`), real substeps (`MAX_SUBSTEPS`
+  at `≤ MAX_SUBSTEP_DT`), speed clamping, and frame-threshold sleeping with
+  `WorldEvent::{ContactStarted, ContactEnded, BodySlept, BodyWoke}`;
+  sensor collider support via `PhysicsWorld::insert_collider`; spatial
+  queries (`cast_ray`, `overlap_sphere`); the kinematic capsule
+  `CharacterState::move_and_slide` controller (slope limits, step offsets,
+  jump launch, probe-based ground snapping with
+  `PHYSICS_GROUND_REATTACH_SPEED`); and `PhysicsTransformSync` mapping body
+  transforms onto scene node keys.
+- Added `scenix-core` `XrSessionId`, `XrAnchorId`, `AudioSourceId`,
+  `AudioListenerId`, `PhysicsWorldId`, `PhysicsBodyId`, and `ColliderId`
+  newtypes; added `scenix-scene` `NodeKind::{XrAnchor, AudioSource,
+  PhysicsBody}` rider nodes with constructors and inspector labels; the
+  renderer culling pass treats them as CPU-side payloads that submit no
+  draws.
+- Added `scenix-camera` stereo support: `XrFov` four-angle eye frusta,
+  `XrEyeProjection` (WebXR asymmetric layouts plus a symmetric helper) with
+  WebGPU-convention projection matrices, and `XrCameraRig` head/eye
+  coupling into left/right view and view-projection matrices.
+- Added the `scenix-wasm` `xr` feature: `webxr_fallback_plan(granted)` →
+  `WebXrFallbackPlan` (`RuntimeGranted` vs `EmulatedDesktop`),
+  `emulated_headset_rig` (standing-desk stereo rig at 64 mm separation),
+  and `emulated_controller_pose` for missing-`navigator.xr` demos.
+- Added `scenix-helpers` debug surfaces: always-on `PoseAxesHelper`
+  (oriented triad plus `-Z` forward stick) and `HandSkeletonHelper`
+  (`HAND_LINKS` over the 26-slot hand profile), and the `physics` feature's
+  `ColliderDebugHelper` wireframe pass (`debug_wireframe` for one shape,
+  `debug_wireframe_world` for the world, sensor/solid color split).
+- Added `scenix-math::float` `floor`/`ceil`/`round` shims (pure arithmetic,
+  NaN/inf passthrough, 2^24 integral passthrough) so the physics substep
+  clock and `XrViewport` scaling round identically on every target.
+- Added the facade `xr`, `audio`, `physics`, and `bridges` features with
+  curated bridge re-exports (the crates' module namespaces would shadow the
+  scene/input globs), the facade `scenix_v19` test suite, and the
+  `xr_viewer`, `xr_controllers`, `audio_positions`, `physics_sync`, and
+  `character_controller` examples.
+- Added CI/publish lanes for the bridge surface: no-default CPU crate
+  tests for the three crates, the v1.9 facade feature checks and test
+  surface, bridge example checks, and the publish order placement for
+  `scenix-xr`/`scenix-audio`/`scenix-physics` after `scenix-camera` and
+  `scenix-mesh`.
+
 ## [1.8.0] - 2026-10-19
 
 ### Added

@@ -7,12 +7,20 @@ mod particle_fallback;
 #[cfg(feature = "nodes")]
 mod node_material;
 
+#[cfg(feature = "xr")]
+mod webxr_fallback;
+
 pub use environment_fallback::{EnvironmentFallbackPlan, environment_fallback_plan};
 pub use particle_fallback::{ParticleFallbackPlan, particle_fallback_plan};
 
 #[cfg(feature = "nodes")]
 pub use node_material::{
     NodeMaterialPreflight, compile_node_material_glsl, validate_node_material_json,
+};
+
+#[cfg(feature = "xr")]
+pub use webxr_fallback::{
+    WebXrFallbackPlan, emulated_controller_pose, emulated_headset_rig, webxr_fallback_plan,
 };
 
 pub use input::{

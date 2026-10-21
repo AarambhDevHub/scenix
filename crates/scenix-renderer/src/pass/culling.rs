@@ -135,6 +135,11 @@ pub fn collect_visible_draws(
             | NodeKind::Light { .. }
             | NodeKind::Camera { .. }
             | NodeKind::Sprite(_)
+            // v1.9.0 CPU-bridge nodes ride along with the scene sync; the
+            // renderer draws nothing for them (helpers/facade own the GFX).
+            | NodeKind::XrAnchor { .. }
+            | NodeKind::AudioSource { .. }
+            | NodeKind::PhysicsBody { .. }
             | NodeKind::Particles { .. } => {}
         }
     }

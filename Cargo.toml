@@ -14,6 +14,9 @@ members = [
     "crates/scenix-terrain",
     "crates/scenix-sky",
     "crates/scenix-water",
+    "crates/scenix-xr",
+    "crates/scenix-audio",
+    "crates/scenix-physics",
     "crates/scenix-texture",
     "crates/scenix-loader",
     "crates/scenix-post",
@@ -27,7 +30,7 @@ members = [
 
 [workspace.package]
 # v1.8.0 — Terrain, Sky, And Water.
-version = "1.8.0"
+version = "1.9.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/AarambhDevHub/scenix"
@@ -37,27 +40,30 @@ readme = "README.md"
 
 [workspace.dependencies]
 # Internal crates are version-pinned to the workspace (v1.8.0).
-scenix-math = { path = "crates/scenix-math", version = "1.8.0", default-features = false }
-scenix-core = { path = "crates/scenix-core", version = "1.8.0", default-features = false }
-scenix-input = { path = "crates/scenix-input", version = "1.8.0", default-features = false }
-scenix-scene = { path = "crates/scenix-scene", version = "1.8.0", default-features = false }
-scenix-camera = { path = "crates/scenix-camera", version = "1.8.0", default-features = false }
-scenix-mesh = { path = "crates/scenix-mesh", version = "1.8.0", default-features = false }
-scenix-material = { path = "crates/scenix-material", version = "1.8.0", default-features = false }
-scenix-light = { path = "crates/scenix-light", version = "1.8.0", default-features = false }
-scenix-nodes = { path = "crates/scenix-nodes", version = "1.8.0", default-features = false }
-scenix-particles = { path = "crates/scenix-particles", version = "1.8.0", default-features = false }
-scenix-terrain   = { path = "crates/scenix-terrain",    version = "1.8.0", default-features = false }
-scenix-sky       = { path = "crates/scenix-sky",        version = "1.8.0", default-features = false }
-scenix-water     = { path = "crates/scenix-water",      version = "1.8.0", default-features = false }
-scenix-texture = { path = "crates/scenix-texture", version = "1.8.0", default-features = false }
-scenix-loader = { path = "crates/scenix-loader", version = "1.8.0", default-features = false }
-scenix-post = { path = "crates/scenix-post", version = "1.8.0", default-features = false }
-scenix-renderer = { path = "crates/scenix-renderer", version = "1.8.0", default-features = false }
-scenix-raycaster = { path = "crates/scenix-raycaster", version = "1.8.0", default-features = false }
-scenix-helpers = { path = "crates/scenix-helpers", version = "1.8.0", default-features = false }
-scenix-animato = { path = "crates/scenix-animato", version = "1.8.0", default-features = false }
-scenix-wasm = { path = "crates/scenix-wasm", version = "1.8.0", default-features = false }
+scenix-math = { path = "crates/scenix-math", version = "1.9.0", default-features = false }
+scenix-core = { path = "crates/scenix-core", version = "1.9.0", default-features = false }
+scenix-input = { path = "crates/scenix-input", version = "1.9.0", default-features = false }
+scenix-scene = { path = "crates/scenix-scene", version = "1.9.0", default-features = false }
+scenix-camera = { path = "crates/scenix-camera", version = "1.9.0", default-features = false }
+scenix-mesh = { path = "crates/scenix-mesh", version = "1.9.0", default-features = false }
+scenix-material = { path = "crates/scenix-material", version = "1.9.0", default-features = false }
+scenix-light = { path = "crates/scenix-light", version = "1.9.0", default-features = false }
+scenix-nodes = { path = "crates/scenix-nodes", version = "1.9.0", default-features = false }
+scenix-particles = { path = "crates/scenix-particles", version = "1.9.0", default-features = false }
+scenix-terrain   = { path = "crates/scenix-terrain",    version = "1.9.0", default-features = false }
+scenix-sky       = { path = "crates/scenix-sky",        version = "1.9.0", default-features = false }
+scenix-water     = { path = "crates/scenix-water",      version = "1.9.0", default-features = false }
+scenix-texture = { path = "crates/scenix-texture", version = "1.9.0", default-features = false }
+scenix-loader = { path = "crates/scenix-loader", version = "1.9.0", default-features = false }
+scenix-post = { path = "crates/scenix-post", version = "1.9.0", default-features = false }
+scenix-renderer = { path = "crates/scenix-renderer", version = "1.9.0", default-features = false }
+scenix-raycaster = { path = "crates/scenix-raycaster", version = "1.9.0", default-features = false }
+scenix-helpers = { path = "crates/scenix-helpers", version = "1.9.0", default-features = false }
+scenix-animato = { path = "crates/scenix-animato", version = "1.9.0", default-features = false }
+scenix-wasm = { path = "crates/scenix-wasm", version = "1.9.0", default-features = false }
+scenix-xr = { path = "crates/scenix-xr", version = "1.9.0", default-features = false }
+scenix-audio = { path = "crates/scenix-audio", version = "1.9.0", default-features = false }
+scenix-physics = { path = "crates/scenix-physics", version = "1.9.0", default-features = false }
 
 # Animato remains the value/interpolation engine. v1.6.0 targets Animato 1.7.2
 # (the previous 1.7.0 release gate is resolved; scenix uses the stable

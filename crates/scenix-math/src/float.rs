@@ -320,9 +320,62 @@ fn atan_approx(value: f32) -> f32 {
     }
 }
 
+/// Largest integer less than or equal to `value`, returned as `f32`.
+///
+/// Pure arithmetic — identical on every target. `NaN` and infinities pass
+/// through unchanged, and magnitudes at or beyond `2^24` are already
+/// integer-valued in `f32`, so they also pass through untouched.
+#[must_use]
+#[inline]
+pub fn floor(value: f32) -> f32 {
+    if !value.is_finite() || value.abs() >= 16_777_216.0 {
+        return value;
+    }
+    let truncated = value as i64 as f32;
+    if truncated > value {
+        (value as i64 - 1) as f32
+    } else {
+        truncated
+    }
+}
+
+/// Smallest integer greater than or equal to `value`, returned as `f32`.
+///
+/// Pure arithmetic — identical on every target. `NaN` and infinities pass
+/// through unchanged, and magnitudes at or beyond `2^24` are already
+/// integer-valued in `f32`, so they also pass through untouched.
+#[must_use]
+#[inline]
+pub fn ceil(value: f32) -> f32 {
+    if !value.is_finite() || value.abs() >= 16_777_216.0 {
+        return value;
+    }
+    let truncated = value as i64 as f32;
+    if truncated < value {
+        (value as i64 + 1) as f32
+    } else {
+        truncated
+    }
+}
+
+/// Nearest integer to `value`, halves away from zero (matching `std`),
+/// returned as `f32`. `NaN` and infinities pass through unchanged.
+#[must_use]
+#[inline]
+pub fn round(value: f32) -> f32 {
+    if !value.is_finite() || value.abs() >= 16_777_216.0 {
+        return value;
+    }
+    if value >= 0.0 {
+        floor(value + 0.5)
+    } else {
+        ceil(value - 0.5)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{acos, asin, atan2, cbrt, cos, sin, sqrt, tan};
+    use super::{acos, asin, atan2, cbrt, ceil, cos, floor, round, sin, sqrt, tan};
     use crate::assert_close;
 
     #[test]
@@ -353,5 +406,21 @@ mod tests {
             (cbrt(-27.0) + 3.0).abs() <= 1.0e-4,
             "odd root keeps the sign"
         );
+    }
+
+    #[test]
+    fn integer_rounding_matches_std_semantics() {
+        assert_eq!(floor(2.9), 2.0);
+        assert_eq!(floor(-2.1), -3.0);
+        assert_eq!(floor(4.0), 4.0);
+        assert_eq!(ceil(2.1), 3.0);
+        assert_eq!(ceil(-2.9), -2.0);
+        assert_eq!(ceil(-5.0), -5.0);
+        assert_eq!(round(2.5), 3.0);
+        assert_eq!(round(-2.5), -3.0);
+        assert_eq!(round(2.4), 2.0);
+        assert_eq!(floor(1.0e9), 1.0e9, "integral magnitudes pass through");
+        assert!(floor(f32::NAN).is_nan());
+        assert_eq!(ceil(f32::INFINITY), f32::INFINITY);
     }
 }

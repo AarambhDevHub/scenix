@@ -36,6 +36,9 @@ fn inspect_node(scene: &SceneGraph, id: scenix_core::NodeId) -> Option<Inspector
         NodeKind::Terrain { .. } => "terrain",
         NodeKind::Sky { .. } => "sky",
         NodeKind::Water { .. } => "water",
+        NodeKind::XrAnchor { .. } => "xr_anchor",
+        NodeKind::AudioSource { .. } => "audio_source",
+        NodeKind::PhysicsBody { .. } => "physics_body",
     };
     let mut item = InspectorItem::new(InspectorId(id.get()), label, kind)
         .field("id", id.get())

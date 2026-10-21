@@ -1,0 +1,27 @@
+[package]
+name = "scenix-audio"
+description = "CPU audio systems for scenix: positional listeners and sources, distance attenuation, equal-power panning, cones, Doppler shifts, streaming buffers, and PCM analysers."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-core/std", "scenix-math/std"]
+serde = ["dep:serde", "scenix-core/serde", "scenix-math/serde"]
+
+[dependencies]
+scenix-core = { workspace = true }
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[test]]
+name = "audio_cpu"
+path = "../../tests/audio_cpu.rs"

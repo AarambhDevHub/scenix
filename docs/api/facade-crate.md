@@ -30,7 +30,13 @@ With the `terrain`, `sky`, `water`, and `environment` features the facade
 re-exports `Heightmap`, `TerrainGrid`, `SkyModel`, `SunPosition`,
 `WaveField`, `WaterSurface`, and friends by name (see
 [scenix-terrain](scenix-terrain.md), [scenix-sky](scenix-sky.md), and
-[scenix-water](scenix-water.md)).
+[scenix-water](scenix-water.md)). With the `xr`, `audio`, and `physics`
+features (or `bridges` for all three) the facade re-exports `XrSessionPlan`,
+`XrControllerBay`, `XrHandFrame`, `AudioListener`, `AudioSource`,
+`compute_spatial_decision`, `PhysicsWorld`, `CharacterState`,
+`PhysicsTransformSync`, `ColliderDebugHelper`, and friends by name (see
+[scenix-xr](scenix-xr.md), [scenix-audio](scenix-audio.md), and
+[scenix-physics](scenix-physics.md)).
 
 ## Common Use
 
@@ -51,6 +57,8 @@ scene.update_world_transforms();
 
 v1.8.0 adds the `terrain`, `sky`, `water`, and `environment` features; curated re-exports keep the `lod`/`sky`/`sun` module names free for the scene, material, and light globs.
 
+v1.9.0 adds the `xr`, `audio`, `physics`, and `bridges` features; the bridge re-exports are curated lists because their module namespaces (`xr`, `audio`, `physics`, `world`, `sync`) would otherwise shadow the scene/input globs.
+
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 
 ## Related Docs
@@ -58,3 +66,4 @@ Use this crate directly when you need its boundary in your own public API. Use t
 - [Feature flags](../concepts/feature-flags.md)
 - [Interaction and editor primitives](../concepts/interaction-and-editor.md)
 - [Crate dependency map](../reference/crate-dependency-map.md)
+- [Scenix v1.9.0 release](../release-v1.9.0.md)

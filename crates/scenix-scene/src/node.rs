@@ -3,7 +3,8 @@ use alloc::string::String;
 #[cfg(feature = "std")]
 use scenix_core::Named;
 use scenix_core::{
-    CameraId, LightId, MaterialId, MeshId, ParticleSystemId, SkyId, TerrainId, WaterId,
+    AudioListenerId, AudioSourceId, CameraId, ColliderId, LightId, MaterialId, MeshId,
+    ParticleSystemId, PhysicsBodyId, SkyId, TerrainId, WaterId, XrAnchorId,
 };
 use scenix_math::Transform;
 
@@ -62,6 +63,25 @@ pub enum NodeKind {
         water_id: WaterId,
         /// Water material identifier.
         material_id: MaterialId,
+    },
+    /// Tracked XR anchor that world content can pin to (scenix v1.9).
+    XrAnchor {
+        /// XR anchor identifier.
+        anchor_id: XrAnchorId,
+    },
+    /// Positional audio source attachment (scenix v1.9).
+    AudioSource {
+        /// Audio source identifier.
+        source_id: AudioSourceId,
+        /// Optional listener this source is heard by.
+        listener_id: AudioListenerId,
+    },
+    /// Physics-selected rigid body driven by the CPU bridge (scenix v1.9).
+    PhysicsBody {
+        /// Physics body identifier.
+        body_id: PhysicsBodyId,
+        /// Optional collider identifier attached to the body.
+        collider_id: ColliderId,
     },
 }
 
@@ -161,6 +181,38 @@ impl SceneNode {
         Self::new(name).kind(NodeKind::Water {
             water_id,
             material_id,
+        })
+    }
+
+    /// Creates an XR anchor node that pins world content to a tracked anchor.
+    #[inline]
+    pub fn xr_anchor(name: impl Into<String>, anchor_id: XrAnchorId) -> Self {
+        Self::new(name).kind(NodeKind::XrAnchor { anchor_id })
+    }
+
+    /// Creates a positional audio source node.
+    #[inline]
+    pub fn audio_source(
+        name: impl Into<String>,
+        source_id: AudioSourceId,
+        listener_id: AudioListenerId,
+    ) -> Self {
+        Self::new(name).kind(NodeKind::AudioSource {
+            source_id,
+            listener_id,
+        })
+    }
+
+    /// Creates a physics-driven rigid body node.
+    #[inline]
+    pub fn physics_body(
+        name: impl Into<String>,
+        body_id: PhysicsBodyId,
+        collider_id: ColliderId,
+    ) -> Self {
+        Self::new(name).kind(NodeKind::PhysicsBody {
+            body_id,
+            collider_id,
         })
     }
 

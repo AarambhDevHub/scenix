@@ -7,6 +7,9 @@ scenix facade
   -> CPU authoring crates: math, core, input, scene, camera, mesh, material, light, texture, raycaster, helpers
   -> optional environment crates: terrain (heightmaps, chunks, splats, collision, streaming),
      sky (procedural atmosphere, sun positions, bakes), water (waves, foam, fresnel, underwater)
+  -> optional runtime bridges: xr (session plans, controllers, hands, anchors, planes, hit tests),
+     audio (spatial mixing, Doppler, streams, analysis), physics (rigid bodies, colliders,
+     character controller, transform sync)
   -> optional nodes (shader graphs, node materials, post node effects)
   -> optional particles (CPU particle systems, GPU billboard/compute path)
   -> optional loader
@@ -38,6 +41,14 @@ scenix facade
   The renderer opts in through its optional `environment` feature, which owns
   the slot registry, WGSL pipelines, and uniform belt; material descriptors
   and schema ids stay in the shared dynasties (`TerrainMaterial`, `SkyId`).
+- `scenix-xr`, `scenix-audio`, and `scenix-physics` are CPU crates: the
+  runtime bridges are GPU-free (xr on core/input/math/camera, audio on
+  core/math, physics on core/math/mesh) and never touch `wgpu`. The facade
+  exposes them through the `xr`/`audio`/`physics` features; schema ids and
+  `NodeKind::{XrAnchor, AudioSource, PhysicsBody}` stay in the shared
+  dynasties, `XrCameraRig`/`XrEyeProjection` stay in `scenix-camera`, and
+  the renderer's culling pass treats bridge payloads as CPU-side data that
+  submits no draws.
 - `scenix-post` stays independent of `scenix-renderer`; renderer optionally integrates post support.
 - `scenix-loader` outputs CPU data and does not upload to GPU.
 - `scenix-wasm` is browser-oriented and optional.

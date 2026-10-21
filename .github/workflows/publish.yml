@@ -96,7 +96,12 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no-default CPU crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-terrain -p scenix-sky -p scenix-water -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-terrain -p scenix-sky -p scenix-water -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato -p scenix-xr -p scenix-audio -p scenix-physics --no-default-features
+
+      - name: Test v1.9 bridge surface
+        run: |
+          cargo test -p scenix-xr -p scenix-audio -p scenix-physics --all-features
+          cargo test -p scenix --test scenix_v19 --all-features
 
       - name: Test v1.5 interaction surface
         run: cargo test -p scenix --test scenix_v15 --all-features
@@ -141,6 +146,15 @@ jobs:
           cargo check -p scenix --no-default-features --features environment
           cargo check -p scenix --no-default-features --features environment,material
           cargo check -p scenix --no-default-features --features environment,renderer
+
+      - name: Check v1.9 facade feature lanes
+        run: |
+          cargo check -p scenix --no-default-features --features xr
+          cargo check -p scenix --no-default-features --features audio
+          cargo check -p scenix --no-default-features --features physics
+          cargo check -p scenix --no-default-features --features xr,scene,camera
+          cargo check -p scenix --no-default-features --features physics,helpers
+          cargo check -p scenix --no-default-features --features bridges,scene,camera,helpers
 
       - name: Check all examples
         run: cargo check -p scenix --examples --all-features
@@ -242,6 +256,9 @@ jobs:
             scenix-scene \
             scenix-camera \
             scenix-mesh \
+            scenix-xr \
+            scenix-audio \
+            scenix-physics \
             scenix-terrain \
             scenix-water \
             scenix-particles \
@@ -279,7 +296,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: "scenix v${{ needs.verify.outputs.version }} — Terrain, Sky, And Water"
+          name: "scenix v${{ needs.verify.outputs.version }} — XR, Audio, And Physics Bridges"
           body_path: ${{ needs.verify.outputs.notes }}
           draft: false
           prerelease: false
