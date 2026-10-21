@@ -246,6 +246,7 @@ fn normalize_fft_size(requested: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn fft_sizes_snap_to_powers_of_two() {
