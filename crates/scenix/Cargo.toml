@@ -11,7 +11,7 @@ readme.workspace = true
 
 [features]
 default = ["std", "scene", "camera", "mesh", "material", "light", "texture", "raycaster", "helpers"]
-std = ["scenix-math/std", "scenix-core/std", "scenix-input/std", "scenix-scene?/std", "scenix-camera?/std", "scenix-mesh?/std", "scenix-nodes?/std", "scenix-material?/std", "scenix-light?/std", "scenix-texture?/std", "scenix-loader?/std", "scenix-post?/std", "scenix-renderer?/std", "scenix-raycaster?/std", "scenix-helpers?/std", "scenix-animato?/std", "scenix-wasm?/std", "scenix-particles?/std", "scenix-terrain?/std", "scenix-sky?/std", "scenix-water?/std", "scenix-xr?/std", "scenix-audio?/std", "scenix-physics?/std"]
+std = ["scenix-math/std", "scenix-core/std", "scenix-input/std", "scenix-scene?/std", "scenix-camera?/std", "scenix-mesh?/std", "scenix-nodes?/std", "scenix-material?/std", "scenix-light?/std", "scenix-texture?/std", "scenix-loader?/std", "scenix-post?/std", "scenix-renderer?/std", "scenix-raycaster?/std", "scenix-helpers?/std", "scenix-animato?/std", "scenix-wasm?/std", "scenix-particles?/std", "scenix-terrain?/std", "scenix-sky?/std", "scenix-water?/std", "scenix-xr?/std", "scenix-audio?/std", "scenix-physics?/std", "scenix-ui?/std", "scenix-editor?/std"]
 scene = ["dep:scenix-scene"]
 camera = ["dep:scenix-camera"]
 mesh = ["dep:scenix-mesh"]
@@ -20,7 +20,7 @@ particles = ["dep:scenix-particles", "material", "std", "dep:scenix-texture", "s
 nodes = ["dep:scenix-nodes", "scenix-renderer?/nodes", "scenix-post?/nodes", "scenix-wasm?/nodes"]
 light = ["dep:scenix-light"]
 texture = ["dep:scenix-texture"]
-loader = ["dep:scenix-loader"]
+loader = ["dep:scenix-loader", "scenix-editor?/assets"]
 post = ["dep:scenix-post", "scenix-renderer?/post"]
 renderer = ["dep:scenix-renderer"]
 terrain = ["dep:scenix-terrain"]
@@ -40,6 +40,7 @@ editor = [
     "material",
     "light",
     "texture",
+    "ui",
     "scenix-core/inspector",
     "scenix-scene/inspector",
     "scenix-camera/inspector",
@@ -48,12 +49,16 @@ editor = [
     "scenix-texture/inspector",
     "scenix-animato?/inspector",
     "scenix-renderer?/inspector",
+    "dep:scenix-editor",
+    "scenix-editor/inspector",
+    "scenix-editor/material",
 ]
 egui = ["editor", "scenix-helpers/egui"]
-animato = ["dep:scenix-animato"]
+ui = ["dep:scenix-ui"]
+animato = ["dep:scenix-animato", "scenix-editor?/timeline"]
 wasm = ["dep:scenix-wasm"]
 libm = ["scenix-math/libm"]
-serde = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde", "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde", "scenix-material?/serde", "scenix-particles?/serde", "scenix-light?/serde", "scenix-texture?/serde", "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde", "scenix-raycaster?/serde", "scenix-helpers?/serde", "scenix-animato?/serde", "scenix-wasm?/serde", "scenix-terrain?/serde", "scenix-sky?/serde", "scenix-water?/serde", "scenix-xr?/serde", "scenix-audio?/serde", "scenix-physics?/serde"]
+serde = ["scenix-math/serde", "scenix-core/serde", "scenix-input/serde", "scenix-scene?/serde", "scenix-camera?/serde", "scenix-mesh?/serde", "scenix-material?/serde", "scenix-particles?/serde", "scenix-light?/serde", "scenix-texture?/serde", "scenix-loader?/serde", "scenix-post?/serde", "scenix-renderer?/serde", "scenix-raycaster?/serde", "scenix-helpers?/serde", "scenix-animato?/serde", "scenix-wasm?/serde", "scenix-terrain?/serde", "scenix-sky?/serde", "scenix-water?/serde", "scenix-xr?/serde", "scenix-audio?/serde", "scenix-physics?/serde", "scenix-ui?/serde", "scenix-editor?/serde"]
 approx = ["scenix-math/approx"]
 gpu = ["scenix-core/gpu"]
 
@@ -82,6 +87,8 @@ scenix-wasm = { workspace = true, optional = true }
 scenix-xr = { workspace = true, optional = true }
 scenix-audio = { workspace = true, optional = true }
 scenix-physics = { workspace = true, optional = true }
+scenix-ui = { workspace = true, optional = true }
+scenix-editor = { workspace = true, optional = true }
 
 [dev-dependencies]
 egui = { workspace = true }
@@ -357,6 +364,21 @@ required-features = ["environment", "material", "camera"]
 name = "scenix_v19"
 path = "../../tests/scenix_v19.rs"
 required-features = ["bridges", "scene", "camera", "helpers"]
+
+[[test]]
+name = "scenix_v110"
+path = "../../tests/scenix_v110.rs"
+required-features = ["editor", "ui"]
+
+[[example]]
+name = "editor_shell"
+path = "../../examples/editor_shell.rs"
+required-features = ["editor"]
+
+[[example]]
+name = "ui_overlay"
+path = "../../examples/ui_overlay.rs"
+required-features = ["ui"]
 
 [[example]]
 name = "xr_viewer"

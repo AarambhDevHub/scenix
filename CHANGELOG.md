@@ -7,6 +7,85 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-10-22
+
+### Added
+
+- Added the optional `scenix-ui` crate (`no_std`-capable on `scenix-math`,
+  optional `serde`): `Rect`/`Edges`/`Anchor`/`UiScale` layout primitives
+  with `safe_rect`; `PanelStack`/`PanelSpec`/`PanelEvent`/`Dockable` docked
+  panel model with the first-fit tab-order `panel_placement` space solver
+  (`DOCK_MAX_FRACTION`, `PANEL_MIN_THICKNESS`, `PANEL_MAX_THICKNESS` — a
+  panel is skipped when remaining space falls under the floor);
+  `RendererStats` over the rounded 120-sample window (`FrameSample`,
+  `BudgetPolicy::{ThirtyHz, SixtyHz}` thresholds, `BudgetWarning`),
+  serializing oldest-first under `serde`; the tool-widget vocabulary —
+  `Button` edge-only `press`, `Toggle`, `Slider` with the truncating 0.5
+  bias `snap` (`SLIDER_DEFAULT_STEP`), `SmallTextBuffer` (`TEXT_BUFFER_CAP`),
+  `FocusChain` (`FOCUS_CHAIN_MAX`), `ColorSwatch`, `WidgetEvent`,
+  `widget_hit`; and `compose_panel_overlay` over the bounded `OverlayFrame`
+  (`MAX_OVERLAY_RECTS` = 256, `MAX_OVERLAY_TEXTS` = 64) which stays
+  deterministic for the same stack/stats/viewport.
+- Added the optional `scenix-editor` crate (std-only tooling; wraps
+  `scenix-scene`, `scenix-math`, `scenix-core`, `scenix-ui`, with optional
+  `scenix-loader` under `assets`, `scenix-material` under `material`,
+  `scenix-animato` under `timeline`, and `serde`): the owning
+  `EditorSession` (graph + standard five-panel stack + history + gizmo
+  state + session tick), concrete invertible `EditCommand`s
+  (`RenameNode`, `SetVisibility`, `SetLayer`, `SetTransform`,
+  `ReparentNode`) whose inverses are computed from the pre-apply graph so
+  undo/redo are exact, a capped `EditHistory` (`HISTORY_DEFAULT_CAP` = 128)
+  with redo clearing on new work, gizmo drag math (`GizmoMode`,
+  `GizmoAxis`, `GizmoSettings::SNAPPED` with half-unit translates, 15°
+  rotations, 0.1 scale snaps, `apply_axis_delta`, line-closest-approach
+  `axis_pick`, `TransformDelta::apply_to` world-axis rotation composition),
+  and per-key-tick-window coalescing (`COALESCE_WINDOW_TICKS` = 30) so one
+  gizmo drag is one undo step that restores the pre-drag pose.
+- Added `scenix-editor` panel/inspector models: `ScenePanelRow` +
+  `scene_rows` (depth-first flattening capped at `SCENE_PANEL_ROW_LIMIT`
+  = 256 with depth, payload tags mirroring the scene inspector vocabulary,
+  and selected/hidden/locked flags) and `InspectorEdit`
+  lane-composing routes (`Rename`, `SetVisible`, `SetLayer`, `SetPosition`,
+  `SetRotation`, `SetScale`) refusing locked nodes with
+  `ValidationError::InvalidState`, plus `inspect_selected` scalar rows over
+  the v1.5 `Inspectable` snapshot implementation.
+- Added `scenix-editor` material editing: `PbrField`/`PhysicalField` enum
+  writes with editor clamps (unit channels `0..=1`, IOR `1.0..=2.5`),
+  `TextureSlot` descriptions with `assign_texture` (`Option<TextureId>`
+  sets-or-clears, labels returned for logs), and the bounded
+  `MaterialEditorLog` change record — materials are host-owned, so material
+  edits are optimistic and log-based rather than history-undone by design.
+- Added `scenix-editor` asset browser (`assets` feature):
+  `AssetStatusClass` over loader `AssetLoadStatus`, capped
+  `AssetBrowserModel` (`BROWSER_ROW_LIMIT` = 256, 64-char label cap) with a
+  case-insensitive substring filter, optional status filter, and per-status
+  counts.
+- Added `scenix-editor` timeline previews (`timeline` feature):
+  `TimelinePreview` delegating to animato's own `LoopMode::advance` (the
+  same solver runtime actions run) with rate clamping `0.05..=8`, pause
+  semantics, 60 FPS grid snapping for scrubs (`TIMELINE_SNAP_FPS`), and
+  `TimelineFrame` mirroring `LoopAdvance` results.
+- Added `scenix-editor` project metadata: `ProjectMetadata`/`SceneRoute`
+  with schema v1 (`PROJECT_SCHEMA_VERSION`), validation
+  (`EmptyTitle`, `EmptyRoute`, `DuplicateScene`, `UnsupportedSchema`),
+  `upgrade_to_current`, and `serde_json` round-trip persistence under the
+  `serde` feature.
+- Facade: the `editor` feature now drives `scenix-editor` (with its
+  `inspector` + `material` features) and implies the new `ui` feature
+  because sessions own the standard panel stack; the new `ui` feature
+  exposes the curated renderer-agnostic UI re-exports; `loader` forwards
+  `scenix-editor/assets`, `animato` forwards `scenix-editor/timeline`, and
+  `serde` forwards both tooling crates' serialization surfaces.
+
+### Changed
+
+- Bumped all crate crates in the workspace to `1.10.0` (facade, physics,
+  nodes, post, renderer, wasm, audio, terrain, sky, water, particles,
+  loader, scene, camera, mesh, texture, light, material, helpers,
+  raycaster, xr, animato, math, core, input) together with the
+  `XR_VERSION`/`AUDIO_VERSION`/`PHYSICS_VERSION` markers and the new
+  `UI_VERSION`/`EDITOR_VERSION` markers.
+
 ## [1.9.1] - 2026-10-21
 
 ### Fixed
@@ -755,7 +834,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added v0.1.0-scoped CI and publish workflows.
 - Rewrote the README to document only the shipped Foundation API surface.
 
-[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.9.1...HEAD
+[Unreleased]: https://github.com/AarambhDevHub/scenix/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/AarambhDevHub/scenix/compare/v1.9.1...v1.10.0
 [1.9.1]: https://github.com/AarambhDevHub/scenix/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/AarambhDevHub/scenix/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/AarambhDevHub/scenix/compare/v1.7.0...v1.8.0

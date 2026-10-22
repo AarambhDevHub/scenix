@@ -52,3 +52,21 @@ constraint remain explicit values that can be driven by any UI.
 `Inspectable` returns an owned, typed `InspectorSnapshot`. A host can render it
 with the optional egui adapter, serialize browser-facing snapshots as JSON, or
 map it into another UI toolkit without coupling CPU crates to that toolkit.
+
+## Owning Editor Sessions (v1.10.0)
+
+`scenix-editor` turns the primitives above into a full editing model.
+`EditorSession` owns the graph plus the standard panel stack (scene tree,
+inspector, assets, timeline, material) and routes every mutation through
+`EditCommand`s whose inverses are computed from the pre-apply graph, so
+undo/redo are exact. Gizmo drags translate into coalesced `SetTransform`
+updates — one drag is one undo step that restores the pre-drag pose — and
+panels.read from `scene_rows` plus the session's `inspect_selected` rows so
+every host face agrees on what changed. Continuous pointer-plane work stays
+host camera math; the editor solves world-axis amounts, snapping, and axis
+picking deterministically.
+
+The renderer-agnostic panel/widget/overlay layer lives in `scenix-ui`:
+`PanelStack` + `panel_placement` solve dock space, `RendererStats` rolls
+frame budgets, and `compose_panel_overlay` bounds a frame's draw list so
+tools stay cheap even over a full render.

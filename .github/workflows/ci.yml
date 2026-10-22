@@ -71,7 +71,7 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no-default CPU crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-terrain -p scenix-sky -p scenix-water -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato -p scenix-xr -p scenix-audio -p scenix-physics --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-terrain -p scenix-sky -p scenix-water -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato -p scenix-xr -p scenix-audio -p scenix-physics -p scenix-ui --no-default-features
 
       - name: Test loader all features
         run: cargo test -p scenix-loader --all-features
@@ -89,6 +89,15 @@ jobs:
 
       - name: Check v1.9 bridge examples
         run: cargo check -p scenix --examples --features xr,audio,physics
+
+      - name: Test v1.10 editor and ui surface
+        run: |
+          cargo test -p scenix-ui --all-features
+          cargo test -p scenix-editor --all-features
+          cargo test -p scenix --test scenix_v110 --features editor,ui,loader,animato,serde
+
+      - name: Check v1.10 tooling examples
+        run: cargo check -p scenix --examples --features editor,ui
 
       - name: Test animation runtime
         run: cargo test -p scenix --test animation_runtime --all-features
@@ -149,6 +158,15 @@ jobs:
           cargo check -p scenix --no-default-features --features physics,helpers
           cargo check -p scenix --no-default-features --features bridges,scene,camera,helpers
 
+      - name: Check v1.10 facade feature lanes
+        run: |
+          cargo check -p scenix --no-default-features --features ui
+          cargo check -p scenix --no-default-features --features editor
+          cargo check -p scenix --no-default-features --features editor,loader
+          cargo check -p scenix --no-default-features --features editor,animato
+          cargo check -p scenix --no-default-features --features editor,serde
+          cargo check -p scenix --no-default-features --features editor,ui
+
   msrv:
     name: Minimum supported Rust 1.98
     runs-on: ubuntu-latest
@@ -182,6 +200,9 @@ jobs:
 
       - name: Check scenix-wasm
         run: cargo check -p scenix-wasm --target wasm32-unknown-unknown --all-features
+
+      - name: Check scenix-ui no_std target
+        run: cargo check -p scenix-ui --target wasm32-unknown-unknown --no-default-features
 
       - name: Check wasm viewer example
         run: cargo check --manifest-path examples/wasm_viewer/Cargo.toml --target wasm32-unknown-unknown

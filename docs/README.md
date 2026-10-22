@@ -1,10 +1,11 @@
 # Scenix Developer Documentation
 
-Scenix v1.9.1 is a modular Rust-native 3D scene workspace. These docs are
+Scenix v1.10.0 is a modular Rust-native 3D scene workspace. These docs are
 written for application developers who need to choose crates, create scenes,
 add interaction/editor primitives, render or load assets, integrate Animato,
 build terrain, sky, and water environments, bridge XR, audio, and physics
-runtime systems, target WASM, and debug performance.
+runtime systems, build editor tooling and renderer-agnostic UI overlays,
+target WASM, and debug performance.
 
 ## Start Here
 
@@ -63,6 +64,7 @@ runtime systems, target WASM, and debug performance.
 - [v1.7.0 release notes](../.github/release-notes/1.7.0.md)
 - [v1.8.0 release notes — Terrain, Sky, And Water](release-v1.8.0.md)
 - [v1.9.0 release notes — XR, Audio, And Physics Bridges](release-v1.9.0.md)
+- [v1.10.0 release notes — Editor And UI Tooling](release-v1.10.0.md)
 
 ## Feature Flags At A Glance
 
@@ -72,8 +74,9 @@ runtime systems, target WASM, and debug performance.
 | `scene`, `camera`, `mesh`, `material`, `light`, `texture` | yes | CPU scene authoring. |
 | `raycaster`, `helpers` | yes | Picking and debug helper geometry. |
 | `interaction` | no | Controls, selection, dragging, transforms, and gizmos. |
-| `editor` | no | Typed inspector snapshots for editor-facing systems. |
 | `egui` | no | Read-only egui adapter for inspector snapshots. |
+| `ui` | no | Renderer-agnostic UI tooling: docked panel stacks and the space solver, rolling renderer stats, tool widgets, and bounded overlay composition (the `scenix-ui` crate). |
+| `editor` | no | Owning editor sessions with exact inverse-command undo/redo, coalesced gizmo drags, scene-tree rows, the node inspector surface, and material field editing (the `scenix-editor` crate; implies `ui`). |
 | `loader` | no | Asset packages, asset manager, glTF extension metadata, importers, and exporters. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |

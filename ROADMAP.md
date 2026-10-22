@@ -43,7 +43,7 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 | `v1.8.0` | Environment systems | New optional terrain, sky, and water crates | ✅ |
 | `v1.9.0` | Runtime bridges | New optional XR, audio, and physics crates | ✅ |
 | `v1.9.1` | Bridge patch | Animato `1.7.3` facade no_std fix for the bridge dependency | ✅ |
-| `v1.10.0` | Editor tooling | New optional editor and UI overlay crates | 🔮 |
+| `v1.10.0` | Editor and UI tooling | New optional editor and UI overlay crates | ✅ |
 | `v1.x+` | Advanced rendering | Post effects, geometry extras, modifiers, GPU-driven rendering, realtime GI | 🔮 |
 
 ---
@@ -474,9 +474,10 @@ Each milestone is a working, published crate — not a draft. Nothing ships with
 
 ## Current Focus
 
-The project has completed v1.9.1 (the Animato `1.7.3` no_std bridge patch)
-and will next scope the optional editor crates planned for v1.10.0. New work
-must preserve the stable modular API, keep
+The project has completed v1.10.0 (Editor And UI Tooling: `scenix-editor`
+sessions with exact inverse-command undo/redo and `scenix-ui` renderer-agnostic
+panel/overlay models) and will next scope the v1.x advanced-rendering bucket.
+New work must preserve the stable modular API, keep
 heavy dependencies optional, and add deprecations before removing public APIs.
 
 Scenix is not only a website or WASM demo library. Future work must treat **desktop, mobile, and web** as first-class runtime targets:
@@ -700,7 +701,7 @@ The version numbers below are planning buckets, not release promises. Each miles
 ### Crates shipped / updated
 
 - `scenix-editor` — new optional crate for visual editor shell, asset browser, scene inspector, gizmos, material editor, animation timeline, import/export workflow, and project metadata.
-- `scenix-ui` or `scenix-egui` — new optional crate for cross-platform debug UI overlays, renderer stats, scene inspector panels, and tool widgets.
+- `scenix-ui` — new optional renderer-agnostic crate (chosen over `scenix-egui`) for docked panel stacks, rolling renderer stats, tool widgets, and bounded overlays; egui stays a facade dev-dep hook.
 - `scenix-scene` — editor metadata, inspector support, selection state, and serialization hooks.
 - `scenix-renderer` — viewport overlays, object ID/depth/normal buffers, renderer stats, and resource inspector hooks.
 - `scenix-material` — material inspector and node material editor support.
@@ -710,13 +711,13 @@ The version numbers below are planning buckets, not release promises. Each miles
 - `scenix-wasm` — browser editor support where practical.
 - `scenix` — optional `editor` and `ui` facade features and re-exports.
 
-- [ ] Minimal scene inspector/editor shell.
-- [ ] Renderer stats overlay.
-- [ ] Scene graph panel with selection and transform editing.
-- [ ] Material inspector with texture slots and physical material fields.
-- [ ] Asset browser using loader/exporter APIs.
-- [ ] Animation timeline preview for imported clips.
-- [ ] Save/load project or scene metadata format.
+- [x] Minimal scene inspector/editor shell: `EditorSession` over the graph plus the standard five-panel stack (`standard_panels`, ids 0-4) in `editor_shell`.
+- [x] Renderer stats overlay: `RendererStats` rolling windows + `BudgetPolicy` warnings + `compose_panel_overlay` in `ui_overlay`.
+- [x] Scene graph panel with selection and transform editing: `ScenePanelRow`/`scene_rows`, selection routed through `session.select`, coalesced gizmo drags via `begin_drag`/`drag_gizmo`/`end_drag`.
+- [x] Material inspector with texture slots and physical material fields: `PbrField`/`PhysicalField` clamped writes plus `assign_texture` over `PbrMaterial`/`PhysicalMaterial`.
+- [x] Asset browser using loader APIs: `AssetBrowserModel` + `AssetBrowserRow` over `AssetLoadStatus` under the `assets` feature.
+- [x] Animation timeline preview for imported clips: `TimelinePreview` delegating to animato's own `LoopMode::advance` under the `timeline` feature.
+- [x] Save/load project metadata format: `ProjectMetadata`/`SceneRoute` schema v1 with validation and JSON round-trip under `serde`.
 
 ## v1.x+ — Advanced Rendering And Geometry Extras
 
@@ -743,8 +744,8 @@ The version numbers below are planning buckets, not release promises. Each miles
 | `scenix-xr` | WebXR and OpenXR support for VR/AR, controllers, hand tracking, hit tests, anchors, planes, estimated lighting, and mobile XR lifecycle |
 | `scenix-audio` | Audio listener, spatial audio source, streaming audio, analyser data, and scene-node attachment |
 | `scenix-physics` | Rapier/Jolt bridge, rigid bodies, colliders, character controller helpers, debug visualization, and scene transform sync |
-| `scenix-editor` | Visual scene editor, asset browser, scene inspector, gizmos, material editor, animation timeline, import/export workflow |
-| `scenix-ui` or `scenix-egui` | Cross-platform debug UI overlays for desktop, mobile, and web |
+| ~~`scenix-editor`~~ | Shipped in v1.10.0: owning sessions, exact undo/redo, gizmo math, inspector surface, material edits, asset browser, timeline previews, project metadata |
+| ~~`scenix-ui`~~ | Shipped in v1.10.0 (chosen over `scenix-egui`): docked panel stacks, space solver, renderer stats, tool widgets, bounded overlays |
 
 ### Crate Work Map
 
@@ -779,8 +780,8 @@ Future crates to create only when implementation starts:
 | `scenix-xr` | WebXR/OpenXR runtime work begins | One WebXR or OpenXR viewer example with controller input |
 | `scenix-audio` | Spatial audio integration begins | Listener plus positional source attached to scene nodes |
 | `scenix-physics` | Physics sync design is ready | Rigid body/collider bridge with debug helper example |
-| `scenix-editor` | Inspector/gizmo/resource APIs are ready enough | Minimal scene inspector/editor shell using existing crates |
-| `scenix-ui` or `scenix-egui` | Debug UI needs reusable overlays | Renderer stats overlay and scene inspector panel |
+| ~~`scenix-editor`~~ | Shipped v1.10.0 | Owning session shell plus project metadata (see `crates/scenix-editor`) |
+| ~~`scenix-ui` or `scenix-egui`~~ | Shipped v1.10.0 as `scenix-ui` | Renderer stats overlay + scene inspector panel through `compose_panel_overlay` |
 
 Do not add a future crate to the workspace manifest until it has a crate directory, feature flag plan, docs, tests, and at least one example.
 

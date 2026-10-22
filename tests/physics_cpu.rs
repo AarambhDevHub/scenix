@@ -717,5 +717,5 @@ fn solver_constants_are_pinned() {
     assert_eq!(MAX_SUBSTEPS, 4);
     assert_eq!(WORLD_MAX_BODIES, 4_096);
     assert_eq!(GRAVITY_DEFAULT, 9.81);
-    assert_eq!(PHYSICS_VERSION, "1.9.1");
+    assert_eq!(PHYSICS_VERSION, "1.10.0");
 }
