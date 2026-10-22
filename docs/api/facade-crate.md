@@ -36,7 +36,15 @@ features (or `bridges` for all three) the facade re-exports `XrSessionPlan`,
 `compute_spatial_decision`, `PhysicsWorld`, `CharacterState`,
 `PhysicsTransformSync`, `ColliderDebugHelper`, and friends by name (see
 [scenix-xr](scenix-xr.md), [scenix-audio](scenix-audio.md), and
-[scenix-physics](scenix-physics.md)).
+[scenix-physics](scenix-physics.md)). With the `ui` feature the facade
+re-exports the renderer-agnostic UI layer — `PanelStack`, `panel_placement`,
+`RendererStats`, `compose_panel_overlay`, the widget vocabulary, and friends
+(see [scenix-ui](scenix-ui.md)). The `editor` feature (which implies `ui`)
+re-exports `EditorSession`, `EditCommand`, the gizmo vocabulary
+(`GizmoMode`, `GizmoAxis`, `apply_axis_delta`, `axis_pick`),
+`scene_rows`, the `InspectorEdit` surface, and the material field editors;
+asset-browser rows additionally arrive under `loader` and timeline previews
+under `animato` (see [scenix-editor](scenix-editor.md)).
 
 ## Common Use
 
@@ -58,6 +66,8 @@ scene.update_world_transforms();
 v1.8.0 adds the `terrain`, `sky`, `water`, and `environment` features; curated re-exports keep the `lod`/`sky`/`sun` module names free for the scene, material, and light globs.
 
 v1.9.0 adds the `xr`, `audio`, `physics`, and `bridges` features; the bridge re-exports are curated lists because their module namespaces (`xr`, `audio`, `physics`, `world`, `sync`) would otherwise shadow the scene/input globs.
+
+v1.10.0 adds the `ui` feature and extends `editor`: the UI re-exports are curated because widget/panel names invite future collisions with runtime crates, and the editor surface needs `ui` anyway since sessions own the standard panel stack.
 
 Use this crate directly when you need its boundary in your own public API. Use the `scenix` facade when building an application and you want one stable import surface.
 

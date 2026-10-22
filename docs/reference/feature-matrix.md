@@ -6,7 +6,6 @@
 | `scene`, `camera`, `mesh`, `material`, `light`, `texture` | yes | CPU scene authoring. |
 | `raycaster`, `helpers` | yes | Picking and debug helper geometry. |
 | `interaction` | no | Controls, selection, dragging, transforms, and gizmos. |
-| `editor` | no | Typed inspector snapshots for editor-facing systems. |
 | `egui` | no | Read-only egui adapter for inspector snapshots. |
 | `loader` | no | Asset packages, asset manager, glTF extension metadata, OBJ/MTL, STL, image, KTX2, HDR/EXR loading, and exporters. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
@@ -21,6 +20,8 @@
 | `audio` | no | Spatial mixing with Doppler, streamed buffer health, and spectrum analysis (the `scenix-audio` crate). |
 | `physics` | no | Deterministic rigid-body solver, sensors, spatial queries, sleeping, and the character controller (the `scenix-physics` crate). |
 | `bridges` | no | Enables `xr`, `audio`, and `physics` together. |
+| `ui` | no | Renderer-agnostic UI tooling: docked panel stacks and the space solver, rolling renderer stats with budget policies, tool widgets with hit testing, and bounded overlay composition (the `scenix-ui` crate). |
+| `editor` | no | Owning editor sessions over a scene graph with exact inverse-command undo/redo, coalesced gizmo drags, scene-tree rows, the node inspector surface, and material field editing; implies `ui` because sessions own the standard panel stack (the `scenix-editor` crate). Asset-browser rows need `loader`, timeline previews need `animato`, and the JSON project exchange needs `serde`. |
 
 | `serde` | no | Serialization support where each crate supports it. |
 

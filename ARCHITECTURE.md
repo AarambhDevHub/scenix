@@ -489,7 +489,7 @@ scenix/
 
 ### Future Workspace Expansion
 
-The layout above describes the shipped v1.9.0 workspace (the v1.6.0 shader-node and v1.7.0 particle work shipped as `scenix-nodes` and `scenix-particles`; the v1.8.0 environment work shipped as `scenix-terrain`, `scenix-sky`, and `scenix-water`; the v1.9.0 runtime-bridge work shipped as `scenix-xr`, `scenix-audio`, and `scenix-physics`, each added as a new optional crate only once its directory, tests, docs, examples, and feature flags existed). Future systems such as editor tooling should be added as **new optional crates** only when implementation begins. They should not be listed as active workspace members in `Cargo.toml` until the crate directory, tests, docs, examples, and feature flags exist.
+The layout above describes the shipped v1.9.0 workspace (the v1.6.0 shader-node and v1.7.0 particle work shipped as `scenix-nodes` and `scenix-particles`; the v1.8.0 environment work shipped as `scenix-terrain`, `scenix-sky`, and `scenix-water`; the v1.9.0 runtime-bridge work shipped as `scenix-xr`, `scenix-audio`, and `scenix-physics`, and the v1.10.0 tooling work shipped as `scenix-editor` and `scenix-ui`, each added as a new optional crate only once its directory, tests, docs, examples, and feature flags existed). Future systems should be added as **new optional crates** only when implementation begins; they only become active members in `Cargo.toml` once a crate directory, tests, docs, examples, and feature flags exist.
 
 Planned future crates may extend the workspace like this:
 
@@ -498,8 +498,8 @@ crates/
 ├── scenix-xr/          ← optional XR session planning and tracking (shipped v1.9.0)
 ├── scenix-audio/       ← optional spatial audio decision math (shipped v1.9.0)
 ├── scenix-physics/     ← optional deterministic CPU rigid-body solver (shipped v1.9.0)
-├── scenix-editor/      ← optional visual editor shell and tools
-└── scenix-ui/          ← optional cross-platform debug UI overlays
+├── scenix-editor/      ← optional owning editor sessions and tools (shipped v1.10.0)
+└── scenix-ui/          ← optional renderer-agnostic UI overlays (shipped v1.10.0)
 ```
 
 Rules for adding a future crate:
@@ -1925,6 +1925,14 @@ pub use scenix_input::*;
 > same reason — `scenix-particles` declares `particle` and `flipbook` modules
 > that collide with `scenix-material`'s `particle` module and
 > `scenix-texture`'s `flipbook` module globs.
+>
+> **Design decision (v1.10.0):** the `ui`/`editor` re-exports are curated the
+> same way (panel/widget/overlay names invite future collisions with runtime
+> globs), and the facade `editor` feature implies `ui` because
+> `EditorSession` owns the standard panel stack returned by
+> `standard_panels`. Asset-browser and timeline surfaces re-export only
+> under `editor,loader` / `editor,animato`; project metadata under
+> `editor,serde`.
 
 ---
 
@@ -2399,6 +2407,133 @@ keys.
 - `tests/physics_cpu.rs`: determinism, restitution/friction, sensors,
   groups, queries, sleep, character walk/jump/land, respawn.
 - `examples/physics_sync.rs`, `examples/character_controller.rs` (facade).
+
+---
+
+### 4.26 `scenix-editor` (v1.10.0)
+
+**Responsibility:** offline CPU editor tooling — an owning
+`EditorSession` over the scene graph with exact inverse-command undo/redo,
+gizmo drag math, scene-tree row models, the selected-node inspector
+surface, material field editing, asset-browser rows, timeline previews, and
+a versioned project metadata exchange.
+
+**Depends on:** `scenix-core`, `scenix-math`, `scenix-scene`, `scenix-ui`;
+optional `scenix-loader` (`assets`), `scenix-material` (`material`),
+`scenix-animato` (`timeline`), `serde` (+ `serde_json` for project JSON).
+
+**Status in v1.10.0:** shipped as a std-only optional crate behind the
+facade `editor` feature (which implies `ui` because sessions own the
+standard panel stack). It wraps and extends the v1.5 primitives instead of
+duplicating them: selection stays in `SceneGraph`, editor metadata stays in
+`NodeEditorMetadata`, and the inspector vocabulary stays in
+`scenix-core::inspector`.
+
+> **Design decisions:** edits are a concrete enum (`EditCommand`) rather
+> than a dyn trait so history stays `Clone + PartialEq` and serde-able; each
+> command computes its inverse from the pre-apply graph, so undo restores
+> byte-exact state and redo replays the stored forward command; gizmo-style
+> `SetTransform` updates coalesce by key + tick window
+> (`COALESCE_WINDOW_TICKS` = 30) keeping the first inverse, which makes one
+> drag one undo step that restores the pre-drag pose; gizmo rotation composes
+> about world axes (`delta * current`) as screen gizmos promise; drags
+> re-solve absolutely from the captured start transform; material edits are
+> optimistic (materials are host-owned, so they log to
+> `MaterialEditorLog` instead of entering history); overflow trims the
+> oldest history entry; host out-of-band edits through `graph_mut` own their
+> undo obligation.
+
+#### Public API
+
+- `EditorSession`/`ActiveGizmo`: owning session (graph + panels + history +
+  gizmo + tick), `do_command`/`do_transform`, `undo`/`redo` with label
+  returns, `begin_drag`/`drag_gizmo`/`end_drag`, `select`/`clear_selection`,
+  `pick_gizmo`, `layout`, `project_metadata`.
+- `EditCommand`/`EditHistory`/`HistoryEntry`: `RenameNode`, `SetVisibility`,
+  `SetLayer`, `SetTransform`, `ReparentNode`; capped history
+  (`HISTORY_DEFAULT_CAP` = 128), `push_undo_entry` for redo replay.
+- `GizmoMode`/`GizmoAxis`/`GizmoSettings`
+  (`FREE`/`SNAPPED`)/`TransformDelta`/`apply_axis_delta`/`snap_translation`/
+  `axis_pick` with `GIZMO_HALF_LENGTH`/`GIZMO_PICK_THRESHOLD`.
+- `ScenePanelRow`/`scene_rows`/`kind_short_name` with
+  `SCENE_PANEL_ROW_LIMIT` = 256.
+- `InspectorEdit` + `inspect_selected`/`inspect_node`/`scene_snapshot`/
+  `apply_inspector_edit` (`inspector` feature, forwarding
+  `scenix-core`/`scenix-scene` inspector).
+- `PbrField`/`PhysicalField`/`TextureSlot`/`apply_pbr_field`/
+  `apply_physical_field`/`assign_texture`/`MaterialEditorLog` with
+  clamps (`MATERIAL_UNIT_MAX`, `MATERIAL_IOR_MIN..MATERIAL_IOR_MAX`)
+  (`material` feature).
+- `AssetBrowserModel`/`AssetBrowserRow`/`AssetStatusClass` over loader
+  statuses (`assets` feature).
+- `TimelinePreview`/`TimelineFrame` over animato `LoopMode::advance`
+  (`timeline` feature).
+- `ProjectMetadata`/`SceneRoute`/`ProjectError`/`PROJECT_SCHEMA_VERSION`
+  with validation + JSON round-trip (`serde` feature).
+
+#### Tests, examples
+
+- `tests/editor_cpu.rs`: command inverses, history caps, coalesced drags
+  restoring pre-drag pose, axis picking math, snapping, inspector routing,
+  scene rows, material clamps, browser filters, timeline loop math, project
+  validation.
+- `benches/editor_bench.rs`: command round-trips, scene rows at cap, axis
+  pick, drag apply, inspector surfaces, material writes, timeline advance.
+- `examples/editor_shell.rs` (facade): headless shell demo.
+
+---
+
+### 4.27 `scenix-ui` (v1.10.0)
+
+**Responsibility:** renderer-agnostic model layer for UI tooling —
+anchor/edge/safe-area layout, docked panel stacks with a space solver,
+rolling renderer-stat windows with budget policies, tool widgets with hit
+testing, and bounded per-frame overlay composition.
+
+**Depends on:** `scenix-math`; optional `serde`.
+
+**Status in v1.10.0:** shipped as a `no_std`-capable optional crate
+behind the facade `ui` feature; compiles for `wasm32-unknown-unknown` with
+`--no-default-features`. It renders nothing: hosts draw the solved
+`UiRect`/`UiText` commands with egui, HTML canvas, or a native toolkit —
+the egui integration stays a facade dev-dep hook.
+
+> **Design decisions:** docking is first-fit in tab order with a hard
+> `PANEL_MIN_THICKNESS` floor (no proportional redistribution), so panels
+> never silently shrink away; the overlay is bounded (`MAX_OVERLAY_RECTS` =
+> 256, `MAX_OVERLAY_TEXTS` = 64) so a stuck host cannot grow the frame
+> budget; `Slider::snap` uses truncating arithmetic with a 0.5 bias to stay
+> `no_std`-safe (no `f32::round` dependency chain), and `RendererStats`
+> keeps a fixed 120-sample window with manual serde impls (arrays cannot
+> derive). All solving is allocation-free and deterministic, so overlay
+> tests compare exact frames.
+
+#### Public API
+
+- Layout: `Rect`, `Edges`, `Anchor`, `UiScale`, `safe_rect`.
+- Panels: `PanelId`, `PanelSpec` (docked/floating), `PanelStack`
+  (`upsert`/`open`/`close`/`len`), `PanelEvent`, `DockKind`,
+  `DockedLayout`, `panel_placement` with `DOCK_MAX_FRACTION`,
+  `PANEL_MIN_THICKNESS`, `PANEL_MAX_THICKNESS`.
+- Stats: `FrameSample::sanitized`, `BudgetPolicy::{THIRTY_HZ, SIXTY_HZ}`,
+  `BudgetWarning`, `RendererStats` (rolling window, `budget_warnings`),
+  `STATS_HISTORY_FRAMES`.
+- Widgets: `Button` (edge-only `press`), `Toggle`, `Slider` (display plus
+  drag plumbing with `SLIDER_DEFAULT_STEP` snap), `SmallTextBuffer`
+  (`TEXT_BUFFER_CAP`), `FocusChain` (`FOCUS_CHAIN_MAX`),
+  `ColorSwatch`, `WidgetId`/`WidgetEvent`, `widget_hit`.
+- Overlay: `UiRect`, `UiText`, `OverlayFrame` (`push_rect`/`push_text` with
+  caps), `compose_panel_overlay`, `PANEL_BACKDROP_ALPHA`,
+  `STATS_BACKDROP_ALPHA`.
+
+#### Tests, examples
+
+- `tests/ui_cpu.rs`: panel placement floors/skips, floating layout, stats
+  rolling + warnings, widget edges, focus wrap, hit exclusivity, overlay
+  caps, deterministic composition.
+- `benches/ui_bench.rs`: placement, stats recording, widget snapshots,
+  overlay composition.
+- `examples/ui_overlay.rs` (facade): headless overlay demo.
 
 ---
 
@@ -3027,7 +3162,7 @@ The roadmap assigns future work to concrete planning versions so contributors kn
 | `v1.7.0` | Particles | `scenix-particles` | `scenix-scene`, `scenix-mesh`, `scenix-material`, `scenix-texture`, `scenix-renderer`, `scenix-wasm`, `scenix` |
 | `v1.8.0` | Terrain, Sky, And Water | `scenix-terrain`, `scenix-sky`, `scenix-water` | `scenix-core`, `scenix-scene`, `scenix-material`, `scenix-texture`, `scenix-light`, `scenix-renderer`, `scenix-wasm`, `scenix` |
 | `v1.9.0` | XR, Audio, And Physics Bridges | `scenix-xr`, `scenix-audio`, `scenix-physics` | `scenix-core`, `scenix-math`, `scenix-scene`, `scenix-input`, `scenix-camera`, `scenix-helpers`, `scenix-renderer`, `scenix-wasm`, `scenix` |
-| `v1.10.0` | Editor and UI tooling | `scenix-editor`, `scenix-ui` or `scenix-egui` | `scenix-scene`, `scenix-renderer`, `scenix-material`, `scenix-loader`, `scenix-animato`, `scenix-helpers`, `scenix-wasm`, `scenix` |
+| `v1.10.0` | Editor And UI Tooling | `scenix-editor`, `scenix-ui` | `scenix-scene`, `scenix-material`, `scenix-loader`, `scenix-animato`, `scenix-core`, `scenix-math`, `scenix` |
 
 Future crates become active workspace members only when their crate directory, docs, tests, examples, and facade feature exist. Until then, the architecture treats them as planned extension points.
 

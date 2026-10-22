@@ -1,0 +1,64 @@
+[package]
+name = "scenix-editor"
+description = "Offline CPU editor tooling for scenix: undoable scene editing sessions, gizmo drag math, scene panel models, material field editing, asset browsing, timeline previews, and project metadata exchange."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+# The editor is a std-only tooling crate: file pickers, JSON, and host windows
+# already imply an operating system. The individual engine crates it drives
+# stay no_std-capable; features mirror the optional integrations.
+[features]
+default = ["std", "inspector", "material"]
+std = [
+    "scenix-core/std",
+    "scenix-math/std",
+    "scenix-scene/std",
+    "scenix-ui/std",
+    "scenix-animato?/std",
+    "scenix-loader?/std",
+    "scenix-material?/std",
+]
+inspector = [
+    "scenix-core/inspector",
+    "scenix-scene/inspector",
+    "scenix-material?/inspector",
+]
+material = ["dep:scenix-material"]
+assets = ["dep:scenix-loader"]
+timeline = ["dep:scenix-animato"]
+serde = [
+    "dep:serde",
+    "dep:serde_json",
+    "scenix-core/serde",
+    "scenix-math/serde",
+    "scenix-scene/serde",
+    "scenix-ui/serde",
+    "scenix-animato?/serde",
+    "scenix-loader?/serde",
+    "scenix-material?/serde",
+]
+
+[dependencies]
+scenix-core = { workspace = true }
+scenix-math = { workspace = true }
+scenix-scene = { workspace = true }
+scenix-ui = { workspace = true }
+scenix-animato = { workspace = true, optional = true }
+scenix-loader = { workspace = true, optional = true }
+scenix-material = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
+[[bench]]
+name = "editor_bench"
+path = "../../benches/editor_bench.rs"
+harness = false
+
+[[test]]
+name = "editor_cpu"
+path = "../../tests/editor_cpu.rs"

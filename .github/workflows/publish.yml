@@ -96,12 +96,17 @@ jobs:
         run: cargo test --workspace --all-features
 
       - name: Test no-default CPU crates
-        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-terrain -p scenix-sky -p scenix-water -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato -p scenix-xr -p scenix-audio -p scenix-physics --no-default-features
+        run: cargo test -p scenix-math -p scenix-core -p scenix-input -p scenix-scene -p scenix-camera -p scenix-mesh -p scenix-terrain -p scenix-sky -p scenix-water -p scenix-nodes -p scenix-material -p scenix-light -p scenix-texture -p scenix-particles -p scenix-raycaster -p scenix-helpers -p scenix-animato -p scenix-xr -p scenix-audio -p scenix-physics -p scenix-ui --no-default-features
 
       - name: Test v1.9 bridge surface
         run: |
           cargo test -p scenix-xr -p scenix-audio -p scenix-physics --all-features
           cargo test -p scenix --test scenix_v19 --all-features
+
+      - name: Test v1.10 tooling surface
+        run: |
+          cargo test -p scenix-ui -p scenix-editor --all-features
+          cargo test -p scenix --test scenix_v110 --features editor,ui,loader,animato,serde
 
       - name: Test v1.5 interaction surface
         run: cargo test -p scenix --test scenix_v15 --all-features
@@ -274,6 +279,8 @@ jobs:
             scenix-helpers \
             scenix-animato \
             scenix-wasm \
+            scenix-ui \
+            scenix-editor \
             scenix
           do
             publish_crate "$crate"
@@ -296,7 +303,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: "scenix v${{ needs.verify.outputs.version }} — XR, Audio, And Physics Bridges"
+          name: "scenix v${{ needs.verify.outputs.version }} — Editor And UI Tooling"
           body_path: ${{ needs.verify.outputs.notes }}
           draft: false
           prerelease: false

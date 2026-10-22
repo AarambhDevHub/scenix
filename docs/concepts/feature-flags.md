@@ -27,8 +27,9 @@ All facade features are documented here.
 | `scene`, `camera`, `mesh`, `material`, `light`, `texture` | yes | CPU scene authoring. |
 | `raycaster`, `helpers` | yes | Picking and debug helper geometry. |
 | `interaction` | no | Controls, selection, dragging, transforms, and gizmos. |
-| `editor` | no | Typed inspector snapshots for editor-facing systems. |
+| `editor` | no | Owning editor sessions with exact inverse-command undo/redo, coalesced gizmo drags, scene-tree rows, the node inspector surface, and material field editing (the `scenix-editor` crate; implies `ui`). Asset-browser rows need `loader`, timeline previews need `animato`, and the JSON project exchange needs `serde`. |
 | `egui` | no | Read-only egui adapter for inspector snapshots. |
+| `ui` | no | Renderer-agnostic UI tooling: docked panel stacks with the space solver, rolling renderer stats with budget policies, tool widgets with hit testing, and bounded overlay composition (the `scenix-ui` crate). |
 | `loader` | no | glTF/GLB, OBJ/MTL, STL, image, KTX2, HDR/EXR loading. |
 | `renderer` | no | `wgpu` surface and headless rendering. |
 | `post` | no | GPU post-processing stack; normally used with `renderer`. |

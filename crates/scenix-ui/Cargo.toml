@@ -1,0 +1,31 @@
+[package]
+name = "scenix-ui"
+description = "Renderer-agnostic scene UI tooling for scenix: splash-free overlay layouts, panel stacks, renderer stats, and tool widgets for desktop, mobile, and web."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+
+[features]
+default = ["std"]
+std = ["scenix-math/std"]
+serde = ["dep:serde", "scenix-math/serde"]
+
+[dependencies]
+scenix-math = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[[bench]]
+name = "ui_bench"
+path = "../../benches/ui_bench.rs"
+harness = false
+
+[[test]]
+name = "ui_cpu"
+path = "../../tests/ui_cpu.rs"

@@ -10,6 +10,8 @@ scenix facade
   -> optional runtime bridges: xr (session plans, controllers, hands, anchors, planes, hit tests),
      audio (spatial mixing, Doppler, streams, analysis), physics (rigid bodies, colliders,
      character controller, transform sync)
+  -> optional tooling crates: ui (renderer-agnostic panels, stats, widgets, overlays),
+     editor (owning sessions, exact undo/redo, gizmo math, inspector surface)
   -> optional nodes (shader graphs, node materials, post node effects)
   -> optional particles (CPU particle systems, GPU billboard/compute path)
   -> optional loader
@@ -49,6 +51,14 @@ scenix facade
   dynasties, `XrCameraRig`/`XrEyeProjection` stay in `scenix-camera`, and
   the renderer's culling pass treats bridge payloads as CPU-side data that
   submits no draws.
+- `scenix-ui` and `scenix-editor` are tooling crates, not runtime crates:
+  `scenix-ui` stays `no_std`-capable (math only + optional serde) with a
+  fixed stats window and bounded overlay caps, and `scenix-editor` is the
+  one std-only crate (it wraps the graph plus the UI panel stack and drives
+  optional loader/material/animato via weak feature forwards). Neither
+  renders; neither touches `wgpu`; both sit above the engine crates so hosts
+  can build faces (egui, HTML tools, native windows) on shared exact
+  semantics.
 - `scenix-post` stays independent of `scenix-renderer`; renderer optionally integrates post support.
 - `scenix-loader` outputs CPU data and does not upload to GPU.
 - `scenix-wasm` is browser-oriented and optional.

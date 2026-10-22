@@ -5,24 +5,25 @@
 [![CI](https://github.com/AarambhDevHub/scenix/actions/workflows/ci.yml/badge.svg)](https://github.com/AarambhDevHub/scenix/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-scenix `1.9.1` is the current stable release. It ships the XR, audio, and
-physics bridges — `scenix-xr` (session plans, controller bays, 26-slot hand
-frames, anchors, planes, hit testing, light estimation), `scenix-audio`
-(spatial mixing with Doppler, streamed buffer health, spectrum analysis),
-and `scenix-physics` (a deterministic penalty-based rigid-body solver with
-sensors, spatial queries, sleeping, and a jump-capable character
-controller) — wired through the scene schema, camera stereo math, debug
-helpers, a WebXR fallback plan, and facade feature flags. v1.8.0's
-environment crates (terrain, sky, water) keep their GPU draw path,
-v1.7.0's deterministic CPU particle systems keep their billboard GPU path,
-v1.6.0's typed shader graphs, node materials, and post-node effect language
-remain the shading backbone, and v1.5.0's cross-platform controls, input
-stack, selection/transform primitives, reusable gizmos, inspector snapshots,
-optional egui rendering, and on-demand GPU picking remain the interaction
-backbone. CPU authoring stays lightweight by default while GPU, browser, and
-UI paths remain opt-in. The `1.9.1` patch picks up Animato `1.7.3`, whose
-facade is now `no_std`-capable, so the `animato` bridge compiles for
-bare-metal targets ([release notes](./.github/release-notes/1.9.1.md)).
+scenix `1.10.0` is the current stable release. It ships "Editor And UI
+Tooling": `scenix-editor` (owning editor sessions over a scene graph with
+exact inverse-command undo/redo, coalesced gizmo drags, scene-tree rows,
+the node inspector surface, material field editing, asset-browser rows,
+timeline previews, and a versioned project metadata exchange) and
+`scenix-ui` (a renderer-agnostic layer of docked panel stacks solved by a
+space allocator, rolling renderer stats with budget policies, tool widgets
+with hit testing, and bounded per-frame overlay composition). Both crates
+build on the v1.5.0 interaction backbone instead of duplicating it — the
+selection state, editor metadata, and `Inspectable` snapshots stay in the
+scene/core crates the editor drives — and neither renders a single pixel:
+host faces (egui, HTML tools, native windows) draw the solved output.
+v1.9.0's XR, audio, and physics bridges, v1.8.0's environment crates
+(terrain, sky, water) with their GPU draw path, v1.7.0's deterministic CPU
+particle systems with their billboard GPU path, and v1.6.0's typed shader
+graphs, node materials, and post-node effect language all keep their
+facade feature flags. CPU authoring stays lightweight by default while
+GPU, browser, and UI paths remain opt-in
+([release notes](./.github/release-notes/1.10.0.md)).
 
 ## Install
 
@@ -49,6 +50,8 @@ scenix = { version = "1", features = ["physics"] }
 scenix = { version = "1", features = ["wasm"] }
 scenix = { version = "1", features = ["interaction"] }
 scenix = { version = "1", features = ["editor", "egui"] }
+scenix = { version = "1", features = ["ui"] }
+scenix = { version = "1", features = ["editor"] }
 ```
 
 Focused crates can be used directly:
@@ -95,10 +98,14 @@ scenix-light = { version = "1", default-features = false }
 scenix-texture = { version = "1", default-features = false }
 scenix-raycaster = { version = "1", default-features = false }
 scenix-helpers = { version = "1", default-features = false }
+scenix-ui = { version = "1", default-features = false }
 ```
 
-`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`, and
-`scenix-wasm` are optional `std` paths. `scenix-animato` targets Animato
+`scenix-editor` is a std-only tooling crate; import it directly when you
+want the owning session/undo model without the full facade surface.
+
+`scenix-loader`, `scenix-renderer`, `scenix-post`, `scenix-animato`,
+`scenix-ui`, `scenix-editor`, and `scenix-wasm` are optional tooling or `std` paths. `scenix-animato` targets Animato
 `1.7.3`. `scenix-nodes` is a `no_std`-capable CPU crate; its renderer, post
 stack, and browser preflight integrations are `std`/`wasm32` features of their
 host crates.
@@ -111,8 +118,9 @@ host crates.
 | `scene`, `camera`, `mesh`, `material`, `light`, `texture` | yes | CPU authoring crates. |
 | `raycaster`, `helpers` | yes | BVH picking and debug line helper data. |
 | `interaction` | no | Convenience bundle for scene, camera, raycaster, and helpers. |
-| `editor` | no | Inspector snapshots and editor-facing selection/transform data. |
+| `editor` | no | Owning editor sessions with exact inverse-command undo/redo, coalesced gizmo drags, scene-tree rows, the node inspector surface, and material field editing under the `scenix-editor` crate; implies `ui` for the standard panel stack. |
 | `egui` | no | Read-only egui inspector adapter; the host owns its window/render loop. |
+| `ui` | no | Renderer-agnostic UI tooling under the `scenix-ui` crate: docked panel stacks with the space solver, rolling renderer stats with budget policies, tool widgets with hit testing, and bounded overlay composition. |
 | `loader` | no | Asset packages, asset manager, glTF/GLB extension metadata, OBJ/MTL, STL, image, KTX2, HDR/EXR loading, and exporters. |
 | `renderer` | no | `wgpu` renderer with surface/headless targets. |
 | `post` | no | Full-screen post-processing stack; use with `renderer`. |
@@ -397,6 +405,8 @@ assert!(raycaster.cast_ray(ray, &scene, &meshes).is_some());
 | `scenix-helpers` | Debug lines, reusable gizmos, selection visuals, snap grids, and optional egui. |
 | `scenix-animato` | Optional Animato bridge. |
 | `scenix-wasm` | Optional browser canvas wrapper with WebGPU and WebGL paths. |
+| `scenix-ui` | Optional renderer-agnostic UI tooling: docked panel stacks, the space solver, rolling renderer stats, tool widgets, and bounded overlay composition. |
+| `scenix-editor` | Optional std-only editor tooling: owning sessions with exact inverse-command undo/redo, coalesced gizmo drags, scene-tree rows, the inspector surface, material field editing, and project metadata. |
 
 ## Examples
 
@@ -508,6 +518,7 @@ cargo llvm-cov --workspace --all-features
 - [Deployment](./docs/deployment/README.md)
 - [Migration](./docs/migration/from-0.9-to-1.0.md)
 - [Reference](./docs/reference/feature-matrix.md)
+- [v1.10.0 release notes](./.github/release-notes/1.10.0.md)
 - [v1.9.1 release notes](./.github/release-notes/1.9.1.md)
 - [v1.9.0 release notes](./.github/release-notes/1.9.0.md)
 - [v1.8.0 release notes](./.github/release-notes/1.8.0.md)

@@ -89,6 +89,57 @@ pub use scenix_physics::{
 #[cfg(all(feature = "physics", feature = "helpers"))]
 pub use scenix_helpers::ColliderDebugHelper;
 
+// v1.10.0 UI tooling: the renderer-agnostic model layer behind editor and
+// debug overlays — anchor/edge layout, docked panel stacks with the space
+// solver, rolling renderer stats with budget policies, tool widgets, and the
+// bounded per-frame overlay composition. Curated rather than a glob:
+// `scenix-ui`'s names (`FrameSample`, `OverlayFrame`, free functions)
+// otherwise invite future collisions with runtime crates, and tooling
+// benefits from one explicit list here.
+#[cfg(feature = "ui")]
+pub use scenix_ui::{
+    Anchor, BudgetPolicy, BudgetWarning, Button, ColorSwatch, DOCK_MAX_FRACTION, DockKind,
+    DockedLayout, Edges, FOCUS_CHAIN_MAX, FocusChain, FrameSample, MAX_OVERLAY_RECTS,
+    MAX_OVERLAY_TEXTS, OverlayFrame, PANEL_BACKDROP_ALPHA, PANEL_MAX_THICKNESS,
+    PANEL_MIN_THICKNESS, PanelEvent, PanelId, PanelSpec, PanelStack, Rect, RendererStats,
+    SLIDER_DEFAULT_STEP, STATS_BACKDROP_ALPHA, STATS_HISTORY_FRAMES, Slider, SmallTextBuffer,
+    TEXT_BUFFER_CAP, Toggle, UI_VERSION, UiRect, UiScale, UiText, WidgetEvent, WidgetId,
+    compose_panel_overlay, panel_placement, safe_rect, widget_hit,
+};
+
+// v1.10.0 editor tooling: owning sessions over a scene graph with exact
+// inverse-command undo/redo, gizmo drag math, scene-tree row models, the
+// selected-node inspector surface, material field editing, and project
+// metadata. The facade `editor` feature forward-enables the editor crate's
+// own `inspector` and `material` features, so those surfaces re-export
+// unconditionally here; asset-browser rows arrive with `loader` and timeline
+// previews with `animato`.
+#[cfg(feature = "editor")]
+pub use scenix_editor::{
+    ActiveGizmo, COALESCE_WINDOW_TICKS, EDITOR_VERSION, EditCommand, EditHistory, EditorSession,
+    GIZMO_COALESCE_KEY, GIZMO_HALF_LENGTH, GIZMO_PICK_THRESHOLD, GizmoAxis, GizmoMode,
+    GizmoSettings, HISTORY_DEFAULT_CAP, HistoryEntry, INSPECTOR_ROW_LIMIT, InspectorEdit,
+    MATERIAL_IOR_MAX, MATERIAL_IOR_MIN, MATERIAL_LOG_DEFAULT_CAP, MATERIAL_UNIT_MAX,
+    MaterialChange, MaterialEditorLog, PANEL_ASSETS, PANEL_INSPECTOR, PANEL_MATERIAL,
+    PANEL_SCENE_TREE, PANEL_TIMELINE, PROJECT_SCHEMA_VERSION, PbrField, PhysicalField,
+    ROTATE_SNAP_RADIANS, SCALE_SNAP_STEP, SCENE_PANEL_ROW_LIMIT, TRANSLATE_SNAP_STEP, TextureSlot,
+    TransformDelta, apply_axis_delta, apply_pbr_field, apply_physical_field, assign_texture,
+    axis_pick, kind_short_name, scene_rows, snap_translation, standard_panels,
+};
+
+#[cfg(all(feature = "editor", feature = "loader"))]
+pub use scenix_editor::{
+    AssetBrowserModel, AssetBrowserRow, AssetStatusClass, BROWSER_LABEL_CAP, BROWSER_ROW_LIMIT,
+};
+
+#[cfg(all(feature = "editor", feature = "animato"))]
+pub use scenix_editor::{
+    TIMELINE_RATE_MAX, TIMELINE_RATE_MIN, TIMELINE_SNAP_FPS, TimelineFrame, TimelinePreview,
+};
+
+#[cfg(all(feature = "editor", feature = "serde"))]
+pub use scenix_editor::{ProjectError, ProjectMetadata, SceneRoute};
+
 // v1.7.0 particle surface: CPU systems + the material/texture types the
 // GPU draw path consumes. The dot-names collide with `scenix_material`'s
 // `particle` module and `scenix_texture`'s `flipbook` module, so this is a

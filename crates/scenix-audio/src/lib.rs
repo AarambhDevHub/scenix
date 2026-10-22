@@ -57,4 +57,4 @@ pub use stream::{
 };
 
 /// Crate version reported for audio tooling.
-pub const AUDIO_VERSION: &str = "1.9.1";
+pub const AUDIO_VERSION: &str = "1.10.0";
